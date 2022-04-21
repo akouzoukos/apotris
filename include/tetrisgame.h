@@ -36,6 +36,15 @@ namespace Tetris
         }
     };
 
+    class Drop {
+    public:
+        int on = false;
+        int startX = 0;
+        int endX = 0;
+        int startY = 0;
+        int endY = 0;
+    };
+
     class SoundFlags {
     public:
         int shift = 0;
@@ -57,6 +66,7 @@ namespace Tetris
         int current;
         int rotation;
         int board[4][4][4];
+        int lowest;
         void setBlock();
 
         Pawn(int newX, int newY) {
@@ -79,6 +89,7 @@ namespace Tetris
         void lockCheck();
         void next();
         void place();
+        void generateGarbage(int);
 
         std::list<int> bag;
         int canHold = 1;
@@ -99,9 +110,11 @@ namespace Tetris
         int right = 0;
         int down = 0;
 
-        int b2b = 0;
 
         int lastMoveRotation = 0;
+        int finesseCounter = 0;
+        bool dropping = false;
+        Drop lastDrop;
 
     public:
         int lengthX = 10;
@@ -123,21 +136,31 @@ namespace Tetris
         int timer = 0;
         int refresh = 0;
         int won = 0;
+        int goal;
+        int finesse = 0;
+        int garbageCleared = 0;
+        int garbageHeight = 0;
+        int pushDir = 0;
+        int b2bCounter = 0;
 
         void rotateCW();
         void rotateCCW();
-        void hardDrop();
+        Drop hardDrop();
         void update();
         int lowest();
         Color color(int);
         void hold();
-        int** getShape(int);
+        int** getShape(int,int);
         void keyLeft(int);
         void keyRight(int);
         void keyDown(int);
+        void keyDrop();
         void removeClearLock();
         void resetSounds();
         void resetRefresh();
+        void setLevel(int);
+        void setGoal(int);
+        Drop getDrop();
 
         Game(){}
         Game(int gm) {
@@ -149,12 +172,23 @@ namespace Tetris
                 for (int j = 0; j < lengthX; j++)
                     board[i][j] = 0;
             }
+            
             fillBag();
             fillQueue(5);
             linesToClear = std::list<int>();
 
             pawn = Pawn((int)lengthX / 2 - 2, 0);
             next();
+
+            if(gameMode == 1)
+                goal = 40;
+            else if(gameMode == 2)
+                goal = 150;
+            else if(gameMode == 3){
+                goal = 100;
+                generateGarbage(9);
+            }
+            
         }
     };
 }

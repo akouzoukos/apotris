@@ -28,6 +28,9 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite3tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite4tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite5tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite6tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite7tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite8tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/build/soundbank.h \
  /home/apostolos/Programming/GBA/apotris/build/soundbank_bin.h
 /opt/devkitpro/libtonc/include/tonc.h:
@@ -59,5 +62,8 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite3tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite4tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite5tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite6tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite7tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite8tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/build/soundbank.h:
 /home/apostolos/Programming/GBA/apotris/build/soundbank_bin.h:

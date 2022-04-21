@@ -25,6 +25,19 @@ void aprintf(int n, int x, int y){
 	aprint(res,x,y);
 }
 
+void aprintColor(std::string str, int x, int y,int palette){
+	u16 * dest = (u16*) bg3Map;
+	dest+=32*y+x;
+	for(int i = 0; i < (int) str.length(); i++){
+		int c = str[i]-32;
+		int letter = 0xf000-0x1000*palette;
+		letter += c;
+		*dest++ = letter;
+	}
+	
+	memcpy16(&se_mem[29][32*y+x],&bg3Map[y*32+x],((int)str.length())*16/2);
+}
+
 void clearText(){
 	for(int i = 0; i < 688; i++){
 		bg3Map[i] = 0xf000;
