@@ -43,14 +43,11 @@ void Game::rotateCW() {
     if (clearLock)
         return;
     lastMoveRotation = 1;
-    int len = (pawn.current == 0) ? 7 : 6;
-    for (int i = 0; i < len; i++) {
-
-        if(i == 1 || (len == 7 && i == 2))
-            continue; 
+    for (int i = 0; i < 5; i++) {
         int dx = GameInfo::kicks[(pawn.current == 0)][0][pawn.rotation][i][0];
         int dy = GameInfo::kicks[(pawn.current == 0)][0][pawn.rotation][i][1];
         int r = (pawn.rotation == 3) ? 0 : pawn.rotation + 1;
+        
         if (checkRotation(dx, dy, r)) {
             pawn.rotation++;
             if (pawn.rotation > 3)
@@ -63,6 +60,10 @@ void Game::rotateCW() {
 
             pawn.setBlock();
             sounds.rotate = 1;
+
+            if(i == 4 && pawn.current == 5)
+                specialTspin = true;
+            
             return;
         }else
 			sounds.invalid = 1;
@@ -73,13 +74,11 @@ void Game::rotateCCW() {
     if (clearLock)
         return;
     lastMoveRotation = 1;
-    int len = (pawn.current == 0) ? 7 : 6;
-    for (int i = 0; i < len; i++) {
-        if(i == 1 || (len == 7 && i == 2))
-            continue; 
+    for (int i = 0; i < 5; i++) {
         int dx = GameInfo::kicks[(pawn.current == 0)][1][pawn.rotation][i][0];
         int dy = GameInfo::kicks[(pawn.current == 0)][1][pawn.rotation][i][1];
         int r = (pawn.rotation == 0) ? 3 : pawn.rotation - 1;
+        
         if (checkRotation(dx, dy, r)) {
             pawn.rotation--;
             if (pawn.rotation < 0)
@@ -92,6 +91,10 @@ void Game::rotateCCW() {
 
             pawn.setBlock();
             sounds.rotate = 1;
+            
+            if(i == 4 && pawn.current == 5)
+                specialTspin = true;
+
             return;
         }else
 			sounds.invalid = 1;
@@ -121,78 +124,37 @@ void Game::moveRight() {
 }
 
 void Game::moveDown() {
-    if (checkRotation(0, 1, pawn.rotation))
+    if (checkRotation(0, 1, pawn.rotation)){
         pawn.y++;
+        sounds.shift = 1;
+    }
 }
 
-Drop Game::hardDrop() {
-
-    Drop result;
-
-    if (clearLock){
-        result.startX = -1;
-        return result;
-    }
+void Game::hardDrop() {
+    if (clearLock || dropLockTimer)
+        return;
 
     int diff = pawn.lowest - pawn.y;
 
-    result.on = true;
-    result.startX = pawn.x;
-
-    int start = -1;
-    int end = 4;
-    for(int i = 0; i < 4; i++){
-        bool found = false;
-        for(int j = 0; j < 4; j++){
-            if(pawn.board[pawn.rotation][j][i] == 1){
-                found = true;
-                break;
-            }
-        }
-
-        if(found && start == -1)
-            start = i;
-        else if(!found && start != -1 && end == 4)
-            end = i;
-    }
-
-    result.startX += start;
-    result.endX = result.startX + end - start;
-
-    result.startY = pawn.y - 20;
+    if(diff)
+        lastMoveRotation = 0;
 
     pawn.y = pawn.lowest;
-
-    int add = 0;
-    for(int i = 3; i >=0; i--){
-        bool found = false;
-        for(int j = 0; j < 4; j++){
-            if(pawn.board[pawn.rotation][i][j] == 1){
-                found = true;
-                break;
-            }
-        }
-        if(found){
-            add = i;
-            break;
-        }
-    }
-    
-    result.endY = pawn.y - 20 + add;
-
-    if((pawn.current == 2 && pawn.rotation == 3) || (pawn.current == 1 && pawn.rotation == 1))
-        result.endY--;
 
     place();
     score += diff * 2;
 
-    return result;
+    return;
 }
 
 void Game::update() {
     if (lost)
         return;
     timer++;
+
+    if(dropLockTimer)
+        dropLockTimer--;
+
     if (clearLock)
         return;
     int prevLevel = level;
@@ -200,7 +162,7 @@ void Game::update() {
     if(level < prevLevel)
         level = prevLevel;
 
-    if((linesCleared >= goal && gameMode == 1) || (linesCleared >= goal && gameMode == 2) || (garbageCleared >= goal && gameMode == 3))
+    if((linesCleared >= goal && gameMode == 1 && goal) || (linesCleared >= goal && gameMode == 2) || (garbageCleared >= goal && gameMode == 3))
         won = 1;
 
     if (prevLevel != level && (gameMode == 0 || gameMode == 2))
@@ -215,14 +177,15 @@ void Game::update() {
 
     int n = (int)speedCounter;
     for (int i = 0; i < n; i++) {
-        moveDown();
+        if (checkRotation(0, 1, pawn.rotation))
+            pawn.y++;
     }
     speedCounter -= n;
 
     pawn.lowest = lowest();
 
     if(dropping){
-        lastDrop = hardDrop();
+        hardDrop();
         dropping = false;
         return;
     }else{
@@ -252,18 +215,22 @@ void Game::update() {
     }
 
     if (down) {
-        if (softDropCounter < maxSoftDrop)
+        if (softDropCounter < maxDas)
             softDropCounter++;
     }
     else
         softDropCounter = 0;
 
-    if (softDropCounter == maxSoftDrop) {
-        for (int i = 0; i < softDropSpeed; i++) {
-            moveDown();
+    if (softDropCounter == maxDas) {
+        softDropRepeatTimer++;
+        if(softDropRepeatTimer == softDropSpeed){
+            moveDown(); 
             if (pawn.y != pawn.lowest)
                 score++;
+            softDropRepeatTimer = 0;
         }
+        // for (int i = 0; i < softDropSpeed; i++) {
+        // }
     }
 }
 
@@ -315,7 +282,9 @@ void Game::place() {
         return;
     }
 
-    if (clear())
+    lastDrop = calculateDrop();
+
+    if (clear(lastDrop))
         comboCounter++;
             
     else{
@@ -333,6 +302,7 @@ void Game::place() {
     lockMoveCounter = 15;
     sounds.place = 1;
     refresh = 1;
+    dropLockTimer = dropLockMax;
 
     if(finesseCounter > 2)
         finesse++;
@@ -341,7 +311,7 @@ void Game::place() {
     pushDir = 0;
 }
 
-int Game::clear() {
+int Game::clear(Drop drop) {
     int i, j;
     int clearCount = 0;
     int isTSpin = 0;
@@ -382,7 +352,7 @@ int Game::clear() {
                 backCount += (board[y][x + 2] != 0) + (board[y + 2][x + 2] != 0);
             break;
         }
-        if (frontCount == 2 && backCount > 0)
+        if ((frontCount == 2 && backCount > 0) || (frontCount > 0 && backCount == 2 && specialTspin))
             isTSpin = 2;
         else if (frontCount > 0 && backCount == 2)
             isTSpin = 1;
@@ -465,10 +435,11 @@ int Game::clear() {
     score += add;
 
     if (clearCount > 0)
-        previousClear = Score(clearCount, add, comboCounter, isTSpin, isPerfectClear, isBackToBack, isDifficult);
+        previousClear = Score(clearCount, add, comboCounter, isTSpin, isPerfectClear, isBackToBack, isDifficult, drop);
 
     sounds.clear = 1;
     clearLock = 1;
+    specialTspin = false;
     
     return 1;
 }
@@ -485,6 +456,7 @@ Color Game::color(int n) {
 void Game::fillBag() {
     for (int i = 0; i < 7; i++)
         bag.push_back(i);
+    bagCounter++;
 }
 
 void Game::next() {
@@ -671,4 +643,62 @@ Drop Game::getDrop(){
     Drop result = lastDrop;
     lastDrop = Drop();
     return result;
+}
+
+Drop Game::calculateDrop(){
+    Drop result;
+
+    result.on = true;
+    result.startX = pawn.x;
+
+    int start = -1;
+    int end = 4;
+    for(int i = 0; i < 4; i++){
+        bool found = false;
+        for(int j = 0; j < 4; j++){
+            if(pawn.board[pawn.rotation][j][i] == 1){
+                found = true;
+                break;
+            }
+        }
+
+        if(found && start == -1)
+            start = i;
+        else if(!found && start != -1 && end == 4)
+            end = i;
+    }
+
+    result.startX += start;
+    result.endX = result.startX + end - start;
+
+    result.startY = pawn.y - 20;
+    
+    int add = 0;
+    for(int i = 3; i >=0; i--){
+        bool found = false;
+        for(int j = 0; j < 4; j++){
+            if(pawn.board[pawn.rotation][i][j] == 1){
+                found = true;
+                break;
+            }
+        }
+        if(found){
+            add = i;
+            break;
+        }
+    }
+    
+    result.endY = pawn.y - 20 + add;
+
+    if((pawn.current == 2 && pawn.rotation == 3) || (pawn.current == 1 && pawn.rotation == 1))
+        result.endY--;
+
+    return result;
+}
+
+void Game::setTuning(int newDas, int newArr, int newSfr, bool newDropProtection){
+    maxDas = newDas;
+    arr = newArr;
+    softDropSpeed = newSfr;
+    dropProtection = newDropProtection;
 }

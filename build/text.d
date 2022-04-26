@@ -4,6 +4,7 @@ text.o: /home/apostolos/Programming/GBA/apotris/source/text.cpp \
  /home/apostolos/Programming/GBA/apotris/include/posprintf.h \
  /opt/devkitpro/libgba/include/maxmod.h \
  /opt/devkitpro/libgba/include/mm_types.h \
+ /home/apostolos/Programming/GBA/apotris/include/tetrisgame.h \
  /opt/devkitpro/libtonc/include/tonc.h \
  /opt/devkitpro/libtonc/include/tonc_types.h \
  /opt/devkitpro/libtonc/include/tonc_memmap.h \
@@ -25,6 +26,7 @@ text.o: /home/apostolos/Programming/GBA/apotris/source/text.cpp \
 /home/apostolos/Programming/GBA/apotris/include/posprintf.h:
 /opt/devkitpro/libgba/include/maxmod.h:
 /opt/devkitpro/libgba/include/mm_types.h:
+/home/apostolos/Programming/GBA/apotris/include/tetrisgame.h:
 /opt/devkitpro/libtonc/include/tonc.h:
 /opt/devkitpro/libtonc/include/tonc_types.h:
 /opt/devkitpro/libtonc/include/tonc_memmap.h:

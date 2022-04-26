@@ -16,7 +16,7 @@
 
 #define SHOW_FINESSE 0
 #define DIAGNOSE 0
-#define SAVE_TAG 0x47
+#define SAVE_TAG 0x4b
 
 using namespace Tetris;
 
@@ -54,8 +54,11 @@ bool onRecord();
 void diagnose();
 void showProgressBar();
 void showFrames();
+void clearGlow();
 
-Game game(0);
+int frameCounter;
+
+Game *game;
 OBJ_ATTR obj_buffer[128];
 
 OBJ_ATTR *pawnSprite;
@@ -65,6 +68,8 @@ OBJ_ATTR *holdFrameSprite;
 OBJ_ATTR *queueFrameSprites[3];
 
 OBJ_ATTR *queueSprites[5];
+
+OBJ_ATTR *titleSprites[2];
 
 int backgroundArray[24][30];
 int bgSpawnBlock = 0;
@@ -116,7 +121,8 @@ bool onStates = false;
 
 Settings previousSettings;
 
-// Tetris::Game *quickSave;
+Tetris::Game *quickSave;
+bool saveExists = false;
 
 class FloatText{
 public:
@@ -179,11 +185,11 @@ void onVBlank(void){
 		profile_start();
 		showClearText();
 
-		if(game.refresh){
+		if(game->refresh){
 			showBackground();
 			update();
-			game.resetRefresh();
-		}else if(game.clearLock)
+			game->resetRefresh();
+		}else if(game->clearLock)
 			showBackground();
 		addToResults(profile_stop(),3);
 
@@ -224,11 +230,14 @@ int main(void) {
 	memcpy16(&tile_mem[5][32+8],&sprite6tiles_bin[128],sprite6tiles_bin_size/2*2/4);
 	memcpy16(&tile_mem[5][48],&sprite6tiles_bin[128],sprite6tiles_bin_size/2*1/4);
 	memcpy16(&tile_mem[5][48+4],&sprite6tiles_bin[128],sprite6tiles_bin_size/2*3/4);
-
+	
+	memcpy16(&tile_mem[5][64],title1tiles_bin,title1tiles_bin_size/2);
+	memcpy16(&tile_mem[5][96],title2tiles_bin,title2tiles_bin_size/2);
 
 	memcpy16(&tile_mem[2][0],fontTiles,fontTilesLen/2);
 
 	memcpy16(&tile_mem[2][97],sprite1tiles_bin,sprite1tiles_bin_size/2);
+	
 
 	//load tetriminoes into tile memory for menu screen animation
 
@@ -236,7 +245,7 @@ int main(void) {
 
 	int **board;
 	for(int i = 0; i < 7; i++){
-		board = game.getShape(i,0);
+		board = game->getShape(i,0);
 		for(int j = 0; j < 4; j++){
 			for(int k = 0; k < 4; k++){
 				if(board[j][k]){
@@ -251,6 +260,8 @@ int main(void) {
 
 	memcpy16((COLOR*)MEM_PAL_OBJ, palette,paletteLen/2);
 
+	memcpy16(&pal_obj_mem[14*16], title_pal_bin,title_pal_bin_size/2);
+	
 	//load mini sprite tiles
 	for(int i = 0; i < 7; i++)
 		memcpy16(&tile_mem[4][9*16+i*8],mini[i],16*7);
@@ -262,12 +273,6 @@ int main(void) {
 
 	loadSave();
 	
-	mmStart(MOD_MENU,MM_PLAY_LOOP	);
-	mmSetModuleVolume(512*((float)savefile->settings.volume/10));
-
-	//stard screen animation
-	startScreen();
-
 	//init glow 
 	for(int i = 0; i < 20; i++)
 		for(int j = 0; j < 10; j++)
@@ -285,8 +290,42 @@ int main(void) {
 	for(int i = 0; i < 3; i++)
 		queueFrameSprites[i] = &obj_buffer[11+i];
 
+	for(int i = 0; i < 2; i++)
+		titleSprites[i] = &obj_buffer[14+i];
+
 	oam_init(obj_buffer,128);
 
+	mmStart(MOD_MENU,MM_PLAY_LOOP);
+	mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+
+	for(int i = 0; i < 2; i++){
+		obj_unhide(titleSprites[i],0);
+		obj_set_attr(titleSprites[i],ATTR0_WIDE,ATTR1_SIZE(3),ATTR2_PALBANK(14));
+		titleSprites[i]->attr2 = ATTR2_BUILD(512+64+i*32,14,0);
+		obj_set_pos(titleSprites[i],120-64+64*i,24);
+	}
+
+	oam_copy(oam_mem,obj_buffer,128);
+	
+	// int counter = 0;
+	// int timer = 0;
+	// int timerMax = 2;
+	// while(counter < 1000){
+	// 	VBlankIntrWait();
+	// 	aprint(std::to_string(counter),0,0);
+
+	// 	if(timer++ == timerMax){
+	// 		timer = 0;
+	// 		delete game;
+	// 		game = new Game(0);
+	// 		counter++;
+	// 	}
+	// }
+
+	//start screen animation
+	startScreen();
+
+	oam_init(obj_buffer,128);
 	drawFrame();
 
 	mmStop();
@@ -297,36 +336,38 @@ int main(void) {
 
 	countdown();
 
-	mmStart(MOD_THIRNO,MM_PLAY_LOOP	);
-	mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+	if(!(game->gameMode == 1 && game->goal == 0)){
+		mmStart(MOD_THIRNO,MM_PLAY_LOOP	);
+		mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+	}
 
 	clearText();
 	update();
 	
-	int frameCounter = 0;
+	frameCounter = 0;
 
 	while (1) {
 		diagnose();
-		if(!game.lost && !pause)
-			game.update();
+		if(!game->lost && !pause)
+			game->update();
 		checkSounds();
 
 		showProgressBar();
 
-		// gameSeconds = (int)(0.0167f * game.timer);
-		gameSeconds = game.timer;
+		// gameSeconds = (int)(0.0167f * game->timer);
+		gameSeconds = game->timer;
 
-		if(game.clearLock){
+		if(game->clearLock){
 			clearTimer++;
 		}
 
 		if(clearTimer == maxClearTimer){
-			game.removeClearLock();
+			game->removeClearLock();
 			shake = -shakeMax;
 			clearTimer = 0;
 		}
 
-		Tetris::Drop latestDrop = game.getDrop();
+		Tetris::Drop latestDrop = game->getDrop();
 
 		if(latestDrop.on)
 			addGlow(latestDrop);
@@ -334,7 +375,7 @@ int main(void) {
 		canDraw = 1;
 		VBlankIntrWait();
 
-		if(game.won || game.lost)
+		if(game->won || game->lost)
 			endScreen();
 
 		if(pause)
@@ -342,14 +383,16 @@ int main(void) {
 
 		if(restart){
 			restart = false;
-			int oldGoal = game.goal;
-			int oldLevel = game.level;
+			int oldGoal = game->goal;
+			int oldLevel = game->level;
 
 			mmStop();
 
-			game = Game(game.gameMode);
-			game.setGoal(oldGoal);
-			game.setLevel(oldLevel);
+			delete game;
+			game = new Game(game->gameMode);
+			game->setGoal(oldGoal);
+			game->setLevel(oldLevel);
+			game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
 
 			memset32(&se_mem[25],0x0000,32*10);
 
@@ -362,10 +405,16 @@ int main(void) {
 			showFrames();
 			oam_copy(oam_mem,obj_buffer,128);
 			showProgressBar();
+
+			clearGlow();
+			floatingList.clear();
+
 			countdown();
 
-			mmStart(MOD_THIRNO,MM_PLAY_LOOP);
-			mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+			if(!(game->gameMode == 1 && game->goal == 0)){
+				mmStart(MOD_THIRNO,MM_PLAY_LOOP);
+				mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+			}
 		
 			clearText();
 			update();
@@ -385,21 +434,21 @@ void update(){
 }
 
 void checkSounds(){
-	if (game.sounds.hold == 1)
+	if (game->sounds.hold == 1)
 		sfx(SFX_HOLD);
-	if (game.sounds.shift == 1)
+	if (game->sounds.shift == 1)
 		sfx(SFX_SHIFT);
-	if (game.sounds.place == 1){
+	if (game->sounds.place == 1){
 		sfx(SFX_PLACE); 
 		shake = 2;
 	}
-	if (game.sounds.invalid == 1)
+	if (game->sounds.invalid == 1)
 		sfx(SFX_INVALID);
-	if (game.sounds.rotate == 1)
+	if (game->sounds.rotate == 1)
 		sfx(SFX_ROTATE);
-	if (game.sounds.clear == 1) {
+	if (game->sounds.clear == 1) {
 
-		int speed = game.comboCounter-1;
+		int speed = game->comboCounter-1;
 		if(speed > 10)
 			speed = 10;
 		
@@ -416,36 +465,36 @@ void checkSounds(){
 		int soundEffect = -1;
 
 		clearTypeText = "";
-		if (game.previousClear.isPerfectClear == 1){
+		if (game->previousClear.isPerfectClear == 1){
 			soundEffect = SFX_PERFECTCLEAR;
 			clearTypeText = "perfect clear";
 			effectList.push_back(Effect(0));
-		}else if (game.previousClear.isTSpin == 2) {
-			if(game.previousClear.isBackToBack == 1)
+		}else if (game->previousClear.isTSpin == 2) {
+			if(game->previousClear.isBackToBack == 1)
 				soundEffect = SFX_BACKTOBACKTSPIN;
 			else
 				soundEffect = SFX_TSPIN;
 
-			if(game.previousClear.linesCleared == 1){
+			if(game->previousClear.linesCleared == 1){
 				clearTypeText = "t-spin single";
-			}else if(game.previousClear.linesCleared == 2){
+			}else if(game->previousClear.linesCleared == 2){
 				clearTypeText = "t-spin double";
-			}else if(game.previousClear.linesCleared == 3){
+			}else if(game->previousClear.linesCleared == 3){
 				clearTypeText = "t-spin triple";
 			}
-		}else if (game.previousClear.isTSpin == 1) {
+		}else if (game->previousClear.isTSpin == 1) {
 			soundEffect = SFX_TSPINMINI;
 			clearTypeText = "t-spin mini";
-		}else if (game.previousClear.linesCleared == 4) {
-			if(game.previousClear.isBackToBack == 1)
+		}else if (game->previousClear.linesCleared == 4) {
+			if(game->previousClear.isBackToBack == 1)
 				soundEffect = SFX_BACKTOBACKTETRIS;
 			else
 				soundEffect = SFX_TETRIS;
 			clearTypeText = "tetris";
-		}else if (game.previousClear.linesCleared == 3) {
+		}else if (game->previousClear.linesCleared == 3) {
 			soundEffect = SFX_TRIPLE;
 			clearTypeText = "triple";
-		}else if (game.previousClear.linesCleared == 2) {
+		}else if (game->previousClear.linesCleared == 2) {
 			soundEffect = SFX_DOUBLE;
 			clearTypeText = "double";
 		}
@@ -456,25 +505,25 @@ void checkSounds(){
 		if(savefile->settings.announcer && soundEffect != -1)
 			sfx(soundEffect);
 	}
-	if (game.sounds.levelUp == 1) {
+	if (game->sounds.levelUp == 1) {
 		sfx(SFX_LEVELUPSOUND);
 	}
-	game.resetSounds();
+	game->resetSounds();
 }
 
 void showBackground(){
 
 	u16*dest = (u16*)se_mem[25];
 
-	std::list<int>::iterator l2c = game.linesToClear.begin();
+	std::list<int>::iterator l2c = game->linesToClear.begin();
 	
 	dest+= 10;
 	for(int i = 20; i < 40; i++){
 		for(int j = 0; j < 10; j++){
 			// draw white for clear animation
-			if(!game.board[i][j]){
+			if(!game->board[i][j]){
 				*dest++ = 0;
-			}else if(game.clearLock && i == *l2c){
+			}else if(game->clearLock && i == *l2c){
 				if(j < 5){
 					if(clearTimer < maxClearTimer-10+j*2)
 						*dest++ = 3;
@@ -488,7 +537,7 @@ void showBackground(){
 				}
 
 			}else 
-				*dest++ = (1+(((u32)(game.board[i][j]-1)) << 12));
+				*dest++ = (1+(((u32)(game->board[i][j]-1)) << 12));
 		}
 		if(i == *l2c)
 			std::advance(l2c,1);
@@ -497,7 +546,7 @@ void showBackground(){
 }
 
 void showPawn(){
-	if(game.clearLock){
+	if(game->clearLock){
 		obj_hide(pawnSprite);
 		return;
 	}
@@ -506,21 +555,21 @@ void showPawn(){
 
 	for(int i = 0; i < 4; i++){
 		for(int j = 0; j < 4; j++){
-			if(game.pawn.board[game.pawn.rotation][i][j] > 0)
+			if(game->pawn.board[game->pawn.rotation][i][j] > 0)
 				memcpy16(&tile_mem[4][16*7+i*4+j],blockSprite,sprite1tiles_bin_size/2);
 			else
 				memset(&tile_mem[4][16*7+i*4+j],0,sprite1tiles_bin_size);
 		}
 	}
 
-	int n = game.pawn.current;
+	int n = game->pawn.current;
 	obj_set_attr(pawnSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(n));
 	pawnSprite->attr2 = ATTR2_BUILD(16*7,n,1);
-	obj_set_pos(pawnSprite,(10+game.pawn.x)*8+push*savefile->settings.shake,(game.pawn.y-20)*8);
+	obj_set_pos(pawnSprite,(10+game->pawn.x)*8+push*savefile->settings.shake,(game->pawn.y-20)*8);
 }
 
 void showShadow(){
-	if(game.clearLock){
+	if(game->clearLock){
 		obj_hide(pawnShadow);
 		return;
 	}
@@ -529,17 +578,17 @@ void showShadow(){
 
 	for(int i = 0; i < 4; i++){
 		for(int j = 0; j < 4; j++){
-			if(game.pawn.board[game.pawn.rotation][i][j] > 0)
+			if(game->pawn.board[game->pawn.rotation][i][j] > 0)
 				memcpy16(&tile_mem[4][16*8+i*4+j],sprite2tiles_bin,sprite2tiles_bin_size/2);
 			else
 				memset(&tile_mem[4][16*8+i*4+j],0,sprite2tiles_bin_size);
 		}
 	}
 
-	int n = game.pawn.current;
+	int n = game->pawn.current;
 	obj_set_attr(pawnShadow,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(n));
 	pawnShadow->attr2 = ATTR2_BUILD(16*8,n,1);
-	obj_set_pos(pawnShadow,(10+game.pawn.x)*8+push*savefile->settings.shake,(game.lowest()-20)*8+shake*savefile->settings.shake);
+	obj_set_pos(pawnShadow,(10+game->pawn.x)*8+push*savefile->settings.shake,(game->lowest()-20)*8+shake*savefile->settings.shake);
 }
 
 void showHold(){
@@ -548,20 +597,20 @@ void showHold(){
 	holdFrameSprite->attr2 = ATTR2_BUILD(512,6,0);
 	obj_set_pos(holdFrameSprite,4*8+5,9*8-2);
 
-	if(game.held == -1){
+	if(game->held == -1){
 		obj_hide(holdSprite);
 		return;
 	}
 
 	obj_unhide(holdSprite,0);
 
-	obj_set_attr(holdSprite,ATTR0_WIDE,ATTR1_SIZE(2),ATTR2_PALBANK(game.held));
+	obj_set_attr(holdSprite,ATTR0_WIDE,ATTR1_SIZE(2),ATTR2_PALBANK(game->held));
 
-	int add = !(game.held == 0 || game.held == 3);
+	int add = !(game->held == 0 || game->held == 3);
 
-	holdSprite->attr2 = ATTR2_BUILD(9*16+8*game.held,game.held,1);
+	holdSprite->attr2 = ATTR2_BUILD(9*16+8*game->held,game->held,1);
 
-	obj_set_pos(holdSprite,(5)*8+add*3+1,(10)*8-3*(game.held == 0));
+	obj_set_pos(holdSprite,(5)*8+add*3+1,(10)*8-3*(game->held == 0));
 }
 
 void showQueue(){
@@ -572,7 +621,7 @@ void showQueue(){
 		obj_set_pos(queueFrameSprites[i],173,12+32*i);
 	}
 	
-	std::list<int>::iterator q = game.queue.begin();
+	std::list<int>::iterator q = game->queue.begin();
 	for(int k = 0; k < 5; k++){
 		obj_unhide(queueSprites[k],0);
 
@@ -603,91 +652,99 @@ void control(){
 	}
 
 	if(KEY_UP == (key & KEY_UP))
-		game.keyDrop();
+		game->keyDrop();
 
 	if(KEY_DOWN == (key & KEY_DOWN))
-		game.keyDown(1);
+		game->keyDown(1);
 
 	if(KEY_LEFT == (key & KEY_LEFT))
-		game.keyLeft(1);
+		game->keyLeft(1);
 
 	if(KEY_RIGHT == (key & KEY_RIGHT))
-		game.keyRight(1);
+		game->keyRight(1);
 
 	if(KEY_A == (key & KEY_A))
-		game.rotateCW();
+		game->rotateCW();
 
 	if(KEY_B == (key & KEY_B))
-		game.rotateCCW();
+		game->rotateCCW();
 
 	if(KEY_L == (key & KEY_L) || KEY_R == (key & KEY_R)){
-		game.hold();
+		game->hold();
 		update();
 	}
 
-	// if(KEY_SELECT == (key & KEY_SELECT)){
-	// 	sfx(SFX_MENUCONFIRM);
-	// 	pause = true;
-	// 	mmPause();
-	// 	clearText();
-	// 	update();
-	// 	onStates = true;
-	// }
+	if(KEY_SELECT == (key & KEY_SELECT) && game->goal == 0 && game->gameMode == 1){
+		sfx(SFX_MENUCONFIRM);
+		pause = true;
+		mmPause();
+		clearText();
+		update();
+		onStates = true;
+	}
 
 	key = key_released(KEY_FULL);
 
 	if(KEY_DOWN == (key & KEY_DOWN))
-		game.keyDown(0);
+		game->keyDown(0);
 
 	if(KEY_LEFT == (key & KEY_LEFT))
-		game.keyLeft(0);
+		game->keyLeft(0);
 
 	if(KEY_RIGHT == (key & KEY_RIGHT))
-		game.keyRight(0);
+		game->keyRight(0);
 }
 
 void showText(){
-	if(game.gameMode == 0 || game.gameMode == 2){
+	if(game->gameMode == 0 || game->gameMode == 2){
 
 		aprint("Score",3,3);
 
-		std::string score = std::to_string(game.score);
+		std::string score = std::to_string(game->score);
 		aprint(score,8-score.size(),5);
 
 		aprint("Level",2,14);
 
-		std::string level = std::to_string(game.level);
+		std::string level = std::to_string(game->level);
 		aprint(level,4,15);
 
-	}else if(game.gameMode == 1 && SHOW_FINESSE){
-		aprint("Finesse",1,14);
-		std::string finesse = std::to_string(game.finesse);
-		aprint(finesse,4,15);
+	}else if(game->gameMode == 1){
+		if(SHOW_FINESSE){
+			aprint("Finesse",1,14);
+			std::string finesse = std::to_string(game->finesse);
+			aprint(finesse,4,15);
+		}
+		if(game->goal == 0){
+			aprint("Training",1,1);
+			std::string bagCount = std::to_string(game->bagCounter-1);
+			aprint(bagCount,26,1);
+
+		}
 	}
 
 	aprint("Lines",2,17);
 	std::string lines;
-	if(game.gameMode == 3)
-		lines = std::to_string(game.garbageCleared);
+	if(game->gameMode == 3)
+		lines = std::to_string(game->garbageCleared);
 	else
-		lines = std::to_string(game.linesCleared);
+		lines = std::to_string(game->linesCleared);
 	aprint(lines,4,18);
 }
 
 void showClearText(){
-	if(game.comboCounter > 1){
+	if(game->comboCounter > 1){
 		aprint("Combo x",21,clearTextHeight-1);
 
-		std::string text = std::to_string(game.comboCounter);
+		std::string text = std::to_string(game->comboCounter);
 		aprint(text,28,clearTextHeight-1);
 	}else{
 		aprint("          ",20,clearTextHeight-1);
 	}
 	
-	if(game.b2bCounter > 0){
+	if(game->b2bCounter > 0){
 		aprint("Streak",22,clearTextHeight+1);
 
-		std::string text = std::to_string(game.b2bCounter+1);
+		std::string text = std::to_string(game->b2bCounter+1);
 		aprint("x",24,clearTextHeight+2);
 		aprint(text,25,clearTextHeight+2);
 	}else{
@@ -746,8 +803,11 @@ void loadFromSram(){
 }
 
 void showTimer(){
-	std::string timer = timeToString(gameSeconds);
-	aprint(timer,1,1);
+
+	if(!(game->gameMode == 1 && game->goal == 0)){
+		std::string timer = timeToString(gameSeconds);
+		aprint(timer,1,1);
+	}
 }
 
 std::string timeToString(int frames){
@@ -834,6 +894,13 @@ void drawGrid(){
 								glow[i][j] = glowDuration+abs(index->x-j)+abs(index->y-i);
 				}
 				break;
+			case 3:
+				if(index->timer == 0){
+					for(int i = 0; i < 20; i++)
+						for(int j = 0; j < 10; j++)
+							glow[i][j] = glowDuration+abs(index->x-j)+abs(index->y-i);
+				}
+				break;
 			}
 
 			index->timer++;
@@ -873,30 +940,24 @@ void drawGrid(){
 void startText(bool onSettings, int selection, int goalSelection, int level, int toStart){
 
 	if(!onSettings){
-		aprint("APOTRIS",12,4);
+		// aprint("APOTRIS",12,4);
 
-		aprint("Marathon",12,10);
-		aprint("Sprint",12,12);
-		aprint("Dig",12,14);
-		aprint("Settings",12,16);
+		int startX = 12;
+		int startY = 9;
+		int space = 2;
+
+		aprint("Marathon",startX,startY);
+		aprint("Sprint",startX,startY+space);
+		aprint("Dig",startX,startY+space*2);
+		aprint("Settings",startX,startY+space*3);
+		aprint("Credits",startX,startY+space*4);
 
 		aprint("akouzoukos",20,19);
 
-		aprint(" ",10,10);
-		aprint(" ",10,12);
-		aprint(" ",10,14);
-		aprint(" ",10,16);
+		for(int i = 0; i < 5; i++)
+			aprint(" ",startX-2,startY+space*i);
 		
-		if(selection == 0){
-			aprint(">",10,10);
-		}else if(selection == 1){
-			aprint(">",10,12);
-		}else if(selection == 2){
-			aprint(">",10,14);
-		}else if(selection == 3){
-			aprint(">",10,16);
-		}
-
+		aprint(">",startX-2,startY+space*selection);
 	}else{
 		if(toStart == 2){//Marathon Options
 			int levelHeight = 3;
@@ -1072,19 +1133,23 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 			}
 		}else if(toStart == -1){
 			int startX = 5;
-			int startY = 4;
-			int space = 2;
+			int startY = 5;
+			int space = 1;
 			aprint("Voice",startX,startY);
 			aprint("Clear Text",startX,startY+space);
 			aprint("Screen Shake",startX,startY+space*2);
 			aprint("Effects",startX,startY+space*3);
 			aprint("Music",startX,startY+space*4);
+			aprint("Auto Repeat Delay",startX,startY+space*5);
+			aprint("Auto Repeat Rate",startX,startY+space*6);
+			aprint("Soft Drop Speed",startX,startY+space*7);
+			aprint("Drop Protection",startX,startY+space*8);
 			aprint(" SAVE ",12,17);
 
-			int endX = 23;
+			int endX = 24;
 
-			for(int i = 0; i < 5; i++)
-				aprint("     ",endX-1,startY+space*i);
+			for(int i = 0; i < 9; i++)
+				aprint("      ",endX-1,startY+space*i);
 			
 			if(savefile->settings.announcer)
 				aprint("ON",endX,startY);
@@ -1107,6 +1172,32 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 				aprint("OFF",endX,startY+space*3);
 
 			aprint(std::to_string(savefile->settings.volume),endX,startY+space*4);
+			
+			if(savefile->settings.das == 8)
+				aprint("FAST",endX,startY+space*5);
+			else if(savefile->settings.das == 11)
+				aprint("MID",endX,startY+space*5);
+			else if(savefile->settings.das == 16)
+				aprint("SLOW",endX,startY+space*5);
+
+			if(savefile->settings.arr == 1)
+				aprint("FAST",endX,startY+space*6);
+			else if(savefile->settings.arr == 2)
+				aprint("MID",endX,startY+space*6);
+			else if(savefile->settings.arr == 3)
+				aprint("SLOW",endX,startY+space*6);
+			
+			if(savefile->settings.sfr == 1)
+				aprint("FAST",endX,startY+space*7);
+			else if(savefile->settings.sfr == 2)
+				aprint("MID",endX,startY+space*7);
+			else if(savefile->settings.sfr == 3)
+				aprint("SLOW",endX,startY+space*7);
+			
+			if(savefile->settings.dropProtection)
+				aprint("ON",endX,startY+space*8);
+			else
+				aprint("OFF",endX,startY+space*8);
 
 			if(selection == 0){
 				aprint("[",endX-1,startY+space*selection);
@@ -1121,21 +1212,56 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 				aprint("[",endX-1,startY+space*selection);
 				aprint("]",endX+2+(!savefile->settings.effects),startY+space*selection);
 			}else if(selection == 4){
-				aprint("<",endX-1,startY+space*selection);
-				aprint(">",endX+1+(savefile->settings.volume > 9),startY+space*selection);
+				if(savefile->settings.volume > 0)
+					aprint("<",endX-1,startY+space*selection);
+				if(savefile->settings.volume < 10)
+					aprint(">",endX+1,startY+space*selection);
 			}else if(selection == 5){
+				if(savefile->settings.das > 8)
+					aprint(">",endX+3+(savefile->settings.das != 11),startY+space*selection);
+				if(savefile->settings.das < 16)
+					aprint("<",endX-1,startY+space*selection);
+			}else if(selection == 6){
+				if(savefile->settings.arr < 3)
+					aprint("<",endX-1,startY+space*selection);
+				if(savefile->settings.arr > 1)
+					aprint(">",endX+3+(savefile->settings.arr != 2),startY+space*selection);
+				
+			}else if(selection == 7){
+				if(savefile->settings.sfr < 3)
+					aprint("<",endX-1,startY+space*selection);
+				if(savefile->settings.sfr > 1)
+					aprint(">",endX+3+(savefile->settings.sfr != 2),startY+space*selection);
+
+			}else if(selection == 8){
+				aprint("[",endX-1,startY+space*selection);
+				aprint("]",endX+2+(!savefile->settings.dropProtection),startY+space*selection);
+			}else if(selection == 9){
 				aprint("[",12,17);
 				aprint("]",17,17);
 			}
+		}else if(toStart == -2){
+			int startX = 4;
+			int startY = 3;
+			
+			int startY2 = 12;
+
+			aprint("Menu Music:",startX,startY);
+			aprint("veryshorty-extended",startX,startY+2);
+			aprint("by supernao",startX,startY+3);
+
+			
+			aprint("In-Game Music:",startX,startY2);
+			aprint("Thirno",startX,startY2+2);
+			aprint("by Nikku4211",startX,startY2+3);
 		}
 	}
 }
 
 void startScreen(){
-	// REG_BG0VOFS = 0;
 	int selection = 0;
 
-	int options = 4;
+	int options = 5;
 
 	int toStart = 0;
 	bool onSettings = false;
@@ -1144,12 +1270,26 @@ void startScreen(){
 	int goalSelection = 0;
 
 	bool refreshText = true; 
+	
+	int maxDas = 16;
+	int dasLeft = 0;
+	int dasRight = 0;
+
+	int maxArr = 3;
+	int arr = 0;
 
 	while(1){
 		VBlankIntrWait();
 
-		if(!onSettings)
+		if(!onSettings){
 			fallingBlocks();
+			for(int i = 0; i < 2; i++)
+				obj_unhide(titleSprites[i],0);
+		}else{
+			for(int i = 0; i < 2; i++)
+				obj_hide(titleSprites[i]);
+		}
+
 
 		if(refreshText){
 			startText(onSettings,selection,goalSelection,level,toStart);
@@ -1161,6 +1301,18 @@ void startScreen(){
 		u16 key = key_hit(KEY_FULL);
 
 		if(!onSettings){
+			if(key_is_down(KEY_SELECT) && key_is_down(KEY_A)){
+				delete game;
+				game = new Game(1);
+				game->setLevel(1);
+				game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
+				game->setGoal(0);
+
+				u16*dest = (u16*)se_mem[25];
+				memset16(dest,0,20*32);
+				break;
+			}
+			
 			if(key == KEY_A){
 				int n = 0;
 				if(selection == 0){
@@ -1178,7 +1330,9 @@ void startScreen(){
 				}else if(selection == 3){
 					n = -1;
 					previousSettings = savefile->settings;
-					options = 6;
+					options = 10;
+				}else if(selection == 4){
+					n = -2;
 				}
 
 				sfx(SFX_MENUCONFIRM);
@@ -1186,14 +1340,12 @@ void startScreen(){
 				onSettings = true;
 				
 				u16*dest = (u16*)se_mem[25];
-
 				memset16(dest,0,20*32);
 
 				clearText();
 				selection = 0;
 				
 				refreshText = true;
-
 			}
 
 		}else{
@@ -1209,6 +1361,33 @@ void startScreen(){
 						level--;
 						sfx(SFX_MENUMOVE);
 						refreshText = true;
+					}
+
+					if(key_is_down(KEY_LEFT)){
+						if(dasLeft < maxDas){
+							dasLeft++;
+						}else if(level > 1){
+							if(arr++ > maxArr){
+								arr = 0;
+								level--;
+								sfx(SFX_MENUMOVE);
+								refreshText = true;
+							}
+						}
+					}else if(key_is_down(KEY_RIGHT)){
+						if(dasRight < maxDas){
+							dasRight++;
+						}else if(level < 20){
+							if(arr++ > maxArr){
+								arr = 0;
+								level++;
+								sfx(SFX_MENUMOVE);
+								refreshText = true;
+							}
+						}
+					}else{
+						dasLeft = 0;
+						dasRight = 0;
 					}
 				}else if(selection == 1){
 					if(key == KEY_RIGHT && goalSelection < 3){
@@ -1254,8 +1433,29 @@ void startScreen(){
 							savefile->settings.volume--;
 
 						mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+					}else if(selection == 5){
+						if(savefile->settings.das == 11){
+							if(key == KEY_LEFT)
+								savefile->settings.das = 16; 
+							if(key == KEY_RIGHT)
+								savefile->settings.das = 8; 
+						}else if((key == KEY_RIGHT && savefile->settings.das == 16) || (key == KEY_LEFT && savefile->settings.das == 8)){
+							savefile->settings.das = 11; 
+						}
+					}else if(selection == 6){
+						if(key == KEY_RIGHT && savefile->settings.arr > 1)
+							savefile->settings.arr--;
+						else if(key == KEY_LEFT && savefile->settings.arr < 3)
+							savefile->settings.arr++;
+					}else if(selection == 7){
+						if(key == KEY_RIGHT && savefile->settings.sfr > 1)
+							savefile->settings.sfr--;
+						else if(key == KEY_LEFT && savefile->settings.sfr < 3)
+							savefile->settings.sfr++;
+					}else if(selection == 8){
+						savefile->settings.dropProtection = !savefile->settings.dropProtection;
 					}
-					if(selection != 5){
+					if(selection != options-1){
 						sfx(SFX_MENUMOVE);
 						refreshText = true;
 					}
@@ -1272,8 +1472,10 @@ void startScreen(){
 						if(toStart == 2 && goalSelection == 3)
 							toStart = 0;
 						
-						game = Game(toStart);
-						game.setLevel(level);
+						delete game;
+						game = new Game(toStart);
+						game->setLevel(level);
+						game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
 						mode = goalSelection;
 
 						int goal = 0;
@@ -1306,14 +1508,14 @@ void startScreen(){
 						}
 
 						if(goal)
-							game.setGoal(goal);
+							game->setGoal(goal);
 						
 						sfx(SFX_MENUCONFIRM);
 						break;
 					}else{
 						saveToSram();
 						onSettings = false;
-						options = 4;
+						options = 5;
 						selection = 0;
 						clearText();
 						refreshText = true;
@@ -1327,7 +1529,7 @@ void startScreen(){
 				if(toStart != -1){
 					if(selection == 0){
 						onSettings = false;
-						options = 4;
+						options = 5;
 						clearText();
 						sfx(SFX_MENUCANCEL);
 						refreshText = true;
@@ -1339,7 +1541,7 @@ void startScreen(){
 					}
 				}else{
 					onSettings = false;
-					options = 4;
+					options = 5;
 					clearText();
 					sfx(SFX_MENUCANCEL);
 					savefile->settings = previousSettings;
@@ -1348,6 +1550,8 @@ void startScreen(){
 
 				goalSelection = 0;
 				selection = 0;
+
+				sfx(SFX_MENUCONFIRM);
 			}
 		}
 		
@@ -1368,11 +1572,12 @@ void startScreen(){
 			sfx(SFX_MENUMOVE);
 			refreshText = true;
 		}
+		
+		sqran(qran() % frameCounter++);
+		
+		oam_copy(oam_mem,obj_buffer,128);
 	}
 	clearText();
-
-	// u16*dest = (u16*)se_mem[25];
-	// memset16(dest,0,20*32);
 }
 
 void fallingBlocks(){
@@ -1409,7 +1614,7 @@ void fallingBlocks(){
 		bgSpawnBlock = 0;
 		int x = qran() % 27;
 		int n = qran() % 7;
-		int **p = game.getShape(n,qran()%4);
+		int **p = game->getShape(n,qran()%4);
 
 		for(i = 0; i < 4; i++)
 			for(j = 0; j < 4; j++)
@@ -1432,9 +1637,9 @@ void endScreen(){
 
 	endAnimation();
 
-	if(game.won == 1){
+	if(game->won == 1){
 		sfx(SFX_CLEAR);
-	}else if(game.lost == 1){
+	}else if(game->lost == 1){
 		sfx(SFX_GAMEOVER);
 	}
 
@@ -1450,7 +1655,7 @@ void endScreen(){
 		
 		showStats();
 
-		if(record)
+		if(record && game->won)
 			aprint("New Record",10,7);
 
 		aprint("Play",12,14);
@@ -1474,13 +1679,17 @@ void endScreen(){
 				sfx(SFX_MENUCONFIRM);
 				shake = 0;
 				
-				int goal = game.goal;
-				game = Game(game.gameMode);
-				game.setGoal(goal);
+				int goal = game->goal;
+				delete game;
+				game = new Game(game->gameMode);
+				game->setGoal(goal);
+				game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
 
 				mmStop();
-				mmStart(MOD_THIRNO,MM_PLAY_LOOP);
-				mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+				if(!(game->gameMode == 1 && game->goal == 0)){
+					mmStart(MOD_THIRNO,MM_PLAY_LOOP);
+					mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+				}
 				
 				floatingList.clear();
 
@@ -1574,15 +1783,15 @@ void endAnimation(){
 }
 
 void showStats(){
-	if(game.gameMode == 0 || game.gameMode == 2 || game.lost){
-		std::string score = std::to_string(game.score);
+	if(game->gameMode == 0 || game->gameMode == 2 || game->lost){
+		std::string score = std::to_string(game->score);
 
-		if(game.lost)	
+		if(game->lost)	
 			aprint("GAME  OVER",10,4);
 		else
 			aprint("CLEAR!",12,4);
 
-		if(game.gameMode == 0 || game.gameMode == 2)
+		if(game->gameMode == 0 || game->gameMode == 2)
 			aprint(score,15-((int)score.size()/2),9);
 	}else{
 		aprint("CLEAR!",12,4);
@@ -1592,15 +1801,14 @@ void showStats(){
 }
 
 void pauseMenu(){
-	aprint("PAUSE!",12,6);
 
 	int selection = 0;
 	int maxSelection = 3;
+	
+	for(int i = 0; i < 20; i++)
+		aprint("          ",10,i);
 
-	// if(!onStates)
-	// 	maxSelection = 3;
-	// else
-	// 	maxSelection = 2;
+	aprint("PAUSE!",12,6);
 	
 	while(1){
 		VBlankIntrWait();
@@ -1633,6 +1841,7 @@ void pauseMenu(){
 					clearText();
 					showText();
 					pause = false;
+					mmResume();
 					break;
 				}else if(selection == 1){
 					restart = true;
@@ -1645,30 +1854,46 @@ void pauseMenu(){
 				}
 			}
 		}else{
-			// aprint("Resume",12,11);
-			// aprint("Load",12,13);
-			// aprint("Save",12,15);
+			aprint("Resume",12,11);
+			aprintColor("Load",12,13,!(saveExists));
+			aprint("Save",12,15);
 
-			// if(key == KEY_A){
-			// 	if(selection == 0){
-			// 		sfx(SFX_MENUCONFIRM);
-			// 		clearText();
-			// 		showText();
-			// 		pause = false;
-			// 		onStates = false;
-			// 		break;
-			// 	}else if(selection == 1){
-			// 		// game = quickSave;
+			if(key == KEY_A){
+				if(selection == 0){
+					sfx(SFX_MENUCONFIRM);
+					clearText();
+					showText();
+					pause = false;
+					onStates = false;
+					mmResume();
+					break;
+				}else if(selection == 1){
+					if(saveExists){
+						delete game;
+						game = new Game(*quickSave);
+						showBackground();
+						update();
+						floatingList.clear();
+						clearGlow();
+						
+						sfx(SFX_MENUCONFIRM);
+						break;
+					}else{
+						
+						sfx(SFX_MENUCANCEL);
+					}
+				}else if(selection == 2){
+					delete quickSave;
+					quickSave = new Game(*game);
+					saveExists = true;
 
-			// 		sfx(SFX_MENUCONFIRM);
-			// 		break;
-			// 	}else if(selection == 2){
-			// 		// quickSave = game;
+					// Save *test = new Save();
+					// test->savedGame = Game(game);
+					// savefile->savedGame = Game(*game);
 
-			// 		sfx(SFX_MENUCONFIRM);
-			// 		break;
-			// 	}
-			// }
+					sfx(SFX_MENUCONFIRM);
+				}
+			}
 		}
 
 		if(key == KEY_START){
@@ -1686,6 +1911,8 @@ void pauseMenu(){
 			clearText();
 			showText();
 			pause = false;
+			onStates = false;
+			mmResume();
 			break;
 		}
 		
@@ -1704,6 +1931,8 @@ void pauseMenu(){
 				selection++;
 			sfx(SFX_MENUMOVE);
 		}
+
+		oam_copy(oam_mem,obj_buffer,128);
 	}
 }
 
@@ -1753,14 +1982,14 @@ void addGlow(Tetris::Drop location){
 		for(int j = location.startX; j < location.endX; j++)
 			glow[i][j] = glowDuration;
 
-	if(game.comboCounter > 0){
+	if(game->comboCounter > 0){
 		int xCenter = (location.endX-location.startX)/2+location.startX;
-		if(game.previousClear.isTSpin){
+		if(game->previousClear.isTSpin){
 			for(int i = 0; i < 20; i++)
 				for(int j = 0; j < 10; j++)
 					glow[i][j] = glowDuration+abs(xCenter-j)+abs(location.endY-i);
 			
-			if(game.previousClear.isBackToBack == 1){
+			if(game->previousClear.isBackToBack == 1){
 				effectList.push_back(Effect(2,xCenter,location.endY));
 			}
 		}else{
@@ -1768,7 +1997,7 @@ void addGlow(Tetris::Drop location){
 				for(int j = 0; j < 10; j++)
 					glow[i][j] = glowDuration+Sqrt(abs(xCenter-j)*abs(xCenter-j)+abs(location.endY-i)*abs(location.endY-i));
 
-			if(game.previousClear.isBackToBack == 1){
+			if(game->previousClear.isBackToBack == 1){
 				effectList.push_back(Effect(1,xCenter,location.endY));
 			}
 
@@ -1778,10 +2007,12 @@ void addGlow(Tetris::Drop location){
 }
 
 void loadSave(){
-	savefile = new Save;
+	savefile = new Save();
 	loadFromSram();
 
 	if(savefile->newGame != SAVE_TAG){
+		// delete savefile;
+		savefile = new Save();
 		savefile->newGame = SAVE_TAG;
 
 		for(int i = 0; i < 8; i++)
@@ -1805,8 +2036,15 @@ void loadSave(){
 		savefile->settings.floatText = true;
 		savefile->settings.shake = true;
 		savefile->settings.effects = true;
+		savefile->settings.das = 11;
+		savefile->settings.arr = 2;
+		savefile->settings.sfr = 2;
+		savefile->settings.dropProtection = true;
 
 		savefile->settings.volume = 10;
+
+		// savefile->savedGame = Game(0);
+		// savefile->canLoad = false;
 	}
 
 	saveToSram();
@@ -1831,9 +2069,9 @@ void screenShake(){
 	
 	REG_BG0HOFS = -push;
 	REG_BG1HOFS = -push;
-	if(game.pushDir != 0){
+	if(game->pushDir != 0){
 		if(abs(push) < pushMax)
-			push+= game.pushDir;
+			push+= game->pushDir;
 	}else{
 		if(push > 0)
 			push--;
@@ -1966,8 +2204,8 @@ bool onRecord(){
 	bool first = false;
 
 	for(int i = 0; i < 5; i++){
-		if(game.gameMode == 0 || game.gameMode == 2){
-			if(game.score < savefile->marathon[mode].highscores[i].score)
+		if(game->gameMode == 0 || game->gameMode == 2){
+			if(game->score < savefile->marathon[mode].highscores[i].score)
 				continue;
 
 			for(int j = 3; j >= i; j--)
@@ -1975,10 +2213,10 @@ bool onRecord(){
 
 			std::string name = nameInput((i==0));
 
-			savefile->marathon[mode].highscores[i].score = game.score;
+			savefile->marathon[mode].highscores[i].score = game->score;
 			strncpy(savefile->marathon[mode].highscores[i].name,name.c_str(),9);
 			
-		}else if(game.gameMode == 1 && game.won == 1){
+		}else if(game->gameMode == 1 && game->won == 1){
 			if(gameSeconds > savefile->sprint[mode].times[i].frames && savefile->sprint[mode].times[i].frames)
 				continue;
 
@@ -1990,7 +2228,7 @@ bool onRecord(){
 			savefile->sprint[mode].times[i].frames = gameSeconds;
 			strncpy(savefile->sprint[mode].times[i].name,name.c_str(),9);
 
-		}else if(game.gameMode == 3 && game.won == 1){
+		}else if(game->gameMode == 3 && game->won == 1){
 			if(gameSeconds > savefile->dig[mode].times[i].frames && savefile->dig[mode].times[i].frames)
 				continue;
 
@@ -2019,8 +2257,8 @@ void diagnose(){
 
 	int statHeight = 4;
 
-	// aprint(std::to_string(game.b2bCounter),0,0);	
-	// aprint(std::to_string(game.garbageCleared),0,2);	
+	// aprint(std::to_string(game->b2bCounter),0,0);	
+	// aprint(std::to_string(game->garbageCleared),0,2);	
 	for(int i = 0; i < 5; i++){
 		aprint("       ",20,statHeight+i);
 		std::string n = std::to_string(profileResults[i]);
@@ -2029,13 +2267,17 @@ void diagnose(){
 }
 
 void showProgressBar(){
-	int current;
-	int max = game.goal;
+	
+	if(game->goal == 0)
+		return;
 
-	if(game.gameMode != 3)
-		current = game.linesCleared;
+	int current;
+	int max = game->goal;
+
+	if(game->gameMode != 3)
+		current = game->linesCleared;
 	else
-		current = game.garbageCleared;
+		current = game->garbageCleared;
 
 	int pixels = fx2int(fxmul(fxdiv(int2fx(current),int2fx(max)),int2fx(158)));
 	int segments = fx2int(fxdiv(int2fx(current),fxdiv(int2fx(max),int2fx(20))));
@@ -2129,4 +2371,11 @@ void showFrames(){
 		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,6,0);
 		obj_set_pos(queueFrameSprites[i],173,12+32*i);
 	}
+}
+
+void clearGlow(){
+	for(int i = 0; i < 20; i++)
+		for(int j = 0; j < 10; j++)
+			glow[i][j] = 0;
+	drawGrid();
 }

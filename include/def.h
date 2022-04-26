@@ -2,6 +2,7 @@
 #include <tonc_types.h>
 #include "posprintf.h"
 #include <maxmod.h>
+#include "tetrisgame.h"
 
 extern void aprint(std::string,int,int);
 extern void aprintColor(std::string,int,int,int);
@@ -41,6 +42,10 @@ typedef struct Settings{
     bool shake;
     bool effects;
     int volume;
+    int das;
+    int arr;
+    int sfr;
+    bool dropProtection;
 
 }ALIGN(4) Settings;
 
@@ -53,6 +58,9 @@ typedef struct Save{
     Scoreboard marathon[4];
     Timeboard sprint[3];
     Timeboard dig[3];
+
+    // Tetris::Game savedGame;
+    // bool canLoad;
 
 }ALIGN(4) Save;
 

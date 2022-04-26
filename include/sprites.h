@@ -7,6 +7,11 @@
 #include "../build/sprite6tiles_bin.h"
 #include "../build/sprite7tiles_bin.h"
 #include "../build/sprite8tiles_bin.h"
+#include "../build/sprite9tiles_bin.h"
+
+#include "../build/title1tiles_bin.h"
+#include "../build/title2tiles_bin.h"
+#include "../build/title_pal_bin.h"
 
 #define paletteLen 512
 const unsigned short palette[256] __attribute__((aligned(4)))=
