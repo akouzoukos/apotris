@@ -56,7 +56,7 @@ void showProgressBar();
 void showFrames();
 void clearGlow();
 
-int frameCounter;
+int frameCounter = 1;
 
 Game *game;
 OBJ_ATTR obj_buffer[128];
@@ -344,8 +344,6 @@ int main(void) {
 	clearText();
 	update();
 	
-	frameCounter = 0;
-
 	while (1) {
 		diagnose();
 		if(!game->lost && !pause)
