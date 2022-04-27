@@ -305,52 +305,57 @@ namespace GameInfo{
         20.0
     };
 
-    static constexpr int scoring[17][2]={
+    static constexpr int scoring[17][3]={
         {//Single
-            100,0
+            100,0,0
         },
         {//Double
-            300,0
+            300,0,1
         },
         {//Triple
-            500,0
+            500,0,2
         },
         {//Tetris
-            800,1
+            800,1,4
         },
         {//T-Spin Mini no lines
-            100,0
+            100,0,0
         },
         {//T-Spin Mini single
-            200,1
+            200,1,0
         },
         {//T-Spin Mini Double
-            400,1
+            400,1,1
         },
         {//T-Spin no lines
-            400,0
+            400,0,0
         },
         {//T-Spin Single
-            800,1
+            800,1,2
         },
         {//T-Spin Double
-            1200,1
+            1200,1,4
         },
         {//T-Spin Triple
-            1600,1
+            1600,1,6
         },{//Perfect Clear Single
-            800,0
+            800,0,10
         },{//Perfect Clear Double
-            1200,0
+            1200,0,10
         },{//Perfect Clear Triple
-            1800,0
+            1800,0,10
         },{//Perfect Clear Tetris
-            2000,0
+            2000,0,10
         },{//Perfect Clear Back to Back Tetris  
-            3200,0
+            3200,0,10
         },
         {//Combo
-            50,0
+            50,0,0
         }
+    };
+    
+    static constexpr int comboTable[20]={
+        0,1,1,2,2, 3,3,4,4,4,
+        5,5,5,5,5, 5,5,5,5,5
     };
 }

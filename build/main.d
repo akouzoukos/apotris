@@ -36,7 +36,11 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
  /home/apostolos/Programming/GBA/apotris/include/../build/title2tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/title_pal_bin.h \
  /home/apostolos/Programming/GBA/apotris/build/soundbank.h \
- /home/apostolos/Programming/GBA/apotris/build/soundbank_bin.h
+ /home/apostolos/Programming/GBA/apotris/build/soundbank_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/LinkConnection.h \
+ /opt/devkitpro/libtonc/include/tonc_core.h \
+ /opt/devkitpro/libtonc/include/tonc_memdef.h \
+ /opt/devkitpro/libtonc/include/tonc_memmap.h
 /opt/devkitpro/libtonc/include/tonc.h:
 /opt/devkitpro/libtonc/include/tonc_types.h:
 /opt/devkitpro/libtonc/include/tonc_memmap.h:
@@ -75,3 +79,7 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
 /home/apostolos/Programming/GBA/apotris/include/../build/title_pal_bin.h:
 /home/apostolos/Programming/GBA/apotris/build/soundbank.h:
 /home/apostolos/Programming/GBA/apotris/build/soundbank_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/LinkConnection.h:
+/opt/devkitpro/libtonc/include/tonc_core.h:
+/opt/devkitpro/libtonc/include/tonc_memdef.h:
+/opt/devkitpro/libtonc/include/tonc_memmap.h:

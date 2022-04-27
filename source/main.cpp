@@ -14,6 +14,8 @@
 #include "soundbank.h"
 #include "soundbank_bin.h"
 
+#include "LinkConnection.h"
+
 #define SHOW_FINESSE 0
 #define DIAGNOSE 0
 #define SAVE_TAG 0x4b
@@ -52,11 +54,16 @@ std::string nameInput();
 std::string timeToString(int);
 bool onRecord();
 void diagnose();
-void showProgressBar();
+void progressBar();
+void showBar(int,int,int,int);
 void showFrames();
 void clearGlow();
+void handleMultiplayer();
+void startMultiplayerGame(int);
 
-int frameCounter;
+LinkConnection* linkConnection = new LinkConnection();
+
+int frameCounter = 1;
 
 Game *game;
 OBJ_ATTR obj_buffer[128];
@@ -119,10 +126,24 @@ u8* blockSprite;
 bool restart = false;
 bool onStates = false;
 
+int enemyHeight = 0;
+bool playAgain = false;
+int nextSeed = 0;
+
+int attackFlashTimer = 0;
+int attackFlashMax = 10;
+
 Settings previousSettings;
 
 Tetris::Game *quickSave;
 bool saveExists = false;
+
+bool multiplayer = false;
+
+int multiplayerStartTimer = 0;
+
+int attackCheckCooldown = 10;
+int attackCheckTimer = 0;
 
 class FloatText{
 public:
@@ -163,26 +184,21 @@ std::list<Effect> effectList;
 void onVBlank(void){
 
 	mmVBlank();
+	LINK_ISR_VBLANK();
+
 	if(canDraw){
 		canDraw = 0;
 
-		profile_start();
 		control();
-		addToResults(profile_stop(),0);
 
-		profile_start();
 		showShadow();
 		showHold();
-		addToResults(profile_stop(),1);
 	
-		profile_start();
 		drawGrid();
 		showTimer();
 		showPawn();
 		screenShake();
-		addToResults(profile_stop(),2);
 
-		profile_start();
 		showClearText();
 
 		if(game->refresh){
@@ -191,7 +207,6 @@ void onVBlank(void){
 			game->resetRefresh();
 		}else if(game->clearLock)
 			showBackground();
-		addToResults(profile_stop(),3);
 
 		oam_copy(oam_mem,obj_buffer,20);
 	}
@@ -203,6 +218,10 @@ int main(void) {
 	irq_init(NULL);
 	irq_enable(II_VBLANK);
 	irq_add(II_VBLANK,onVBlank);
+	
+	irq_add(II_SERIAL,LINK_ISR_SERIAL);
+	irq_add(II_TIMER3,LINK_ISR_TIMER);
+
 	mmInitDefault((mm_addr)soundbank_bin,10);
 
 	REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
@@ -295,6 +314,9 @@ int main(void) {
 
 	oam_init(obj_buffer,128);
 
+	linkConnection->activate();
+	// linkConnection->deactivate();
+
 	mmStart(MOD_MENU,MM_PLAY_LOOP);
 	mmSetModuleVolume(512*((float)savefile->settings.volume/10));
 
@@ -307,21 +329,6 @@ int main(void) {
 
 	oam_copy(oam_mem,obj_buffer,128);
 	
-	// int counter = 0;
-	// int timer = 0;
-	// int timerMax = 2;
-	// while(counter < 1000){
-	// 	VBlankIntrWait();
-	// 	aprint(std::to_string(counter),0,0);
-
-	// 	if(timer++ == timerMax){
-	// 		timer = 0;
-	// 		delete game;
-	// 		game = new Game(0);
-	// 		counter++;
-	// 	}
-	// }
-
 	//start screen animation
 	startScreen();
 
@@ -344,15 +351,14 @@ int main(void) {
 	clearText();
 	update();
 	
-	frameCounter = 0;
-
 	while (1) {
 		diagnose();
 		if(!game->lost && !pause)
 			game->update();
 		checkSounds();
+		handleMultiplayer();
 
-		showProgressBar();
+		progressBar();
 
 		// gameSeconds = (int)(0.0167f * game->timer);
 		gameSeconds = game->timer;
@@ -404,7 +410,7 @@ int main(void) {
 		
 			showFrames();
 			oam_copy(oam_mem,obj_buffer,128);
-			showProgressBar();
+			progressBar();
 
 			clearGlow();
 			floatingList.clear();
@@ -421,6 +427,7 @@ int main(void) {
 		}
 
 		sqran(qran() % frameCounter++);
+		
 		// addToResults(profile_stop(),3);
 	}
 }
@@ -643,7 +650,7 @@ void control(){
 	key_poll();
 	u16 key = key_hit(KEY_FULL);
 
-	if(KEY_START == (key & KEY_START)){
+	if(KEY_START == (key & KEY_START) && !multiplayer){
 		sfx(SFX_MENUCONFIRM);
 		pause = true;
 		mmPause();
@@ -852,9 +859,8 @@ void drawFrame(){
 		dest+=32-22;
 	}
 
-	showProgressBar();
+	progressBar();
 
-	
 	for(int i = 0; i < 3; i++){
 		obj_unhide(queueFrameSprites[i],0);
 		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(6));
@@ -1254,6 +1260,8 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 			aprint("In-Game Music:",startX,startY2);
 			aprint("Thirno",startX,startY2+2);
 			aprint("by Nikku4211",startX,startY2+3);
+		}else if(toStart == -3){
+			aprint("Multiplayer",0,0);
 		}
 	}
 }
@@ -1280,7 +1288,6 @@ void startScreen(){
 
 	while(1){
 		VBlankIntrWait();
-
 		if(!onSettings){
 			fallingBlocks();
 			for(int i = 0; i < 2; i++)
@@ -1289,7 +1296,6 @@ void startScreen(){
 			for(int i = 0; i < 2; i++)
 				obj_hide(titleSprites[i]);
 		}
-
 
 		if(refreshText){
 			startText(onSettings,selection,goalSelection,level,toStart);
@@ -1311,6 +1317,17 @@ void startScreen(){
 				u16*dest = (u16*)se_mem[25];
 				memset16(dest,0,20*32);
 				break;
+			}
+
+			if(key_is_down(KEY_SELECT) && key_is_down(KEY_B)){
+				toStart = -3;
+				sfx(SFX_MENUCONFIRM);
+				clearText();
+				onSettings = 3;
+				refreshText = true;
+
+				u16*dest = (u16*)se_mem[25];
+				memset16(dest,0,20*32);	
 			}
 			
 			if(key == KEY_A){
@@ -1460,6 +1477,60 @@ void startScreen(){
 						refreshText = true;
 					}
 				}
+			}else if(toStart == -3){
+
+				if(multiplayerStartTimer){
+					if(--multiplayerStartTimer == 0){
+						startMultiplayerGame(nextSeed);
+						break;
+					}else{
+						linkConnection->send((u16)nextSeed+100);
+					}
+				}else{
+					auto linkState = linkConnection->linkState.get();
+
+					if(linkState->isConnected()){
+						u16 data[LINK_MAX_PLAYERS];
+						for (u32 i = 0; i < LINK_MAX_PLAYERS; i++)
+							data[i] = 0;
+						for (u32 i = 0; i < linkState->playerCount; i++) {
+							while (linkState->hasMessage(i))
+								data[i] = linkState->readMessage(i);
+						}
+
+						for (u32 i = 0; i < LINK_MAX_PLAYERS; i++){
+							aprint(std::to_string(data[i]),0,5+i);
+							if(data[i] > 100)
+								nextSeed = data[i]-100;
+						}
+
+						if(linkState->playerCount == 2 && linkState->currentPlayerId != 0){
+							if(nextSeed > 100){
+								startMultiplayerGame(nextSeed);
+								break;
+							}
+						}
+
+						aprint(std::to_string(linkState->playerCount),0,1);
+
+						if(key == KEY_START && linkState->currentPlayerId == 0){
+							nextSeed = (u16) qran();
+							multiplayerStartTimer = 5;
+						}else{
+							linkConnection->send(2);
+						}
+
+						if(key == KEY_SELECT){
+							linkConnection->send(5);
+						}
+						aprint("             ",0,19);
+					}else{
+						aprint("no connection",0,19);
+					}
+
+				}
+
+
 			}
 
 			if(key == KEY_A){
@@ -1551,6 +1622,9 @@ void startScreen(){
 				goalSelection = 0;
 				selection = 0;
 
+				// if(toStart == -3)
+				// 	linkConnection->deactivate();
+
 				sfx(SFX_MENUCONFIRM);
 			}
 		}
@@ -1573,7 +1647,7 @@ void startScreen(){
 			refreshText = true;
 		}
 		
-		sqran(qran() % frameCounter++);
+		sqran(qran() * frameCounter++);
 		
 		oam_copy(oam_mem,obj_buffer,128);
 	}
@@ -1650,12 +1724,13 @@ void endScreen(){
 	bool record = onRecord();
 
 	while(1){
+		handleMultiplayer();
 		VBlankIntrWait();
 		key_poll();
 		
 		showStats();
 
-		if(record && game->won)
+		if(record && game->won && game->gameMode != 4)
 			aprint("New Record",10,7);
 
 		aprint("Play",12,14);
@@ -1674,16 +1749,43 @@ void endScreen(){
 
 		u16 key = key_hit(KEY_FULL);
 
+		if(playAgain){
+			playAgain = false;
+			startMultiplayerGame(nextSeed);
+			
+			mmStop();
+			mmStart(MOD_THIRNO,MM_PLAY_LOOP);
+			mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+			
+			floatingList.clear();
+
+			drawFrame();
+			clearText();
+
+			oam_init(obj_buffer,128);
+			showFrames();
+			oam_copy(oam_mem,obj_buffer,128);
+			countdown();
+			update();
+			break;
+		}
+
 		if(key == KEY_A){
 			if(!selection){
 				sfx(SFX_MENUCONFIRM);
 				shake = 0;
 				
-				int goal = game->goal;
-				delete game;
-				game = new Game(game->gameMode);
-				game->setGoal(goal);
-				game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
+				if(!multiplayer){
+					int goal = game->goal;
+					delete game;
+					game = new Game(game->gameMode);
+					game->setGoal(goal);
+					game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
+				}else{
+					u16 seed = (u16) qran();
+					linkConnection->send(seed+300);
+					startMultiplayerGame(seed);
+				}
 
 				mmStop();
 				if(!(game->gameMode == 1 && game->goal == 0)){
@@ -2255,22 +2357,34 @@ void diagnose(){
 	if(!DIAGNOSE)
 		return;
 
-	int statHeight = 4;
+	// int statHeight = 4;
 
-	// aprint(std::to_string(game->b2bCounter),0,0);	
-	// aprint(std::to_string(game->garbageCleared),0,2);	
-	for(int i = 0; i < 5; i++){
-		aprint("       ",20,statHeight+i);
-		std::string n = std::to_string(profileResults[i]);
-		aprint(n,20,statHeight+i);
+	// // aprint(std::to_string(game->b2bCounter),0,0);	
+	// // aprint(std::to_string(game->garbageCleared),0,2);	
+	// for(int i = 0; i < 5; i++){
+	// 	aprint("       ",20,statHeight+i);
+	// 	std::string n = std::to_string(profileResults[i]);
+	// 	aprint(n,20,statHeight+i);
+	// }
+
+	for(int i = 0; i < 5; i ++)
+		aprint("     ",0,11+i);
+
+	std::list<Tetris::Garbage>::iterator index = game->garbageQueue.begin();
+
+	for(int i = 0; i < (int) game->garbageQueue.size();i++){
+		aprint(std::to_string(index->amount),0,11+i);
+		aprint(std::to_string(index->timer),2,11+i);
+		std::advance(index,1);
 	}
+
+	aprint(std::to_string(game->currentHeight),0,19);
 }
 
-void showProgressBar(){
-	
+void progressBar(){
 	if(game->goal == 0)
 		return;
-
+	
 	int current;
 	int max = game->goal;
 
@@ -2279,21 +2393,39 @@ void showProgressBar(){
 	else
 		current = game->garbageCleared;
 
+	showBar(current,max,20,6);
+
+	if(game->gameMode == 4){
+		if(++attackFlashTimer > attackFlashMax)
+			attackFlashTimer = 0;
+
+		if(attackFlashTimer < attackFlashMax/2){
+			memset32(&pal_bg_mem[8*16+5],0x421f,1);
+		}else{
+			memset32(&pal_bg_mem[8*16+5],0x7fff,1);
+		}
+		showBar(game->getIncomingGarbage(),20,9,8);
+	}
+}
+
+void showBar(int current, int max, int x, int palette){
+	palette *= 0x1000;
+
 	int pixels = fx2int(fxmul(fxdiv(int2fx(current),int2fx(max)),int2fx(158)));
 	int segments = fx2int(fxdiv(int2fx(current),fxdiv(int2fx(max),int2fx(20))));
 	int edge = pixels - segments * 8+1*(segments != 0);
 
 	u16*dest = (u16*)se_mem[26];
 
-	dest+=20;
+	dest+=x;
 	for(int i = 0; i < 20; i++){
 
 		if(i == 0){
 			if(segments == 19){
 				if(edge == 0)
-					*dest = 0x6006;
+					*dest = 0x0006+palette;
 				else{
-					*dest = 0x600a;
+					*dest = 0x000a+palette;
 					for(int j = 0; j < 7; j++){
 						TILE *tile = &tile_mem[0][10];
 						if(j == 0){
@@ -2310,16 +2442,16 @@ void showProgressBar(){
 					}
 				}
 			}else if(segments >= 20)
-				*dest = 0x6008;
+				*dest = 0x0008+palette;
 			else
-				*dest = 0x6006;
+				*dest = 0x0006+palette;
 
 		}else if(i == 19){
 			if(segments == 0){
 				if(edge == 0)
-					*dest = 0x6806;
+					*dest = 0x0806+palette;
 				else{
-					*dest = 0x680a;
+					*dest = 0x080a+palette;
 					for(int j = 0; j < 7; j++){
 						TILE *tile = &tile_mem[0][10];
 						if(j == 0){
@@ -2336,12 +2468,12 @@ void showProgressBar(){
 					}
 				}
 			}else
-				*dest = 0x6808;
+				*dest = 0x0808+palette;
 		}else{
 			if(19-i > segments){
-				*dest = 0x6007;
+				*dest = 0x0007+palette;
 			}else if(19-i == segments){
-				*dest = 0x600b;
+				*dest = 0x000b+palette;
 				for(int j = 0; j < 8; j++){
 					TILE *tile = &tile_mem[0][11];
 					if(7-j > edge){
@@ -2351,7 +2483,7 @@ void showProgressBar(){
 					}
 				}
 			}else{
-				*dest = 0x6009;
+				*dest = 0x0009+palette;
 			}
 		}
 		
@@ -2378,4 +2510,90 @@ void clearGlow(){
 		for(int j = 0; j < 10; j++)
 			glow[i][j] = 0;
 	drawGrid();
+}
+
+void handleMultiplayer(){
+	if(!multiplayer)
+		return;
+	// if(game->attack)
+	// 	aprint(std::to_string(game->attack),0,0);
+	// // auto linkState = linkConnection.s
+	// if()	
+	
+	auto linkState = linkConnection->linkState.get();
+	
+	int receivedAttack = false;
+	
+	u16 data[LINK_MAX_PLAYERS];
+	for (int i = 0; i < LINK_MAX_PLAYERS; i++)
+		data[i] = 0;
+
+	if(linkState->isConnected()){
+		for (u32 i = 0; i < linkState->playerCount; i++)
+			while (linkState->hasMessage(i))
+				data[i] = linkState->readMessage(i);
+
+		for (u32 i = 0; i < linkState->playerCount; i++){
+		
+			int command = data[i] >> 13;
+			int value = data[i] & 0x1fff;
+
+			switch(command){
+			case 0:
+				continue;
+			case 1:
+				enemyHeight = value;
+				aprint(std::to_string(enemyHeight),0,0);
+				break;
+			case 2:
+				game->setWin();
+				break;
+			case 3://receive attack
+				game->addToGarbageQueue(value>>4,value & 0xf);
+				receivedAttack = value>>4;
+				break;
+			case 4://acknowledge attack
+				game->clearAttack(value);
+				break;
+			case 5:
+				playAgain = true;
+				nextSeed = value;
+				break;
+			}
+
+		}
+			// if(data[i])
+			// 	aprint(std::to_string(data[i]),0,7+i);
+		if(game->lost){
+			linkConnection->send((u16)2<<13);
+		}else{
+			if(receivedAttack){
+				linkConnection->send((u16)((4<<13) + receivedAttack));
+
+			}else if(game->attackQueue.size() == 0){
+				// linkConnection->send(linkState->currentPlayerId);
+				linkConnection->send((u16)((1<<13) + game->currentHeight));
+			}else{
+				Tetris::Garbage atck = game->attackQueue.front();
+
+				linkConnection->send((u16)((3<<13) + (atck.id<<4)+atck.amount));
+			}
+		}
+	}else{
+		aprint("0",0,0);
+		// multiplayer = false;
+		game->setWin();
+		aprint("no connection.",0,5);
+	}
+}
+
+void startMultiplayerGame(int seed){
+	delete game;
+	game = new Game(4,seed);
+	game->setLevel(1);
+	game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
+	game->setGoal(100);
+	multiplayer = true;
+	linkConnection->send(50);
+	nextSeed = 0;
 }
