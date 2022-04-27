@@ -238,6 +238,7 @@ int main(void) {
 	memcpy16(&tile_mem[0][4],sprite5tiles_bin,sprite3tiles_bin_size/2);
 	memcpy16(&tile_mem[0][5],sprite7tiles_bin,sprite7tiles_bin_size/2);
 	memcpy16(&tile_mem[0][6],sprite8tiles_bin,sprite8tiles_bin_size/2);
+	memcpy16(&tile_mem[0][12],sprite10tiles_bin,sprite10tiles_bin_size/2);
 	
 	memcpy16(&tile_mem[5][0],sprite6tiles_bin,sprite6tiles_bin_size/2);
 
@@ -920,13 +921,20 @@ void drawGrid(){
 	u16*dest = (u16*)se_mem[26];
 	dest+= 10;
 
+	u32 gridTile;
+	
+	if(savefile->settings.backgroundGrid)
+		gridTile = 0x0002;
+	else
+		gridTile = 0x000c;
+
 	for(int i = 0; i < 20; i++){
 		for(int j = 0; j < 10; j++){
 			if(glow[i][j] == 0 || !savefile->settings.effects){
-				*dest++ = 0x0002;
+				*dest++ = gridTile;
 			}else if(glow[i][j] > glowDuration){
 				glow[i][j]--;
-				*dest++ = 0x0002;
+				*dest++ = gridTile;
 			}else if(glow[i][j] > 0){
 				glow[i][j]--;
 				int color = 0;
@@ -936,7 +944,7 @@ void drawGrid(){
 					color = 2;
 				else if(glow[i][j] >= glowDuration * 1/4)
 					color = 1;
-				*dest++ = 0x0002 + color * 0x1000;
+				*dest++ = gridTile + color * 0x1000;
 			}
 		}
 		dest+=22;
@@ -1777,9 +1785,11 @@ void endScreen(){
 				
 				if(!multiplayer){
 					int goal = game->goal;
+					int level = game->goal;
 					delete game;
 					game = new Game(game->gameMode);
 					game->setGoal(goal);
+					game->setLevel(level);
 					game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
 				}else{
 					u16 seed = (u16) qran();
@@ -2112,7 +2122,11 @@ void loadSave(){
 	savefile = new Save();
 	loadFromSram();
 
-	if(savefile->newGame != SAVE_TAG){
+	if(savefile->newGame == SAVE_TAG-1){
+		savefile->settings.backgroundGrid = true;
+		savefile->newGame = SAVE_TAG;
+		
+	}else if(savefile->newGame != SAVE_TAG){
 		// delete savefile;
 		savefile = new Save();
 		savefile->newGame = SAVE_TAG;

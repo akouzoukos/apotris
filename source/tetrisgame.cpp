@@ -314,7 +314,7 @@ void Game::place() {
     else{
         comboCounter = 0;
         if(gameMode == 3 && garbageHeight < 9){
-            generateGarbage(9-garbageHeight);
+            generateGarbage(9-garbageHeight,0);
         }else if(gameMode == 4){
             int sum = 0;
             std::list<Garbage>::iterator index = garbageQueue.begin();
@@ -328,7 +328,7 @@ void Game::place() {
                     ++index;
                 }
             }
-            generateGarbage(sum);
+            generateGarbage(sum,1);
         }
     }
 
@@ -689,7 +689,8 @@ void Game::setGoal(int newGoal){
     goal = newGoal;
 }
 
-void Game::generateGarbage(int height){
+void Game::generateGarbage(int height,int mode){
+    int hole = qran() % lengthX;
     // shift up
     for(int i = 0; i < lengthY; i++){
         for(int j = 0; j < lengthX; j++){
@@ -701,18 +702,16 @@ void Game::generateGarbage(int height){
     }
 
     for(int i = lengthY-height; i < lengthY; i++){
-        int n = qran() % lengthX;
-
+        if(!mode || qran() % 10 < 3)
+            hole = qran() % lengthX;
         for(int j = 0; j < lengthX; j++){
-            if(j == n)
+            if(j == hole)
                 continue;
             board[i][j]=8;
         }
     }
 
     garbageHeight+=height;
-
-
 }
 
 void Game::keyDrop(){

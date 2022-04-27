@@ -148,7 +148,7 @@ namespace Tetris
         void lockCheck();
         void next();
         void place();
-        void generateGarbage(int);
+        void generateGarbage(int,int);
         Drop calculateDrop();
 
         std::list<int> bag;
@@ -275,7 +275,7 @@ namespace Tetris
                 goal = 150;
             else if(gameMode == 3){
                 goal = 100;
-                generateGarbage(9);
+                generateGarbage(9,0);
             }
             
         }
@@ -304,7 +304,7 @@ namespace Tetris
                 goal = 150;
             else if(gameMode == 3){
                 goal = 100;
-                generateGarbage(9);
+                generateGarbage(9,0);
             }
         }
 

@@ -32,6 +32,7 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite7tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite8tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite9tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite10tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/title1tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/title2tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/title_pal_bin.h \
@@ -74,6 +75,7 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite7tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite8tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite9tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite10tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/title1tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/title2tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/title_pal_bin.h:
