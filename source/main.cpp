@@ -100,6 +100,7 @@ int clearTextHeight = 16;
 
 u32 highscore = 0;
 int bestTime = 0;
+int initialLevel = 0;
 
 int canDraw = 0;
 
@@ -382,14 +383,13 @@ int main(void) {
 		if(restart){
 			restart = false;
 			int oldGoal = game->goal;
-			int oldLevel = game->level;
 
 			mmStop();
 
 			delete game;
 			game = new Game(game->gameMode);
 			game->setGoal(oldGoal);
-			game->setLevel(oldLevel);
+			game->setLevel(initialLevel);
 			game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
 
 			memset32(&se_mem[25],0x0000,32*10);
@@ -1461,7 +1461,14 @@ void startScreen(){
 			}
 
 			if(key == KEY_A){
-				if(selection != options-1){
+				if(toStart == -2){
+					onSettings = false;
+					options = 5;
+					clearText();
+					sfx(SFX_MENUCANCEL);
+					refreshText = true;
+					
+				}else if(selection != options-1){
 					selection = options-1;
 					sfx(SFX_MENUCONFIRM);
 					refreshText = true;
@@ -1470,6 +1477,8 @@ void startScreen(){
 						if(toStart == 2 && goalSelection == 3)
 							toStart = 0;
 						
+						initialLevel = level;
+
 						delete game;
 						game = new Game(toStart);
 						game->setLevel(level);
@@ -1525,7 +1534,7 @@ void startScreen(){
 
 			if(key == KEY_B){
 				if(toStart != -1){
-					if(selection == 0){
+					if(selection == 0 || toStart == -2){
 						onSettings = false;
 						options = 5;
 						clearText();
@@ -1552,23 +1561,25 @@ void startScreen(){
 				sfx(SFX_MENUCONFIRM);
 			}
 		}
-		
-		if(key == KEY_UP){
-			if(selection == 0)
-				selection = options-1;
-			else
-				selection--;
-			sfx(SFX_MENUMOVE);
-			refreshText = true;
-		}
-		
-		if(key == KEY_DOWN){
-			if(selection == options-1)
-				selection = 0;
-			else
-				selection++;
-			sfx(SFX_MENUMOVE);
-			refreshText = true;
+
+		if(!(onSettings && toStart == -2)){
+			if(key == KEY_UP){
+				if(selection == 0)
+					selection = options-1;
+				else
+					selection--;
+				sfx(SFX_MENUMOVE);
+				refreshText = true;
+			}
+			
+			if(key == KEY_DOWN){
+				if(selection == options-1)
+					selection = 0;
+				else
+					selection++;
+				sfx(SFX_MENUMOVE);
+				refreshText = true;
+			}
 		}
 		
 		sqran(qran() % frameCounter++);
@@ -1678,9 +1689,11 @@ void endScreen(){
 				shake = 0;
 				
 				int goal = game->goal;
+				// int level = game->level;
 				delete game;
 				game = new Game(game->gameMode);
 				game->setGoal(goal);
+				game->setLevel(initialLevel);
 				game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
 
 				mmStop();
