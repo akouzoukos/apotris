@@ -168,18 +168,6 @@ void Game::update() {
             std::advance(index,1);
         }
 
-        bool escape = false;
-        for(int i = 0; i < lengthY; i++){
-            for(int j = 0; j < lengthX; j++){
-                if(board[i][j]){
-                    currentHeight = lengthY-1-i;
-                    escape = true;
-                    break;
-                }
-            }
-            if(escape)
-                break;
-        }
     }
 
     int prevLevel = level;
@@ -314,7 +302,11 @@ void Game::place() {
     else{
         comboCounter = 0;
         if(gameMode == 3 && garbageHeight < 9){
-            generateGarbage(9-garbageHeight,0);
+            int toAdd = 9-garbageHeight;
+            if(garbageCleared+toAdd+garbageHeight <= goal)
+                generateGarbage(9-garbageHeight,0);
+            else if(garbageCleared+toAdd+garbageHeight > goal && garbageCleared+garbageHeight < goal)
+                generateGarbage(goal-(garbageCleared+garbageHeight),0);
         }else if(gameMode == 4){
             int sum = 0;
             std::list<Garbage>::iterator index = garbageQueue.begin();
@@ -347,6 +339,21 @@ void Game::place() {
 
     finesseCounter = 0;
     pushDir = 0;
+    
+    bool escape = false;
+    for(int i = 0; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            if(board[i][j]){
+                // if(lengthY-1 > currentHeight)
+                //     refresh = 1;
+                currentHeight = lengthY-i;
+                escape = true;
+                break;
+            }
+        }
+        if(escape)
+            break;
+    }
 }
 
 int Game::clear(Drop drop) {
@@ -507,6 +514,7 @@ int Game::clear(Drop drop) {
 
     if(attack){
         attackQueue.push_back(Garbage(timer & 0xff,attack));
+        linesSent+=attack;
     }
     
     return 1;

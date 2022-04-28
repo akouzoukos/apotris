@@ -47,6 +47,7 @@ typedef struct Settings{
     int sfr;
     bool dropProtection;
     bool backgroundGrid;
+    bool edges;
 
 }ALIGN(4) Settings;
 

@@ -16,6 +16,8 @@
 
 #include "LinkConnection.h"
 
+#include "posprintf.h"
+
 #define SHOW_FINESSE 0
 #define DIAGNOSE 0
 #define SAVE_TAG 0x4b
@@ -60,6 +62,7 @@ void showFrames();
 void clearGlow();
 void handleMultiplayer();
 void startMultiplayerGame(int);
+void setSkin();
 
 LinkConnection* linkConnection = new LinkConnection();
 
@@ -67,6 +70,7 @@ int frameCounter = 1;
 
 Game *game;
 OBJ_ATTR obj_buffer[128];
+OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE*) obj_buffer;
 
 OBJ_ATTR *pawnSprite;
 OBJ_ATTR *pawnShadow;
@@ -145,6 +149,11 @@ int multiplayerStartTimer = 0;
 int attackCheckCooldown = 10;
 int attackCheckTimer = 0;
 
+int connected = 0;
+
+int skinSelect = 1;
+int framePalette = 0;
+
 class FloatText{
 public:
 	std::string text;
@@ -195,20 +204,25 @@ void onVBlank(void){
 		showHold();
 	
 		drawGrid();
+		// profile_start();
 		showTimer();
+		// addToResults(profile_stop(),0);
 		showPawn();
 		screenShake();
 
 		showClearText();
 
 		if(game->refresh){
+			// profile_start();
 			showBackground();
+			// addToResults(profile_stop(),1);
 			update();
 			game->resetRefresh();
 		}else if(game->clearLock)
 			showBackground();
 
 		oam_copy(oam_mem,obj_buffer,20);
+		obj_aff_copy((OBJ_AFFINE*)oam_mem,obj_aff_buffer,10);
 	}
 
 	mmFrame();
@@ -227,18 +241,21 @@ int main(void) {
 	REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
 	REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3);
 	REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0);
-	REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0);
-	REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2; //Set to Sprite mode, 1d rendering
+	REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(2);
+	REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
 // 	// Load bg palette
+
 	memcpy16(pal_bg_mem,palette,paletteLen/2);
 // 	// //Load bg tiles
-	memcpy16(&tile_mem[0][1],sprite1tiles_bin,sprite1tiles_bin_size/2);
 	memcpy16(&tile_mem[0][2],sprite3tiles_bin,sprite3tiles_bin_size/2);
 	memcpy16(&tile_mem[0][3],sprite4tiles_bin,sprite4tiles_bin_size/2);
 	memcpy16(&tile_mem[0][4],sprite5tiles_bin,sprite3tiles_bin_size/2);
 	memcpy16(&tile_mem[0][5],sprite7tiles_bin,sprite7tiles_bin_size/2);
 	memcpy16(&tile_mem[0][6],sprite8tiles_bin,sprite8tiles_bin_size/2);
 	memcpy16(&tile_mem[0][12],sprite10tiles_bin,sprite10tiles_bin_size/2);
+	memcpy16(&tile_mem[0][13],sprite11tiles_bin,sprite11tiles_bin_size/2);
+	memcpy16(&tile_mem[0][14],sprite12tiles_bin,sprite12tiles_bin_size/2);
+	memcpy16(&tile_mem[0][15],sprite13tiles_bin,sprite13tiles_bin_size/2);
 	
 	memcpy16(&tile_mem[5][0],sprite6tiles_bin,sprite6tiles_bin_size/2);
 
@@ -255,28 +272,9 @@ int main(void) {
 	memcpy16(&tile_mem[5][96],title2tiles_bin,title2tiles_bin_size/2);
 
 	memcpy16(&tile_mem[2][0],fontTiles,fontTilesLen/2);
-
-	memcpy16(&tile_mem[2][97],sprite1tiles_bin,sprite1tiles_bin_size/2);
 	
-
+	
 	//load tetriminoes into tile memory for menu screen animation
-
-	blockSprite = (u8*)sprite1tiles_bin;
-
-	int **board;
-	for(int i = 0; i < 7; i++){
-		board = game->getShape(i,0);
-		for(int j = 0; j < 4; j++){
-			for(int k = 0; k < 4; k++){
-				if(board[j][k]){
-					memcpy16(&tile_mem[4][16*i+j*4+k],blockSprite,sprite1tiles_bin_size/2);
-				}
-			}
-		}
-	}
-	for(int i = 0; i < 4; i++)
-		delete [] board[i];
-	delete [] board;
 
 	memcpy16((COLOR*)MEM_PAL_OBJ, palette,paletteLen/2);
 
@@ -290,6 +288,8 @@ int main(void) {
 	for(int i = 0; i < 20; i++)
 		for(int j = 0; j < 30; j++)
 			backgroundArray[i][j] = 0;
+
+	setSkin();
 
 	loadSave();
 	
@@ -315,7 +315,6 @@ int main(void) {
 
 	oam_init(obj_buffer,128);
 
-	linkConnection->activate();
 	// linkConnection->deactivate();
 
 	mmStart(MOD_MENU,MM_PLAY_LOOP);
@@ -402,6 +401,7 @@ int main(void) {
 			game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
 
 			memset32(&se_mem[25],0x0000,32*10);
+			memset32(&se_mem[27],0x0000,32*10);
 
 			VBlankIntrWait();
 			oam_init(obj_buffer,128);
@@ -521,31 +521,119 @@ void checkSounds(){
 
 void showBackground(){
 
+	bool showEdges = savefile->settings.edges;	
+
 	u16*dest = (u16*)se_mem[25];
 
 	std::list<int>::iterator l2c = game->linesToClear.begin();
+	// n  int neib[3][3];
+	bool up,down,left,right;
+	bool before = false, after = false;
 	
 	dest+= 10;
 	for(int i = 20; i < 40; i++){
+		if(game->linesToClear.size() > 0){
+			std::list<int>::iterator l2c2 = game->linesToClear.begin();
+			before = after = false;
+			while(l2c2 != game->linesToClear.end()){
+				if(*l2c2 == i-1){
+					before = true;
+
+				}
+				if(*l2c2 == i+1){
+					after = true;
+				}
+				++l2c2;
+			}
+		}
+		
 		for(int j = 0; j < 10; j++){
 			// draw white for clear animation
-			if(!game->board[i][j]){
-				*dest++ = 0;
-			}else if(game->clearLock && i == *l2c){
-				if(j < 5){
-					if(clearTimer < maxClearTimer-10+j*2)
-						*dest++ = 3;
-					else
-						*dest++ = 0;
-				}else{
-					if(clearTimer < maxClearTimer-10+(10-j)*2)
-						*dest++ = 3;
-					else
-						*dest++ = 0;
+			if(!game->board[i][j] || (game->clearLock && i == *l2c && showEdges)){
+				if(!showEdges){
+					*dest++ = 0;
+					continue;
 				}
 
+				// if((game->linesToClear.size() > 0 && clearTimer > 1) || game->currentHeight < 40-(i+2)){
+				// 	dest++;
+				// 	continue;
+				// }
+				if(game->currentHeight < 40-(i+2)){
+					dest++;
+					continue;
+				}
+
+				up = (game->board[i-1][j] > 0 && !before);
+				left = (j-1 >= 0 && game->board[i][j-1] > 0 && !(i == *l2c && game->clearLock));
+				right = (j+1 <= 9 && game->board[i][j+1] > 0 && !(i == *l2c && game->clearLock));
+				down = (i+1 <=39 && game->board[i+1][j] > 0 && !after);
+
+				// int count = up + left + right + down;
+				int count = up + down + left + right;
+				// 
+				// count = 0;
+
+				int n = 0;
+				if(count == 0){
+					n = 0;
+				}else if(count == 4){
+					// if(up && left && right && down)//full
+					n = 0x0019;
+				}else if(count == 3){
+					if(up && left && !right && down)//1 side missing
+						n = 0x0018;
+					else if(up && !left && right && down)
+						n = 0x0418;
+					else if(up && left && right && !down)
+						n = 0x0017;
+					else if(!up && left && right && down)
+						n = 0x0817;
+					else
+						n = 0x000a;
+				}else if(count == 2){
+					if(up && left && !right && !down)//2 sides missing
+						n = 0x0016;
+					else if(up && !left && right && !down)
+						n = 0x0416;
+					else if(!up && left && !right && down)
+						n = 0x0816;
+					else if(!up && !left && right && down)
+						n = 0x0c16;
+					else if(up && !left && !right && down)//
+						n = 0x0012;
+					else if(!up && left && right && !down)
+						n = 0x0011;
+					else
+						n = 0x000b;
+				}else if(count == 1){
+					if(!up && left && !right && !down)//4 sides missing
+						n = 0x0010;
+					else if(!up && !left && right && !down)
+						n = 0x0410;
+					else if(up && !left && !right && !down)
+						n = 0x000f;
+					else if(!up && !left && !right && down)
+						n = 0x080f;
+					else
+						n = 0;
+				}
+				*dest++ = n;
 			}else 
 				*dest++ = (1+(((u32)(game->board[i][j]-1)) << 12));
+			if(game->clearLock && i == *l2c){
+				dest--;
+				if(!showEdges)
+					*dest = 0;
+				if(j < 5){
+					if(clearTimer < maxClearTimer-10+j*2)
+						*dest = 3;
+				}else{
+					if(clearTimer < maxClearTimer-10+(10-j)*2)
+						*dest = 3;
+				}
+				dest++;
+			}
 		}
 		if(i == *l2c)
 			std::advance(l2c,1);
@@ -601,8 +689,8 @@ void showShadow(){
 
 void showHold(){
 	obj_unhide(holdFrameSprite,0);
-	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(6));
-	holdFrameSprite->attr2 = ATTR2_BUILD(512,6,0);
+	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(framePalette));
+	holdFrameSprite->attr2 = ATTR2_BUILD(512,framePalette,0);
 	obj_set_pos(holdFrameSprite,4*8+5,9*8-2);
 
 	if(game->held == -1){
@@ -610,37 +698,54 @@ void showHold(){
 		return;
 	}
 
-	obj_unhide(holdSprite,0);
-
-	obj_set_attr(holdSprite,ATTR0_WIDE,ATTR1_SIZE(2),ATTR2_PALBANK(game->held));
-
 	int add = !(game->held == 0 || game->held == 3);
 
-	holdSprite->attr2 = ATTR2_BUILD(9*16+8*game->held,game->held,1);
-
-	obj_set_pos(holdSprite,(5)*8+add*3+1,(10)*8-3*(game->held == 0));
+	if(skinSelect == 0){
+		obj_unhide(holdSprite,0);
+		obj_set_attr(holdSprite,ATTR0_WIDE,ATTR1_SIZE(2),ATTR2_PALBANK(game->held));
+		holdSprite->attr2 = ATTR2_BUILD(9*16+8*game->held,game->held,1);
+		obj_set_pos(holdSprite,(5)*8+add*3+1,(10)*8-3*(game->held == 0));
+	}else{
+		obj_unhide(holdSprite,ATTR0_AFF);
+		obj_set_attr(holdSprite,ATTR0_WIDE | ATTR0_AFF,ATTR1_SIZE(2) | ATTR1_AFF_ID(6),ATTR2_PALBANK(game->held));
+		holdSprite->attr2 = ATTR2_BUILD(16*game->held,game->held,1);
+		FIXED size = float2fx(1.5);
+		obj_aff_scale(&obj_aff_buffer[6],size,size);
+		obj_set_pos(holdSprite,(5)*8+add*3+1-4,(10)*8-3*(game->held == 0)-3);
+	}
 }
 
 void showQueue(){
 	for(int i = 0; i < 3; i++){
 		obj_unhide(queueFrameSprites[i],0);
-		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(6));
-		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,6,0);
+		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(framePalette));
+		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,framePalette,0);
 		obj_set_pos(queueFrameSprites[i],173,12+32*i);
 	}
 	
 	std::list<int>::iterator q = game->queue.begin();
 	for(int k = 0; k < 5; k++){
-		obj_unhide(queueSprites[k],0);
 
 		int n = *q;
-		obj_set_attr(queueSprites[k],ATTR0_WIDE,ATTR1_SIZE(2),ATTR2_PALBANK(n));
-		queueSprites[k]->attr2 = ATTR2_BUILD(16*9+8*n,n,1);
 
 		int add = !(n == 0 || n == 3);
-		obj_set_pos(queueSprites[k],(22)*8+add*3+1,(3+(k*3))*6-3*(n == 0));
+		if(skinSelect == 0){
+			obj_unhide(queueSprites[k],0);
+			obj_set_attr(queueSprites[k],ATTR0_WIDE,ATTR1_SIZE(2),ATTR2_PALBANK(n));
+			queueSprites[k]->attr2 = ATTR2_BUILD(16*9+8*n,n,1);
+			obj_set_pos(queueSprites[k],(22)*8+add*3+1,(3+(k*3))*6-3*(n == 0));
+		}else{
+			obj_unhide(queueSprites[k],ATTR0_AFF);
+			obj_set_attr(queueSprites[k],ATTR0_SQUARE | ATTR0_AFF,ATTR1_SIZE(2) | ATTR1_AFF_ID(k),ATTR2_PALBANK(n));
+			queueSprites[k]->attr2 = ATTR2_BUILD(16*n,n,1);
+			obj_aff_identity(&obj_aff_buffer[k]);
+			FIXED size = float2fx(1.5);
+			obj_aff_scale(&obj_aff_buffer[k],size,size);
+			obj_set_pos(queueSprites[k],(22)*8+add*3+1-4,(3+(k*3))*6-3*(n == 0)-4);
+		}
+		
 
-		std::advance(q,1);
+		++q;
 	}
 }
 
@@ -811,7 +916,6 @@ void loadFromSram(){
 }
 
 void showTimer(){
-
 	if(!(game->gameMode == 1 && game->goal == 0)){
 		std::string timer = timeToString(gameSeconds);
 		aprint(timer,1,1);
@@ -819,31 +923,23 @@ void showTimer(){
 }
 
 std::string timeToString(int frames){
-	int t = (int)(0.0167f * frames);
-	int millis = (int)(0.0167f * frames * 100) % 100;
+	int t = fx2int(fxmul(float2fx(0.0167f),int2fx(frames)));
+	int millis = (fx2int(fxmul(float2fx(1.67f),int2fx(frames)))) % 100;
 	int seconds = t % 60;
 	int minutes = t / 60;
-	// int hours = t / 3600;
-
-	std::ostringstream stream;
-
-	// if(hours < 10)
-	// 	stream << "0";
-	// stream << hours << ":";
-
-	if(minutes < 10)
-		stream << "0";
-	stream << minutes << ":";
-
-	if(seconds < 10)
-		stream << "0";
-	stream << seconds << ":";
 	
-	if(millis < 10)
-		stream << "0";
-	stream << millis;
+	std::string result = "";
+	if(std::to_string(minutes).length() < 2)
+		result += "0";
+	result += std::to_string(minutes) + ":";
+	if(std::to_string(seconds).length() < 2)
+		result += "0";
+	result += std::to_string(seconds) + ":";
+	if(std::to_string(millis).length() < 2)
+		result += "0";
+	result += std::to_string(millis);
 
-	return stream.str();
+	return result;
 }
 
 
@@ -854,7 +950,7 @@ void drawFrame(){
 
 	for(int i = 0; i < 20; i++){
 		for(int j = 0; j < 2; j++){
-			*dest++ = 0x6004 + j*0x400;
+			*dest++ = 0x0004 + j*0x400 + framePalette * 0x1000;
 			dest+=10;
 		}
 		dest+=32-22;
@@ -864,8 +960,8 @@ void drawFrame(){
 
 	for(int i = 0; i < 3; i++){
 		obj_unhide(queueFrameSprites[i],0);
-		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(6));
-		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,6,0);
+		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(framePalette));
+		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,framePalette,0);
 		obj_set_pos(queueFrameSprites[i],173,12+32*i);
 	}
 
@@ -1146,7 +1242,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 				break;
 			}
 		}else if(toStart == -1){
-			int startX = 5;
+			int startX = 4;
 			int startY = 5;
 			int space = 1;
 			aprint("Voice",startX,startY);
@@ -1158,11 +1254,13 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 			aprint("Auto Repeat Rate",startX,startY+space*6);
 			aprint("Soft Drop Speed",startX,startY+space*7);
 			aprint("Drop Protection",startX,startY+space*8);
+			aprint("Background Grid",startX,startY+space*9);
+			aprint("Block Edges",startX,startY+space*10);
 			aprint(" SAVE ",12,17);
 
 			int endX = 24;
 
-			for(int i = 0; i < 9; i++)
+			for(int i = 0; i < 11; i++)
 				aprint("      ",endX-1,startY+space*i);
 			
 			if(savefile->settings.announcer)
@@ -1213,6 +1311,16 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 			else
 				aprint("OFF",endX,startY+space*8);
 
+			if(savefile->settings.backgroundGrid)
+				aprint("ON",endX,startY+space*9);
+			else
+				aprint("OFF",endX,startY+space*9);
+			
+			if(savefile->settings.edges)
+				aprint("ON",endX,startY+space*10);
+			else
+				aprint("OFF",endX,startY+space*10);
+			
 			if(selection == 0){
 				aprint("[",endX-1,startY+space*selection);
 				aprint("]",endX+2+(!savefile->settings.announcer),startY+space*selection);
@@ -1251,6 +1359,12 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 				aprint("[",endX-1,startY+space*selection);
 				aprint("]",endX+2+(!savefile->settings.dropProtection),startY+space*selection);
 			}else if(selection == 9){
+				aprint("[",endX-1,startY+space*selection);
+				aprint("]",endX+2+(!savefile->settings.backgroundGrid),startY+space*selection);
+			}else if(selection == 10){
+				aprint("[",endX-1,startY+space*selection);
+				aprint("]",endX+2+(!savefile->settings.edges),startY+space*selection);
+			}else if(selection == 11){
 				aprint("[",12,17);
 				aprint("]",17,17);
 			}
@@ -1269,7 +1383,12 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 			aprint("Thirno",startX,startY2+2);
 			aprint("by Nikku4211",startX,startY2+3);
 		}else if(toStart == -3){
-			aprint("Multiplayer",0,0);
+			if(connected < 1){
+				aprint("Waiting for",8,9);
+				aprint("connection...",10,10);	
+			}else{
+				aprint("Connected!",10,6);
+			}
 		}
 	}
 }
@@ -1335,7 +1454,9 @@ void startScreen(){
 				refreshText = true;
 
 				u16*dest = (u16*)se_mem[25];
-				memset16(dest,0,20*32);	
+				memset16(dest,0,20*32);
+				
+				linkConnection->activate();
 			}
 			
 			if(key == KEY_A){
@@ -1355,7 +1476,7 @@ void startScreen(){
 				}else if(selection == 3){
 					n = -1;
 					previousSettings = savefile->settings;
-					options = 10;
+					options = 12;
 				}else if(selection == 4){
 					n = -2;
 				}
@@ -1479,6 +1600,10 @@ void startScreen(){
 							savefile->settings.sfr++;
 					}else if(selection == 8){
 						savefile->settings.dropProtection = !savefile->settings.dropProtection;
+					}else if(selection == 9){
+						savefile->settings.backgroundGrid = !savefile->settings.backgroundGrid;
+					}else if(selection == 10){
+						savefile->settings.edges = !savefile->settings.edges;
 					}
 					if(selection != options-1){
 						sfx(SFX_MENUMOVE);
@@ -1486,7 +1611,6 @@ void startScreen(){
 					}
 				}
 			}else if(toStart == -3){
-
 				if(multiplayerStartTimer){
 					if(--multiplayerStartTimer == 0){
 						startMultiplayerGame(nextSeed);
@@ -1507,23 +1631,39 @@ void startScreen(){
 						}
 
 						for (u32 i = 0; i < LINK_MAX_PLAYERS; i++){
-							aprint(std::to_string(data[i]),0,5+i);
-							if(data[i] > 100)
+							if(data[i] == 2){
+								if(connected < 1){
+									refreshText = true;	
+									clearText();
+								}
+								connected = 1;
+							} else if(data[i] > 100)
 								nextSeed = data[i]-100;
 						}
 
-						if(linkState->playerCount == 2 && linkState->currentPlayerId != 0){
-							if(nextSeed > 100){
-								startMultiplayerGame(nextSeed);
-								break;
+						if(linkState->playerCount == 2){
+							if(linkState->currentPlayerId != 0){
+								if(nextSeed > 100){
+									startMultiplayerGame(nextSeed);
+									break;
+								}
+								aprint("Waiting",12,15);
+								aprint("for host...",12,16);
+							}else{
+								aprint("Press Start",10,15);
+
 							}
+						}else if(linkState->playerCount == 1){
+							if(connected > -1){
+								refreshText = true;	
+								clearText();
+							}
+							connected = -1;
 						}
 
-						aprint(std::to_string(linkState->playerCount),0,1);
-
 						if(key == KEY_START && linkState->currentPlayerId == 0){
-							nextSeed = (u16) qran();
-							multiplayerStartTimer = 5;
+							nextSeed = (u16) qran() & 0x1fff;
+							multiplayerStartTimer = 3;
 						}else{
 							linkConnection->send(2);
 						}
@@ -1533,11 +1673,14 @@ void startScreen(){
 						}
 						aprint("             ",0,19);
 					}else{
-						aprint("no connection",0,19);
+						if(connected > -1){
+							refreshText = true;	
+							clearText();
+						}
+						connected = -1;
 					}
-
+					
 				}
-
 
 			}
 
@@ -1718,11 +1861,18 @@ void endScreen(){
 	sfx(SFX_END);
 
 	endAnimation();
+	
 
-	if(game->won == 1){
-		sfx(SFX_CLEAR);
-	}else if(game->lost == 1){
-		sfx(SFX_GAMEOVER);
+	if(game->gameMode != 4){
+		if(game->won == 1)
+			sfx(SFX_CLEAR);
+		else if(game->lost == 1)
+			sfx(SFX_GAMEOVER);
+	}else{
+		if(game->won == 1)
+			sfx(SFX_YOUWIN);
+		else if(game->lost == 1)
+			sfx(SFX_YOULOSE);
 	}
 
 	mmStart(MOD_MENU,MM_PLAY_LOOP);
@@ -1780,40 +1930,46 @@ void endScreen(){
 
 		if(key == KEY_A){
 			if(!selection){
-				sfx(SFX_MENUCONFIRM);
 				shake = 0;
 				
 				if(!multiplayer){
+					sfx(SFX_MENUCONFIRM);
 					int goal = game->goal;
-					int level = game->goal;
 					delete game;
 					game = new Game(game->gameMode);
 					game->setGoal(goal);
-					game->setLevel(level);
 					game->setTuning(savefile->settings.das,savefile->settings.arr,savefile->settings.sfr,savefile->settings.dropProtection);
+
+					mmStop();
+					
+					floatingList.clear();
+
+					drawFrame();
+					clearText();
+
+					oam_init(obj_buffer,128);
+					showFrames();
+					oam_copy(oam_mem,obj_buffer,128);
+					countdown();
+					
+					if(!(game->gameMode == 1 && game->goal == 0)){
+						mmStart(MOD_THIRNO,MM_PLAY_LOOP);
+						mmSetModuleVolume(512*((float)savefile->settings.volume/10));
+					}
+
+					update();
+					break;
+
 				}else{
-					u16 seed = (u16) qran();
-					linkConnection->send(seed+300);
-					startMultiplayerGame(seed);
+					if(connected == 1){
+						sfx(SFX_MENUCONFIRM);
+						multiplayerStartTimer = 3;
+						nextSeed = (u16) qran();
+					}else{
+						sfx(SFX_MENUCANCEL);
+					}
 				}
 
-				mmStop();
-				if(!(game->gameMode == 1 && game->goal == 0)){
-					mmStart(MOD_THIRNO,MM_PLAY_LOOP);
-					mmSetModuleVolume(512*((float)savefile->settings.volume/10));
-				}
-				
-				floatingList.clear();
-
-				drawFrame();
-				clearText();
-
-				oam_init(obj_buffer,128);
-				showFrames();
-				oam_copy(oam_mem,obj_buffer,128);
-				countdown();
-				update();
-				break;
 			}else{
 				sfx(SFX_MENUCONFIRM);
 				reset();
@@ -1895,7 +2051,16 @@ void endAnimation(){
 }
 
 void showStats(){
-	if(game->gameMode == 0 || game->gameMode == 2 || game->lost){
+	if(game->gameMode == 4){
+		if(game->lost)
+			aprint("YOU LOSE",11,4);
+		else
+			aprint("YOU WIN!",11,4);
+
+		aprint("Lines Sent",10,8);
+		aprint(std::to_string(game->linesSent),14,10);
+		
+	}else if(game->gameMode == 0 || game->gameMode == 2 || game->lost){
 		std::string score = std::to_string(game->score);
 
 		if(game->lost)	
@@ -1983,8 +2148,8 @@ void pauseMenu(){
 					if(saveExists){
 						delete game;
 						game = new Game(*quickSave);
-						showBackground();
 						update();
+						showBackground();
 						floatingList.clear();
 						clearGlow();
 						
@@ -2062,6 +2227,7 @@ void reset(){
 
 	memset32(&se_mem[25],0x0000,32*20);
 	memset32(&se_mem[26],0x0000,32*20);
+	memset32(&se_mem[27],0x0000,32*20);
 
 	SoftReset();
 	RegisterRamReset(0xff);	
@@ -2371,28 +2537,28 @@ void diagnose(){
 	if(!DIAGNOSE)
 		return;
 
-	// int statHeight = 4;
+	int statHeight = 4;
 
-	// // aprint(std::to_string(game->b2bCounter),0,0);	
-	// // aprint(std::to_string(game->garbageCleared),0,2);	
-	// for(int i = 0; i < 5; i++){
-	// 	aprint("       ",20,statHeight+i);
-	// 	std::string n = std::to_string(profileResults[i]);
-	// 	aprint(n,20,statHeight+i);
-	// }
-
-	for(int i = 0; i < 5; i ++)
-		aprint("     ",0,11+i);
-
-	std::list<Tetris::Garbage>::iterator index = game->garbageQueue.begin();
-
-	for(int i = 0; i < (int) game->garbageQueue.size();i++){
-		aprint(std::to_string(index->amount),0,11+i);
-		aprint(std::to_string(index->timer),2,11+i);
-		std::advance(index,1);
+	// aprint(std::to_string(game->b2bCounter),0,0);	
+	// aprint(std::to_string(game->garbageCleared),0,2);	
+	for(int i = 0; i < 2; i++){
+		aprint("       ",20,statHeight+i);
+		std::string n = std::to_string(profileResults[i]);
+		aprint(n,20,statHeight+i);
 	}
 
-	aprint(std::to_string(game->currentHeight),0,19);
+	// for(int i = 0; i < 5; i ++)
+	// 	aprint("     ",0,11+i);
+
+	// std::list<Tetris::Garbage>::iterator index = game->garbageQueue.begin();
+
+	// for(int i = 0; i < (int) game->garbageQueue.size();i++){
+	// 	aprint(std::to_string(index->amount),0,11+i);
+	// 	aprint(std::to_string(index->timer),2,11+i);
+	// 	std::advance(index,1);
+	// }
+
+	// aprint(std::to_string(game->currentHeight),0,19);
 }
 
 void progressBar(){
@@ -2407,7 +2573,7 @@ void progressBar(){
 	else
 		current = game->garbageCleared;
 
-	showBar(current,max,20,6);
+	showBar(current,max,20,framePalette);
 
 	if(game->gameMode == 4){
 		if(++attackFlashTimer > attackFlashMax)
@@ -2418,7 +2584,19 @@ void progressBar(){
 		}else{
 			memset32(&pal_bg_mem[8*16+5],0x7fff,1);
 		}
+		//attack bar
 		showBar(game->getIncomingGarbage(),20,9,8);
+
+		//enemy height
+
+		u16*dest = (u16*)se_mem[27];
+
+		for(int i = 19; i >= 0; i--){
+			if(i <= (19-enemyHeight))
+				dest[32*i+29] = 0x000d + framePalette + 0x1000;
+			else
+				dest[32*i+29] = 0x000e + framePalette * 0x1000;
+		}
 	}
 }
 
@@ -2507,14 +2685,14 @@ void showBar(int current, int max, int x, int palette){
 
 void showFrames(){
 	obj_unhide(holdFrameSprite,0);
-	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(6));
-	holdFrameSprite->attr2 = ATTR2_BUILD(512,6,0);
+	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(framePalette));
+	holdFrameSprite->attr2 = ATTR2_BUILD(512,framePalette,0);
 	obj_set_pos(holdFrameSprite,4*8+5,9*8-2);
 
 	for(int i = 0; i < 3; i++){
 		obj_unhide(queueFrameSprites[i],0);
-		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(6));
-		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,6,0);
+		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(framePalette));
+		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,framePalette,0);
 		obj_set_pos(queueFrameSprites[i],173,12+32*i);
 	}
 }
@@ -2530,6 +2708,16 @@ void handleMultiplayer(){
 	if(!multiplayer)
 		return;
 	// if(game->attack)
+	if(multiplayerStartTimer){
+		if(--multiplayerStartTimer == 0){
+			// startMultiplay8erGame(nextSeed & 0x1fff);
+			playAgain = true;
+		}else{
+			linkConnection->send((u16)((5<<13)+(nextSeed&0x1fff)));
+			aprint("here",0,0);
+		}
+		return;
+	}
 	// 	aprint(std::to_string(game->attack),0,0);
 	// // auto linkState = linkConnection.s
 	// if()	
@@ -2557,7 +2745,6 @@ void handleMultiplayer(){
 				continue;
 			case 1:
 				enemyHeight = value;
-				aprint(std::to_string(enemyHeight),0,0);
 				break;
 			case 2:
 				game->setWin();
@@ -2594,10 +2781,12 @@ void handleMultiplayer(){
 			}
 		}
 	}else{
-		aprint("0",0,0);
+		// aprint("0",0,0);
 		// multiplayer = false;
 		game->setWin();
-		aprint("no connection.",0,5);
+		// aprint("no connection.",0,5);
+		connected = -1;
+		aprint("Connection Lost.",0,0);
 	}
 }
 
@@ -2610,4 +2799,40 @@ void startMultiplayerGame(int seed){
 	multiplayer = true;
 	linkConnection->send(50);
 	nextSeed = 0;
+}
+
+void setSkin(){
+	switch(skinSelect){
+	case 0:
+		blockSprite = (u8*)sprite1tiles_bin;
+		break;
+	case 1:
+		blockSprite = (u8*)sprite7tiles_bin;
+		break;
+	case 2:
+		blockSprite = (u8*)sprite9tiles_bin;
+		break;
+	case 3:
+		blockSprite = (u8*)sprite14tiles_bin;
+		break;
+	}
+	
+	memcpy16(&tile_mem[0][1],blockSprite,sprite1tiles_bin_size/2);
+	memcpy16(&tile_mem[2][97],blockSprite,sprite1tiles_bin_size/2);
+
+	int **board;
+	for(int i = 0; i < 7; i++){
+		board = game->getShape(i,0);
+		for(int j = 0; j < 4; j++){
+			for(int k = 0; k < 4; k++){
+				if(board[j][k]){
+					memcpy16(&tile_mem[4][16*i+j*4+k],blockSprite,sprite1tiles_bin_size/2);
+				}
+			}
+		}
+	}
+	for(int i = 0; i < 4; i++)
+		delete [] board[i];
+	delete [] board;
+	
 }

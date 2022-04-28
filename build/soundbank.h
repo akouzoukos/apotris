@@ -24,6 +24,8 @@
 #define SFX_TSPINMINI	60
 #define SFX_TSPIN	61
 #define SFX_WIN	62
+#define SFX_YOULOSE	63
+#define SFX_YOUWIN	64
 #define MSL_NSONGS	2
-#define MSL_NSAMPS	63
-#define MSL_BANKSIZE	65
+#define MSL_NSAMPS	65
+#define MSL_BANKSIZE	67
