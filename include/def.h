@@ -46,6 +46,10 @@ typedef struct Settings{
     int arr;
     int sfr;
     bool dropProtection;
+    bool backgroundGrid;
+    bool edges;
+    int skin;
+    int palette;
 
 }ALIGN(4) Settings;
 

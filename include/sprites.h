@@ -8,6 +8,11 @@
 #include "../build/sprite7tiles_bin.h"
 #include "../build/sprite8tiles_bin.h"
 #include "../build/sprite9tiles_bin.h"
+#include "../build/sprite10tiles_bin.h"
+#include "../build/sprite11tiles_bin.h"
+#include "../build/sprite12tiles_bin.h"
+#include "../build/sprite13tiles_bin.h"
+#include "../build/sprite14tiles_bin.h"
 
 #include "../build/title1tiles_bin.h"
 #include "../build/title2tiles_bin.h"

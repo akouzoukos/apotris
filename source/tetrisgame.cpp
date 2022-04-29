@@ -1,8 +1,8 @@
+#include "tonc.h"
 #include "tetramino.hpp"
 #include "tetrisgame.h"
 #include <stdlib.h>
 #include <iostream>
-#include "tonc_core.h"
 
 
 using namespace Tetris;
@@ -157,6 +157,19 @@ void Game::update() {
 
     if (clearLock)
         return;
+    
+    if(gameMode == 4){
+        std::list<Garbage>::iterator index = garbageQueue.begin();
+
+        for(int i = 0; i < (int) garbageQueue.size(); i++){
+            if(index->timer){
+                index->timer--;
+            }
+            std::advance(index,1);
+        }
+
+    }
+
     int prevLevel = level;
     level = ((int)linesCleared / 10) + 1;
     if(level < prevLevel)
@@ -286,11 +299,28 @@ void Game::place() {
 
     if (clear(lastDrop))
         comboCounter++;
-            
     else{
         comboCounter = 0;
         if(gameMode == 3 && garbageHeight < 9){
-            generateGarbage(9-garbageHeight);
+            int toAdd = 9-garbageHeight;
+            if(garbageCleared+toAdd+garbageHeight <= goal)
+                generateGarbage(9-garbageHeight,0);
+            else if(garbageCleared+toAdd+garbageHeight > goal && garbageCleared+garbageHeight < goal)
+                generateGarbage(goal-(garbageCleared+garbageHeight),0);
+        }else if(gameMode == 4){
+            int sum = 0;
+            std::list<Garbage>::iterator index = garbageQueue.begin();
+            // for(int i = 0; i < (int) garbageQueue.size(); i++){
+            // }
+            while(index != garbageQueue.end()){
+                if(index->timer == 0){
+                    sum+=index->amount;
+                    garbageQueue.erase(index++);
+                }else{
+                    ++index;
+                }
+            }
+            generateGarbage(sum,1);
         }
     }
 
@@ -309,11 +339,24 @@ void Game::place() {
 
     finesseCounter = 0;
     pushDir = 0;
+    
+    int sum = 0;
+    for(int j = 0; j < lengthX; j++){
+        for(int i = 0; i < lengthY; i++){
+            if(board[i][j]){
+                sum += 40-i;
+                break;
+            }
+        }
+    }
+
+    currentHeight = (int) ((float)sum / 10);
 }
 
 int Game::clear(Drop drop) {
     int i, j;
     int clearCount = 0;
+    int attack = 0;
     int isTSpin = 0;
     int isPerfectClear = 1;
     int isBackToBack = 0;
@@ -401,19 +444,23 @@ int Game::clear(Drop drop) {
 
     if (clearCount == 0)
         return 0;
-
+    
     int add = 0;
+
     switch (isTSpin) {
     case 0:
         add += GameInfo::scoring[clearCount - 1][0] * level;
         isDifficult = GameInfo::scoring[clearCount - 1][1];
+        attack = GameInfo::scoring[clearCount - 1][2];
         break;
     case 1:
         add += GameInfo::scoring[clearCount - 1 + 4][0] * level;
         isDifficult = GameInfo::scoring[clearCount - 1 + 4][1];
+        attack = GameInfo::scoring[clearCount - 1 + 4][2];
         break;
     case 2:
         add += GameInfo::scoring[clearCount - 1 + 7][0] * level;
+        attack = GameInfo::scoring[clearCount - 1 + 7][2];
         isDifficult = 1;
         break;
     }
@@ -423,23 +470,49 @@ int Game::clear(Drop drop) {
     if (isBackToBack){
         add = (int)add * 3 / 2;
         b2bCounter++;
+        attack+= 1;
     }else{
         b2bCounter = 0;
     }
 
     add += GameInfo::scoring[16][0] * level * comboCounter;
 
-    if (isPerfectClear)
+    attack += GameInfo::comboTable[comboCounter];
+
+    if (isPerfectClear){
         add += GameInfo::scoring[clearCount - 1 + 11][0] * level;
+        attack = GameInfo::scoring[clearCount - 1 + 11][2];
+    }
 
     score += add;
 
     if (clearCount > 0)
         previousClear = Score(clearCount, add, comboCounter, isTSpin, isPerfectClear, isBackToBack, isDifficult, drop);
 
+
     sounds.clear = 1;
     clearLock = 1;
     specialTspin = false;
+
+    if(garbageQueue.size()){
+        std::list<Garbage>::iterator index = garbageQueue.begin();
+        while(attack > 0 && index != garbageQueue.end()){
+            if(!index->timer){
+                if(attack > index->amount){
+                    attack -= index->amount;
+                }else{
+                    index->amount -= attack;
+                    attack = 0;
+                }
+            }
+            ++index;
+        }
+    }
+
+    if(attack){
+        attackQueue.push_back(Garbage(timer & 0xff,attack));
+        linesSent+=attack;
+    }
     
     return 1;
 }
@@ -467,11 +540,21 @@ void Game::next() {
     pawn.current = queue.front();
     queue.pop_front();
 
-    fillQueue(1);
+    if(gameMode != 4)
+        fillQueue(1);
+    else
+        fillQueueSeed(1,seed);
     pawn.setBlock();
 
     if (!checkRotation(0, 0, pawn.rotation))
         lost = 1;
+}
+
+void Game::fillQueueSeed(int count, int s){
+    sqran(s);
+    seed+= qran();
+
+    fillQueue(count);
 }
 
 void Game::fillQueue(int count) {
@@ -611,7 +694,8 @@ void Game::setGoal(int newGoal){
     goal = newGoal;
 }
 
-void Game::generateGarbage(int height){
+void Game::generateGarbage(int height,int mode){
+    int hole = qran() % lengthX;
     // shift up
     for(int i = 0; i < lengthY; i++){
         for(int j = 0; j < lengthX; j++){
@@ -623,10 +707,10 @@ void Game::generateGarbage(int height){
     }
 
     for(int i = lengthY-height; i < lengthY; i++){
-        int n = qran() % lengthX;
-
+        if(!mode || qran() % 10 < 3)
+            hole = qran() % lengthX;
         for(int j = 0; j < lengthX; j++){
-            if(j == n)
+            if(j == hole)
                 continue;
             board[i][j]=8;
         }
@@ -701,4 +785,45 @@ void Game::setTuning(int newDas, int newArr, int newSfr, bool newDropProtection)
     arr = newArr;
     softDropSpeed = newSfr;
     dropProtection = newDropProtection;
+}
+
+void Game::clearAttack(int id){
+    std::list<Garbage>::iterator index = attackQueue.begin();
+
+    while(index != attackQueue.end()){
+        if(index->id == id){
+            attackQueue.erase(index++);
+        }else{
+            ++index;
+        }
+    }
+}
+
+void Game::setWin(){
+    won = true;
+}
+
+void Game::addToGarbageQueue(int id, int amount){
+    if(amount <= 0)
+        return;
+
+    for(const auto& attack : garbageQueue)
+        if(attack.id == id)
+            return;
+
+    garbageQueue.push_back(Garbage(id,amount));
+}
+
+int Game::getIncomingGarbage(){
+    int result = 0;
+
+    std::list<Garbage>::iterator index = garbageQueue.begin();
+
+    for(int i = 0; i < (int) garbageQueue.size(); i++){
+        result+= index->amount;
+
+        std::advance(index,1);
+    }
+
+    return result;
 }

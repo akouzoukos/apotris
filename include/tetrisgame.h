@@ -33,6 +33,18 @@ namespace Tetris
         }
     };
 
+    class Garbage {
+    public:
+        int id;
+        int amount;
+        int timer = 10;
+
+        Garbage(int _id,int _amount){
+            id = _id;
+            amount = _amount;
+        }
+    };
+
     class Score {
     public:
         int linesCleared = 0;
@@ -128,6 +140,7 @@ namespace Tetris
         int checkRotation(int, int, int);
         void fillBag();
         void fillQueue(int);
+        void fillQueueSeed(int,int);
         void moveLeft();
         void moveRight();
         void moveDown();
@@ -135,7 +148,7 @@ namespace Tetris
         void lockCheck();
         void next();
         void place();
-        void generateGarbage(int);
+        void generateGarbage(int,int);
         Drop calculateDrop();
 
         std::list<int> bag;
@@ -143,6 +156,8 @@ namespace Tetris
         
         float speed;
         float speedCounter = 0;
+
+        int seed = 0;
 
         //7  117
         //8  133
@@ -207,6 +222,10 @@ namespace Tetris
         int pushDir = 0;
         int b2bCounter = 0;
         int bagCounter = 0;
+        int linesSent = 0;
+        int currentHeight = 0;
+        std::list<Garbage> attackQueue;
+        std::list<Garbage> garbageQueue;
 
         void rotateCW();
         void rotateCCW();
@@ -227,6 +246,10 @@ namespace Tetris
         void setGoal(int);
         Drop getDrop();
         void setTuning(int,int,int,bool);
+        void clearAttack(int);
+        void setWin();
+        void addToGarbageQueue(int,int);
+        int getIncomingGarbage();
 
         Game(){}
         Game(int gm) {
@@ -252,9 +275,37 @@ namespace Tetris
                 goal = 150;
             else if(gameMode == 3){
                 goal = 100;
-                generateGarbage(9);
+                generateGarbage(9,0);
             }
             
+        }
+
+        Game(int gm, int sd){
+            gameMode = gm;
+            seed = sd;
+            board = new int* [lengthY];
+
+            for (int i = 0; i < lengthY; i++) {
+                board[i] = new int[lengthX];
+                for (int j = 0; j < lengthX; j++)
+                    board[i][j] = 0;
+            }
+            
+            fillBag();
+            fillQueueSeed(5,seed);
+            linesToClear = std::list<int>();
+
+            pawn = Pawn((int)lengthX / 2 - 2, 0);
+            next();
+
+            if(gameMode == 1)
+                goal = 40;
+            else if(gameMode == 2)
+                goal = 150;
+            else if(gameMode == 3){
+                goal = 100;
+                generateGarbage(9,0);
+            }
         }
 
         Game(const Game& oldGame){
