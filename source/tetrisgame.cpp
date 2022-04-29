@@ -340,20 +340,17 @@ void Game::place() {
     finesseCounter = 0;
     pushDir = 0;
     
-    bool escape = false;
-    for(int i = 0; i < lengthY; i++){
-        for(int j = 0; j < lengthX; j++){
+    int sum = 0;
+    for(int j = 0; j < lengthX; j++){
+        for(int i = 0; i < lengthY; i++){
             if(board[i][j]){
-                // if(lengthY-1 > currentHeight)
-                //     refresh = 1;
-                currentHeight = lengthY-i;
-                escape = true;
+                sum += 40-i;
                 break;
             }
         }
-        if(escape)
-            break;
     }
+
+    currentHeight = (int) ((float)sum / 10);
 }
 
 int Game::clear(Drop drop) {
