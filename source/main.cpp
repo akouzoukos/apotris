@@ -2986,6 +2986,7 @@ void progressBar(){
 		if(++attackFlashTimer > attackFlashMax)
 			attackFlashTimer = 0;
 
+		memcpy16(&pal_bg_mem[8*16],&palette[savefile->settings.palette*16],16);
 		if(attackFlashTimer < attackFlashMax/2){
 			memset32(&pal_bg_mem[8*16+5],0x421f,1);
 		}else{
@@ -3330,8 +3331,8 @@ void graphicTest(){
 
 		key_poll();
 
-		aprint("L: Toggle Game",0,18);
-		aprint("R: Toggle Options",0,19);
+		aprint("R: Toggle",0,18);
+		aprint("Options",3,19);
 
 		if(key_hit(KEY_START) || key_hit(KEY_A)){
 			sfx(SFX_MENUCONFIRM);
@@ -3352,24 +3353,24 @@ void graphicTest(){
 				break;
 		}
 
-		if(key_hit(KEY_L)){
+		if(key_hit(KEY_R)){
 			showOptions = !showOptions;
 
 			if(!showOptions){
 				clearText();
-				aprint("L: Toggle Game",0,18);
-				aprint("R: Toggle Options",0,19);
+				aprint("R: Toggle",0,18);
+				aprint("Options",3,19);
 			}
 		}
 
-		if(key_hit(KEY_R)){
-			showGame = !showGame;
-			if(showGame){
-				REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2; //Set to Sprite mode, 1d rendering
-			}else{
-				REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG2; //Set to Sprite mode, 1d rendering
-			}
-		}
+		// if(key_hit(KEY_R)){
+		// 	showGame = !showGame;
+		// 	if(showGame){
+		// 		REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2; //Set to Sprite mode, 1d rendering
+		// 	}else{
+		// 		REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG2; //Set to Sprite mode, 1d rendering
+		// 	}
+		// }
 
 		if(key_hit(KEY_UP)){
 			if(selection > 0)
