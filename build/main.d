@@ -37,6 +37,12 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite12tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite13tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite14tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite15tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite16tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite17tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite18tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite19tiles_bin.h \
+ /home/apostolos/Programming/GBA/apotris/include/../build/sprite20tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/title1tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/title2tiles_bin.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/title_pal_bin.h \
@@ -85,6 +91,12 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite12tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite13tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite14tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite15tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite16tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite17tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite18tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite19tiles_bin.h:
+/home/apostolos/Programming/GBA/apotris/include/../build/sprite20tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/title1tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/title2tiles_bin.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/title_pal_bin.h:

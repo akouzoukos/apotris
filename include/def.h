@@ -46,22 +46,32 @@ typedef struct Settings{
     int arr;
     int sfr;
     bool dropProtection;
-    bool backgroundGrid;
+    int backgroundGrid;
     bool edges;
     int skin;
     int palette;
+    int shadow;
+    bool lightMode;
+    bool songList[10];
 
 }ALIGN(4) Settings;
+
+typedef struct Test{
+    bool t1[6];
+    int t2[4];
+}ALIGN(4) Test;
 
 typedef struct Save{
     u8 newGame;
 
     Settings settings;
+    int seed;
     char latestName[9];
 
     Scoreboard marathon[4];
     Timeboard sprint[3];
     Timeboard dig[3];
+    Scoreboard ultra[3];
 
     // Tetris::Game savedGame;
     // bool canLoad;

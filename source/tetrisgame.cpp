@@ -33,7 +33,7 @@ int Game::checkRotation(int dx, int dy, int r) {
 }
 
 void Pawn::setBlock() {
-    for (int i = 0; i < 4; i++)
+    for (int i= 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
             for (int k = 0; k < 4; k++)
                 Pawn::board[i][j][k] = GameInfo::tetraminos[current][i][j][k];
@@ -64,6 +64,8 @@ void Game::rotateCW() {
             if(i == 4 && pawn.current == 5)
                 specialTspin = true;
             
+            moveHistory.push_back(4);
+
             return;
         }else
 			sounds.invalid = 1;
@@ -94,6 +96,8 @@ void Game::rotateCCW() {
             
             if(i == 4 && pawn.current == 5)
                 specialTspin = true;
+            
+            moveHistory.push_back(5);
 
             return;
         }else
@@ -107,6 +111,7 @@ void Game::moveLeft() {
         sounds.shift = 1;
         lastMoveRotation = 0;
         lockCheck();
+
     }else{
         pushDir = -1;
     }
@@ -118,6 +123,7 @@ void Game::moveRight() {
         sounds.shift = 1;
         lastMoveRotation = 0;
         lockCheck();
+        
     }else{
         pushDir = 1;
     }
@@ -140,6 +146,39 @@ void Game::hardDrop() {
         lastMoveRotation = 0;
 
     pawn.y = pawn.lowest;
+
+    int offset = 0;
+    for(int j = 0; j < 4; j++){
+        bool escape = false;
+        for(int i = 0; i < 4; i++){
+            if(pawn.board[pawn.rotation][i][j] == 1){
+                offset = j;
+                escape = true;
+                break;
+            }
+        }
+        if(escape)
+            break;
+    }
+
+    std::list<int> bestFinesse = getBestFinesse(pawn.current,pawn.x+offset,pawn.rotation);
+    previousBest = bestFinesse;
+
+    int correct = false;
+    if(moveHistory.size() > bestFinesse.size()-1){
+        for(const auto& move : bestFinesse){
+            if(move == 7 && moveHistory.size() == bestFinesse.size()){
+                correct = true;
+                break;
+            }
+        }
+    }else{
+        correct = true;
+    }
+
+    if(!correct && !softDrop){
+        finesse++;
+    }
 
     place();
     score += diff * 2;
@@ -171,20 +210,22 @@ void Game::update() {
     }
 
     int prevLevel = level;
-    level = ((int)linesCleared / 10) + 1;
-    if(level < prevLevel)
-        level = prevLevel;
+    if(gameMode == 0 || gameMode == 2){
+        level = ((int)linesCleared / 10) + 1;
+        if(level < prevLevel)
+            level = prevLevel;
+    }
 
-    if((linesCleared >= goal && gameMode == 1 && goal) || (linesCleared >= goal && gameMode == 2) || (garbageCleared >= goal && gameMode == 3))
+    if((linesCleared >= goal && gameMode == 1 && goal) || (linesCleared >= goal && gameMode == 2) || (garbageCleared >= goal && gameMode == 3) || (timer > goal && gameMode == 5))
         won = 1;
 
     if (prevLevel != level && (gameMode == 0 || gameMode == 2))
         sounds.levelUp = 1;
 
-    if (gameMode == 1 || gameMode == 3)
-        speed = GameInfo::speed[0];
-    else
+    if (gameMode == 0 || gameMode == 2)
         speed = GameInfo::speed[(level < 19) ? level - 1 : 18];
+    else
+        speed = GameInfo::speed[0];
 
     speedCounter += speed;
 
@@ -211,10 +252,22 @@ void Game::update() {
             place();
     }
 
-    if (!(left || right))
+    if (!(left || right)){
+        if(das == maxDas){
+            if(previousKey == -1)
+                moveHistory.push_back(2);
+            else if(previousKey == 1)
+                moveHistory.push_back(3);
+        }else if(das){
+            if(previousKey == -1)
+                moveHistory.push_back(0);
+            else if(previousKey == 1)
+                moveHistory.push_back(1);
+        }
         das = 0;
-    else if (das < maxDas)
+    }else if (das < maxDas){
         das++;
+    }
 
     if (das == maxDas && !(left && right)) {
         arrCounter++;
@@ -334,23 +387,11 @@ void Game::place() {
     refresh = 1;
     dropLockTimer = dropLockMax;
 
-    if(finesseCounter > 2)
-        finesse++;
-
-    finesseCounter = 0;
     pushDir = 0;
-    
-    int sum = 0;
-    for(int j = 0; j < lengthX; j++){
-        for(int i = 0; i < lengthY; i++){
-            if(board[i][j]){
-                sum += 40-i;
-                break;
-            }
-        }
-    }
 
-    currentHeight = (int) ((float)sum / 10);
+    moveHistory.clear();
+    previousKey = 0;
+    // setCurrentHeight();    
 }
 
 int Game::clear(Drop drop) {
@@ -454,13 +495,13 @@ int Game::clear(Drop drop) {
         attack = GameInfo::scoring[clearCount - 1][2];
         break;
     case 1:
-        add += GameInfo::scoring[clearCount - 1 + 4][0] * level;
+        add += GameInfo::scoring[clearCount + 4][0] * level;
         isDifficult = GameInfo::scoring[clearCount - 1 + 4][1];
-        attack = GameInfo::scoring[clearCount - 1 + 4][2];
+        attack = GameInfo::scoring[clearCount + 4][2];
         break;
     case 2:
-        add += GameInfo::scoring[clearCount - 1 + 7][0] * level;
-        attack = GameInfo::scoring[clearCount - 1 + 7][2];
+        add += GameInfo::scoring[clearCount  + 7][0] * level;
+        attack = GameInfo::scoring[clearCount + 7][2];
         isDifficult = 1;
         break;
     }
@@ -548,6 +589,8 @@ void Game::next() {
 
     if (!checkRotation(0, 0, pawn.rotation))
         lost = 1;
+
+    softDrop = false;
 }
 
 void Game::fillQueueSeed(int count, int s){
@@ -593,6 +636,8 @@ void Game::hold() {
     pawn.rotation = 0;
     canHold = 0;
     sounds.hold = 1;
+
+    moveHistory.clear();
 }
 
 int** Game::getShape(int n,int r) {
@@ -628,9 +673,10 @@ void Game::keyLeft(int dir) {
     if (left == 0)
         moveLeft();
     left = dir;
-    if(dir){
-        finesseCounter++;
-    }else{
+    
+    previousKey = -1;
+
+    if(!dir){
         pushDir = 0;
     }
 }
@@ -644,9 +690,10 @@ void Game::keyRight(int dir) {
     if (right == 0)
         moveRight();
     right = dir;
-    if(dir){
-        finesseCounter++;
-    }else{
+    
+    previousKey = 1;
+
+    if(!dir){
         pushDir = 0;
     }
 }
@@ -660,6 +707,7 @@ void Game::keyDown(int dir) {
     if (down == 0)
         moveDown();
     down = dir;
+    softDrop = true;
 }
 
 void Game::removeClearLock() {
@@ -676,6 +724,8 @@ void Game::removeClearLock() {
     linesToClear = std::list<int>();
     next();
     refresh = 1;
+
+    // setCurrentHeight(); 
 }
 
 void Game::resetSounds(){
@@ -817,12 +867,45 @@ void Game::addToGarbageQueue(int id, int amount){
 int Game::getIncomingGarbage(){
     int result = 0;
 
-    std::list<Garbage>::iterator index = garbageQueue.begin();
+    for(const auto& atck : garbageQueue){
+        result+= atck.amount;
+    }
 
-    for(int i = 0; i < (int) garbageQueue.size(); i++){
-        result+= index->amount;
+    return result;
+}
 
-        std::advance(index,1);
+std::list<int> Game::getBestFinesse(int piece,int dx, int rotation){
+    std::list<int> result;
+
+    int r = 0;
+    switch(piece){
+    case 0:
+        r = rotation % 2;
+        break;
+    case 1:
+        r = rotation;
+        break;
+    case 2:
+        r = rotation;
+        break;
+    case 3:
+        r = 0;
+        break;
+    case 4:
+        r = rotation % 2;
+        break;
+    case 5:
+        r = rotation;
+        break;
+    case 6:
+        r = rotation % 2;
+        break;
+    }
+
+    for(int i = 0; i < 4; i++){
+        result.push_back(GameInfo::finesse[piece][r][dx][i]);
+        if(GameInfo::finesse[piece][r][dx][i] == 6)
+            break;
     }
 
     return result;
