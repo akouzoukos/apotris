@@ -169,7 +169,7 @@ int connected = 0;
 int trainingMessageTimer = 0;
 
 
-#define MAX_SKINS 6
+#define MAX_SKINS 7
 #define MAX_SHADOWS 4
 #define MAX_BACKGROUNDS 3
 
@@ -810,9 +810,11 @@ void showShadow(){
 }
 
 void showHold(){
+	int color = (savefile->settings.palette + 2*(savefile->settings.palette > 6));
+
 	obj_unhide(holdFrameSprite,0);
-	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(savefile->settings.palette));
-	holdFrameSprite->attr2 = ATTR2_BUILD(512,savefile->settings.palette,1);
+	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(color));
+	holdFrameSprite->attr2 = ATTR2_BUILD(512,color,1);
 	obj_set_pos(holdFrameSprite,4*8+5+(push < 0)*push,9*8-2);
 
 	if(game->held == -1){
@@ -838,10 +840,11 @@ void showHold(){
 }
 
 void showQueue(){
+	int color = (savefile->settings.palette + 2*(savefile->settings.palette > 6));
 	for(int i = 0; i < 3; i++){
 		obj_unhide(queueFrameSprites[i],0);
-		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(savefile->settings.palette));
-		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,savefile->settings.palette,1);
+		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(color));
+		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,color,1);
 		obj_set_pos(queueFrameSprites[i],173+(push > 0)*push,12+32*i);
 	}
 	
@@ -927,6 +930,10 @@ void control(){
 
 	if(KEY_RIGHT == (key & KEY_RIGHT))
 		game->keyRight(0);
+
+	if(key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != 4)){
+		restart = true;
+	}
 }
 
 void showText(){
@@ -1081,10 +1088,12 @@ void drawFrame(){
 	u16*dest = (u16*)se_mem[26];
 
 	dest+= 9;
+	
+	int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6)) * 0x1000;
 
 	for(int i = 0; i < 20; i++){
 		for(int j = 0; j < 2; j++){
-			*dest++ = 0x0004 + j*0x400 + savefile->settings.palette * 0x1000;
+			*dest++ = 0x0004 + j*0x400 + color;
 			dest+=10;
 		}
 		dest+=32-22;
@@ -1094,8 +1103,8 @@ void drawFrame(){
 
 	for(int i = 0; i < 3; i++){
 		obj_unhide(queueFrameSprites[i],0);
-		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(savefile->settings.palette));
-		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,savefile->settings.palette,0);
+		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(color));
+		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,color,0);
 		obj_set_pos(queueFrameSprites[i],173,12+32*i);
 	}
 
@@ -1199,6 +1208,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
 	if(!onSettings){
 		// aprint("APOTRIS",12,4);
+		aprint("v2.1",0,19);
 
 		aprint("akouzoukos",20,19);
 
@@ -1388,7 +1398,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 					continue;
 
 				aprint(savefile->ultra[goalSelection].highscores[i].name,6,11+i);
-				std::string score = timeToString(savefile->ultra[goalSelection].highscores[i].score);
+				std::string score = std::to_string(savefile->ultra[goalSelection].highscores[i].score);
 				
 				aprint(score,25-(int)score.length(),11+i);
 			}
@@ -1943,7 +1953,7 @@ void startScreen(){
 				}
 			}
 
-			if(key == KEY_A || (key == KEY_START && toStart != -3)){
+			if((key == KEY_A || key == KEY_START) && toStart != -3){
 				if(onSettings && toStart == -1 && selection == options-3 && key == KEY_A){
 					clearText();
 					sfx(SFX_MENUCONFIRM);
@@ -2980,13 +2990,15 @@ void progressBar(){
 	else
 		current = game->linesCleared;
 
-	showBar(current,max,20,savefile->settings.palette);
+	int color = savefile->settings.palette + 2 * (savefile->settings.palette > 6);
+
+	showBar(current,max,20,color);
 
 	if(game->gameMode == 4){
 		if(++attackFlashTimer > attackFlashMax)
 			attackFlashTimer = 0;
 
-		memcpy16(&pal_bg_mem[8*16],&palette[savefile->settings.palette*16],16);
+		memcpy16(&pal_bg_mem[8*16],&palette[color*16],16);
 		if(attackFlashTimer < attackFlashMax/2){
 			memset32(&pal_bg_mem[8*16+5],0x421f,1);
 		}else{
@@ -3096,15 +3108,16 @@ void showBar(int current, int max, int x, int palette){
 }
 
 void showFrames(){
+	int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6));
 	obj_unhide(holdFrameSprite,0);
-	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(savefile->settings.palette));
-	holdFrameSprite->attr2 = ATTR2_BUILD(512,savefile->settings.palette,1);
+	obj_set_attr(holdFrameSprite,ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(color));
+	holdFrameSprite->attr2 = ATTR2_BUILD(512,color,1);
 	obj_set_pos(holdFrameSprite,4*8+5,9*8-2);
 
 	for(int i = 0; i < 3; i++){
 		obj_unhide(queueFrameSprites[i],0);
-		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(savefile->settings.palette));
-		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,savefile->settings.palette,1);
+		obj_set_attr(queueFrameSprites[i],ATTR0_SQUARE,ATTR1_SIZE(2),ATTR2_PALBANK(color));
+		queueFrameSprites[i]->attr2 = ATTR2_BUILD(512+16+16*i,color,1);
 		obj_set_pos(queueFrameSprites[i],173,12+32*i);
 	}
 }
@@ -3272,6 +3285,9 @@ void setSkin(){
 		//load mini sprite tiles
 		for(int i = 0; i < 7; i++)
 			memcpy16(&tile_mem[4][9*16+i*8],mini[1][i],16*7);
+		break;
+	case 6:
+		blockSprite = (u8*)sprite21tiles_bin;
 		break;
 	}
 	
@@ -3449,7 +3465,7 @@ void graphicTest(){
 						sfx(SFX_MENUCANCEL);
 					}
 				}else{
-					if(savefile->settings.palette < 6){
+					if(savefile->settings.palette < 7){
 						savefile->settings.palette++;
 						sfx(SFX_MENUMOVE);
 					}else{
@@ -3544,7 +3560,7 @@ void graphicTest(){
 			case 4:
 				if(savefile->settings.palette > 0)
 					aprint("<",endX-1,startY+selection);
-				if(savefile->settings.palette < 6)
+				if(savefile->settings.palette < 7)
 					aprint(">",endX+1,startY+selection);
 				break;
 			case 5:
@@ -3852,6 +3868,8 @@ void drawUIFrame(int x, int y, int w, int h){
 
 	dest2+=y*32+x;
 
+	int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6)) * 0x1000;
+
 	for(int i = 0; i < h; i++){
 		for(int j = 0; j < w; j++){
 			int tile = 0;
@@ -3863,7 +3881,7 @@ void drawUIFrame(int x, int y, int w, int h){
 				tile = 4 + (j > 0) * 0x400;
 			}
 			if(tile)
-				*dest2++ = tile + savefile->settings.palette * 0x1000 * (tile != 12);
+				*dest2++ = tile + color * (tile != 12);
 			else
 				dest2++;
 		}
