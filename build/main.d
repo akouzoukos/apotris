@@ -19,7 +19,6 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
  /opt/devkitpro/libgba/include/mm_types.h \
  /home/apostolos/Programming/GBA/apotris/include/def.h \
  /opt/devkitpro/libtonc/include/tonc_types.h \
- /home/apostolos/Programming/GBA/apotris/include/posprintf.h \
  /home/apostolos/Programming/GBA/apotris/include/tetrisgame.h \
  /home/apostolos/Programming/GBA/apotris/include/sprites.h \
  /home/apostolos/Programming/GBA/apotris/include/../build/sprite_pal_bin.h \
@@ -52,8 +51,7 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
  /home/apostolos/Programming/GBA/apotris/include/LinkConnection.h \
  /opt/devkitpro/libtonc/include/tonc_core.h \
  /opt/devkitpro/libtonc/include/tonc_memdef.h \
- /opt/devkitpro/libtonc/include/tonc_memmap.h \
- /home/apostolos/Programming/GBA/apotris/include/posprintf.h
+ /opt/devkitpro/libtonc/include/tonc_memmap.h
 /opt/devkitpro/libtonc/include/tonc.h:
 /opt/devkitpro/libtonc/include/tonc_types.h:
 /opt/devkitpro/libtonc/include/tonc_memmap.h:
@@ -74,7 +72,6 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
 /opt/devkitpro/libgba/include/mm_types.h:
 /home/apostolos/Programming/GBA/apotris/include/def.h:
 /opt/devkitpro/libtonc/include/tonc_types.h:
-/home/apostolos/Programming/GBA/apotris/include/posprintf.h:
 /home/apostolos/Programming/GBA/apotris/include/tetrisgame.h:
 /home/apostolos/Programming/GBA/apotris/include/sprites.h:
 /home/apostolos/Programming/GBA/apotris/include/../build/sprite_pal_bin.h:
@@ -108,4 +105,3 @@ main.o: /home/apostolos/Programming/GBA/apotris/source/main.cpp \
 /opt/devkitpro/libtonc/include/tonc_core.h:
 /opt/devkitpro/libtonc/include/tonc_memdef.h:
 /opt/devkitpro/libtonc/include/tonc_memmap.h:
-/home/apostolos/Programming/GBA/apotris/include/posprintf.h:

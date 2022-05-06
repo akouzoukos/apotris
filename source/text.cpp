@@ -2,7 +2,6 @@
 #include <string.h>
 #include <string>
 #include <tonc.h>
-#include "posprintf.h"
 
 #define bg3MapLen 1376
 u16 bg3Map[688]__attribute__((aligned(4)));
@@ -20,9 +19,7 @@ void aprint(std::string str, int x, int y){
 }
 
 void aprintf(int n, int x, int y){
-	char res[30];
-	// posprintf(res,"%d",n);
-	aprint(res,x,y);
+	aprint(std::to_string(n),x,y);
 }
 
 void aprintColor(std::string str, int x, int y,int palette){

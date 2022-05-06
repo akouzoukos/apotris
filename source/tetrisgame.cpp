@@ -1,5 +1,5 @@
 #include "tonc.h"
-#include "tetramino.hpp"
+#include "tetromino.hpp"
 #include "tetrisgame.h"
 #include <stdlib.h>
 #include <iostream>

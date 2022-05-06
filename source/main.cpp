@@ -16,8 +16,6 @@
 
 #include "LinkConnection.h"
 
-#include "posprintf.h"
-
 #define SHOW_FINESSE 1
 #define DIAGNOSE 0
 #define SAVE_TAG 0x4c
@@ -947,15 +945,13 @@ void showText(){
 		if(game->gameMode != 5){
 			aprint("Level",2,14);
 
-			std::string level = std::to_string(game->level);
-			aprint(level,4,15);
+			aprintf(game->level,4,15);
 		}
 
 	}else if(game->gameMode == 1){
 		if(savefile->settings.finesse){
 			aprint("Finesse",1,14);
-			std::string finesse = std::to_string(game->finesse);
-			aprint(finesse,4,15);
+			aprintf(game->finesse,4,15);
 		}
 		if(game->goal == 0){
 			aprint("Training",1,1);
@@ -968,14 +964,12 @@ void showText(){
 		aprint("Lines",2,17);
 		std::string lines;
 		if(game->gameMode == 3)
-			lines = std::to_string(game->garbageCleared);
+			aprintf(game->garbageCleared,4,18);
 		else
-			lines = std::to_string(game->linesCleared);
-		aprint(lines,4,18);
+			aprintf(game->linesCleared,4,18);
 	}else{
 		aprint("Attack",2,17);
-		std::string lines = std::to_string(game->linesSent);
-		aprint(lines,4,18);
+		aprintf(game->linesSent,4,18);
 	}
 
 	if(game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX){
@@ -989,8 +983,7 @@ void showClearText(){
 	if(game->comboCounter > 1){
 		aprint("Combo x",21,clearTextHeight-1);
 
-		std::string text = std::to_string(game->comboCounter);
-		aprint(text,28,clearTextHeight-1);
+		aprintf(game->comboCounter,28,clearTextHeight-1);
 	}else{
 		aprint("          ",20,clearTextHeight-1);
 	}
@@ -998,9 +991,8 @@ void showClearText(){
 	if(game->b2bCounter > 0){
 		aprint("Streak",22,clearTextHeight+1);
 
-		std::string text = std::to_string(game->b2bCounter+1);
 		aprint("x",24,clearTextHeight+2);
-		aprint(text,25,clearTextHeight+2);
+		aprintf(game->b2bCounter+1,25,clearTextHeight+2);
 	}else{
 		aprint("          ",20,clearTextHeight+1);
 		aprint("          ",20,clearTextHeight+2);
@@ -1229,6 +1221,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
 			for(int i = 0; i < 5; i++){
 				aprint(std::to_string(i+1)+".",3,11+i);
+
 				aprint("                       ",5,11+i);
 				if(savefile->marathon[goalSelection].highscores[i].score == 0)
 					continue;
@@ -1464,8 +1457,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 			// else
 			// 	aprint("OFF",endX,startY+space*3);
 
-			aprint(std::to_string(savefile->settings.volume),endX,startY+space*3);
-			
+			aprintf(savefile->settings.volume,endX,startY+space*3);
 			
 			if(savefile->settings.das == 8)
 				aprint("V.FAST",endX,startY+space*4);
@@ -2385,7 +2377,7 @@ void showStats(){
 			aprint("YOU WIN!",11,4);
 
 		aprint("Lines Sent",10,8);
-		aprint(std::to_string(game->linesSent),14,10);
+		aprintf(game->linesSent,14,10);
 		
 	}else if(game->gameMode == 0 || game->gameMode == 2 || game->lost || game->gameMode == 5){
 		std::string score = std::to_string(game->score);
@@ -2964,8 +2956,8 @@ void diagnose(){
 	
 	if(!DIAGNOSE)
 		return;
-
-	aprint(std::to_string(game->linesSent),0,0);
+	
+	aprintf(game->linesSent,0,0);
 
 	// int statHeight = 4;
 
@@ -3379,15 +3371,6 @@ void graphicTest(){
 			}
 		}
 
-		// if(key_hit(KEY_R)){
-		// 	showGame = !showGame;
-		// 	if(showGame){
-		// 		REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2; //Set to Sprite mode, 1d rendering
-		// 	}else{
-		// 		REG_DISPCNT= 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG2; //Set to Sprite mode, 1d rendering
-		// 	}
-		// }
-
 		if(key_hit(KEY_UP)){
 			if(selection > 0)
 				selection--;
@@ -3523,13 +3506,13 @@ void graphicTest(){
 			else
 				aprint("OFF",endX,startY+1);
 
-			aprint(std::to_string(savefile->settings.backgroundGrid+1),endX,startY+2);
+			aprintf(savefile->settings.backgroundGrid+1,endX,startY+2);
 			
-			aprint(std::to_string(savefile->settings.skin+1),endX,startY+3);
+			aprintf(savefile->settings.skin+1,endX,startY+3);
 			
-			aprint(std::to_string(savefile->settings.palette+1),endX,startY+4);
+			aprintf(savefile->settings.palette+1,endX,startY+4);
 			
-			aprint(std::to_string(savefile->settings.shadow+1),endX,startY+5);
+			aprintf(savefile->settings.shadow+1,endX,startY+5);
 			
 			if(savefile->settings.lightMode)
 				aprint("ON",endX,startY+6);

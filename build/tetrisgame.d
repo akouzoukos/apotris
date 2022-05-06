@@ -15,7 +15,7 @@ tetrisgame.o: \
  /opt/devkitpro/libtonc/include/tonc_video.h \
  /opt/devkitpro/libtonc/include/tonc_nocash.h \
  /opt/devkitpro/libtonc/include/tonc_text.h \
- /home/apostolos/Programming/GBA/apotris/include/tetramino.hpp \
+ /home/apostolos/Programming/GBA/apotris/include/tetromino.hpp \
  /home/apostolos/Programming/GBA/apotris/include/tetrisgame.h
 /opt/devkitpro/libtonc/include/tonc.h:
 /opt/devkitpro/libtonc/include/tonc_types.h:
@@ -32,5 +32,5 @@ tetrisgame.o: \
 /opt/devkitpro/libtonc/include/tonc_video.h:
 /opt/devkitpro/libtonc/include/tonc_nocash.h:
 /opt/devkitpro/libtonc/include/tonc_text.h:
-/home/apostolos/Programming/GBA/apotris/include/tetramino.hpp:
+/home/apostolos/Programming/GBA/apotris/include/tetromino.hpp:
 /home/apostolos/Programming/GBA/apotris/include/tetrisgame.h:

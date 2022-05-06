@@ -1,6 +1,5 @@
 #include <string>
 #include <tonc_types.h>
-#include "posprintf.h"
 #include <maxmod.h>
 #include "tetrisgame.h"
 
