@@ -1200,7 +1200,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
 	if(!onSettings){
 		// aprint("APOTRIS",12,4);
-		aprint("v2.1",0,19);
+		aprint("v2.1.1",0,19);
 
 		aprint("akouzoukos",20,19);
 
@@ -2788,6 +2788,7 @@ std::string nameInput(bool first){
 				cursor++;
 				if(cursor > 7){
 					onDone = true;
+					cursor = 7;
 					sfx(SFX_MENUCONFIRM);
 				}else{
 					sfx(SFX_MENUMOVE);
