@@ -171,6 +171,38 @@ namespace GameInfo{
         }
     };
 
+    static constexpr int kickTwice[4][6][2]={
+        {
+            {0,0},
+            {0,1},
+            {1,1},
+            {-1,1},
+            {1,0},
+            {-1,0}
+        },{
+            {0,0},
+            {1,0},
+            {1,2},
+            {1,1},
+            {0,2},
+            {0,1},
+        },{
+            {0,0},
+            {0,-1},
+            {-1,-1},
+            {1,-1},
+            {-1,0},
+            {1,0}
+        },{
+            {0,0},
+            {-1,0},
+            {-1,2},
+            {-1,1},
+            {0,2},
+            {0,1},
+        }
+    };
+
     static constexpr int kicks[2][2][4][5][2]={
         {//[Normal block or I block]
             {//[clockwise or counter clockwise]
@@ -303,6 +335,42 @@ namespace GameInfo{
         6.61,
         11.43,
         20.0
+    };
+
+    static constexpr float blitzGravity[15] = {
+        0.0167,
+        0.0259,
+        0.0412,
+        0.0670,
+        0.111,
+        0.189,
+        0.330,
+        0.588,
+        1.08,
+        2.01,
+        3.87,
+        7.62,
+        15.4,
+        20.0,
+        20.0,
+    };
+
+    static constexpr int blitzLevels[15]={
+        3,
+        8,
+        15,
+        24,
+        35,
+        48,
+        63,
+        80,
+        99,
+        120,
+        144,
+        170,
+        198,
+        228,
+        260,
     };
 
     static constexpr int scoring[17][3]={

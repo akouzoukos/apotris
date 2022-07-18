@@ -1,0 +1,14 @@
+{
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "buildAndRun",
+			"command": "export QT_STYLE_OVERRIDE=breeze; make; mgba-qt -3 apotris.gba",
+			"problemMatcher": [],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		}
+	]
+}

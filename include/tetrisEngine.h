@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstring>
-#include <iostream>
 #include <list>
 #include <string>
 
@@ -130,7 +129,7 @@ namespace Tetris
         int x;
         int y;
         int type;
-        int current;
+        int current = -1;
         int rotation = 0;
         int board[4][4][4];
         int lowest;
@@ -173,13 +172,11 @@ namespace Tetris
         Drop calculateDrop();
 
         std::list<int> bag;
-        int canHold = 1;
-        
+
         float speed;
         float speedCounter = 0;
 
         int seed = 0;
-
 
         //7  117
         //8  133
@@ -208,9 +205,12 @@ namespace Tetris
         int lastMoveRotation = 0;
         int finesseCounter = 0;
         bool dropping = false;
+
         Drop lastDrop;
 
         bool dropProtection = true;
+        bool disableDiagonals = false;
+        bool directionCancel = true;
 
         int dropLockTimer = 0;
         int dropLockMax = 8;
@@ -245,16 +245,20 @@ namespace Tetris
         int b2bCounter = 0;
         int bagCounter = 0;
         int linesSent = 0;
+        int moveCounter = 0;
+        int pieceCounter = 0;
         std::list<Garbage> attackQueue;
         std::list<Garbage> garbageQueue;
         std::list<int> moveHistory;
         std::list<int> previousBest;
         int previousKey = 0;
         bool softDrop = false;
+        bool canHold = true;
 
         int checkRotation(int, int, int);
         void rotateCW();
         void rotateCCW();
+        void rotateTwice();
         void hardDrop();
         void update();
         int lowest();
@@ -294,8 +298,7 @@ namespace Tetris
             fillQueue(5);
             linesToClear = std::list<int>();
 
-            pawn = Pawn((int)lengthX / 2 - 2, 0);
-            next();
+            pawn = Pawn(0,0);
 
             if(gameMode == 1)
                 goal = 40;
@@ -323,8 +326,7 @@ namespace Tetris
             fillQueueSeed(5,seed);
             linesToClear = std::list<int>();
 
-            pawn = Pawn((int)lengthX / 2 - 2, 0);
-            next();
+            pawn = Pawn(0,0);
 
             if(gameMode == 1)
                 goal = 40;
@@ -399,10 +401,18 @@ namespace Tetris
         Game* game;
         int **testBoard;
 
+        int currentHoles = 0;
+        int currentHeight = 0;
+
         void run(){
             if(thinking){
                 if(game->clearLock)
                     return;
+
+                if(thinkingI == -6){
+                    currentHoles = countHoles(game->board,game->lengthX,game->lengthY);
+                    currentHeight = getHeight(game->board,game->lengthX,game->lengthY);
+                }
 
                 if(thinkingI < 6){
                     for(int i = 0; i < 1; i++){
@@ -539,9 +549,6 @@ namespace Tetris
             int lowest = game->pawn.y;
             bool escape = false;
 
-            int currentHoles = countHoles(game->board,game->lengthX,game->lengthY);
-            int currentHeight = getHeight(game->board,game->lengthX,game->lengthY);
-
             for(int i = 0; i < game->lengthY - game->pawn.y; i++){
                 for(int j = 0; j < 4; j++){
                     if(blocks[j] == -1)
@@ -558,9 +565,9 @@ namespace Tetris
                     break;
             }
             
-            for(int i = 0; i < game->lengthY; i++)
+            for(int i = 0; i < 20; i++)
                 for(int j = 0; j < game->lengthX; j++)
-                    testBoard[i][j] = game->board[i][j];
+                    testBoard[i][j] = game->board[i+20][j];
 
             for(int i = 0; i < 4; i++){
                 for(int j = 0; j < 4; j++){
@@ -572,13 +579,13 @@ namespace Tetris
                     if(y > game->lengthY-1 || x > game->lengthX)
                         continue;
 
-                    testBoard[lowest+i][game->pawn.x+ii+j] = 1;
+                    testBoard[lowest+i-20][game->pawn.x+ii+j] = 1;
                 }
             }
 
-            int afterHoles = countHoles(testBoard,game->lengthX,game->lengthY);
-            int clears = countClears(testBoard,game->lengthX,game->lengthY);
-            int afterHeight = getHeight(testBoard,game->lengthX,game->lengthY);
+            int afterHoles = countHoles(testBoard,game->lengthX,20);
+            int clears = countClears(testBoard,game->lengthX,20);
+            int afterHeight = getHeight(testBoard,game->lengthX,20);
             
             int holeDiff = afterHoles-currentHoles;
             int heightDiff = afterHeight-currentHeight;
@@ -599,16 +606,16 @@ namespace Tetris
         Bot(){}
         Bot(Game* _game){
             game = _game;
-            testBoard = new int*[game->lengthY];
-            for(int i = 0; i < game->lengthY; i++){
+            testBoard = new int*[20];
+            for(int i = 0; i < 20; i++){
                 testBoard[i] = new int[game->lengthX];
                 for(int j = 0; j < game->lengthX; j++)
-                    testBoard[i][j] = game->board[i][j];
+                    testBoard[i][j] = game->board[i+20][j];
             }
         }
 
         ~Bot(){
-            for(int i = 0; i < game->lengthY; i++)
+            for(int i = 0; i < 20; i++)
                 delete[] testBoard[i];
             delete[] testBoard;
         }
