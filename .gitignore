@@ -6,3 +6,4 @@ build/
 *.sav
 *.pnproj
 *.el
+compile_commands.json
