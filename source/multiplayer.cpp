@@ -2,6 +2,7 @@
 #include "tonc.h"
 #include "LinkConnection.h"
 #include "tetrisEngine.h"
+#include "text.h"
 
 using namespace Tetris;
 
@@ -30,7 +31,6 @@ int botIncomingHeight = 0;
 void handleMultiplayer() {
     if (!multiplayer)
         return;
-    // if(game->attack)
     if (multiplayerStartTimer) {
         if (--multiplayerStartTimer == 0) {
             // startMultiplay8erGame(nextSeed & 0x1fff);
@@ -100,8 +100,6 @@ void handleMultiplayer() {
                 break;
             }
         }
-        // if(data[i])
-        // 	aprint(std::to_string(data[i]),0,7+i);
         if (game->lost) {
             linkConnection->send((u16)(2 << 13) + 0x123);
         } else {
@@ -136,8 +134,6 @@ void handleMultiplayer() {
             connected = -1;
             aprint("Connection Lost.", 0, 0);
         }
-        // aprint("0",0,0);
-        // multiplayer = false;
     }
 }
 
@@ -151,7 +147,7 @@ void startMultiplayerGame(int seed) {
     delete game;
     game = new Game(4, seed & 0x1fff);
     game->setLevel(1);
-    game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtection);
+    game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
     game->setGoal(100);
     multiplayer = true;
     linkConnection->send(50);

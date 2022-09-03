@@ -51,15 +51,13 @@ void Game::rotateCW() {
         int r = (pawn.rotation == 3) ? 0 : pawn.rotation + 1;
         
         if (checkRotation(dx, dy, r)) {
-            pawn.rotation++;
-            if (pawn.rotation > 3)
-                pawn.rotation = 0;
+            pawn.rotation = r;
 
+            lockCheck();
             pawn.x += dx;
             pawn.y += dy;
 
             pawn.setBlock();
-            lockCheck();
             sounds.rotate = 1;
 
             if(i == 4 && pawn.current == 5)
@@ -85,15 +83,13 @@ void Game::rotateCCW() {
         int r = (pawn.rotation == 0) ? 3 : pawn.rotation - 1;
         
         if (checkRotation(dx, dy, r)) {
-            pawn.rotation--;
-            if (pawn.rotation < 0)
-                pawn.rotation = 3;
+            pawn.rotation = r;
 
+            lockCheck();
             pawn.x += dx;
             pawn.y += dy;
 
             pawn.setBlock();
-            lockCheck();
             sounds.rotate = 1;
             
             if(i == 4 && pawn.current == 5)
@@ -121,15 +117,13 @@ void Game::rotateTwice() {
             r -= 4;
 
         if (checkRotation(dx, dy, r)) {
-            pawn.rotation+=2;
-            if (pawn.rotation > 3)
-                pawn.rotation -= 4;
+            pawn.rotation = r;
 
+            lockCheck();
             pawn.x += dx;
             pawn.y += dy;
 
             pawn.setBlock();
-            lockCheck();
             sounds.rotate = 1;
 
             moveHistory.push_back(7);
@@ -157,7 +151,6 @@ void Game::moveRight() {
         sounds.shift = 1;
         lastMoveRotation = 0;
         lockCheck();
-        
     }else{
         pushDir = 1;
     }
@@ -167,6 +160,7 @@ void Game::moveDown() {
     if (checkRotation(0, 1, pawn.rotation)){
         pawn.y++;
         sounds.shift = 1;
+        // lockTimer = maxLockTimer;
     }
 }
 
@@ -178,8 +172,6 @@ void Game::hardDrop() {
 
     if(diff)
         lastMoveRotation = 0;
-
-    pawn.y = pawn.lowest;
 
     int offset = 0;
     for(int j = 0; j < 4; j++){
@@ -196,25 +188,52 @@ void Game::hardDrop() {
     }
 
     std::list<int> bestFinesse = getBestFinesse(pawn.current,pawn.x+offset,pawn.rotation);
-    previousBest = bestFinesse;
+    previousBest = bestFinesse;//for debugging
 
-    int correct = false;
+    int difference = 0;
+    bool correct = false;
     if(moveHistory.size() > bestFinesse.size()-1){
         for(const auto& move : bestFinesse){
-            if(move == 7 && moveHistory.size() == bestFinesse.size()){
+            if(move == 6 && moveHistory.size() == bestFinesse.size()){
                 correct = true;
                 break;
             }
+        }
+        if(!correct){
+            difference = moveHistory.size() - (bestFinesse.size() - 1);
         }
     }else{
         correct = true;
     }
 
     if(!correct && !softDrop){
-        finesse++;
+        finesse += difference;
+
+        if(trainingMode){
+            canHold = true;
+            lockTimer = maxLockTimer;
+            lockMoveCounter = 15;
+            sounds.finesse = 1;
+            refresh = 1;
+            dropLockTimer = dropLockMax;
+            softDrop = false;
+
+            pushDir = 0;
+
+            moveHistory.clear();
+            previousKey = 0;
+
+            pawn.y = (int)lengthY / 2;
+            pawn.x = (int)lengthX / 2 - 2;
+            pawn.rotation = 0;
+            return;
+        }
     }
 
+    pawn.y = pawn.lowest;
+
     place();
+
     score += diff * 2;
 
     return;
@@ -235,15 +254,25 @@ void Game::update() {
         return;
     
     if(gameMode == 4){
-        std::list<Garbage>::iterator index = garbageQueue.begin();
+        auto index = garbageQueue.begin();
 
-        for(int i = 0; i < (int) garbageQueue.size(); i++){
+        while(index != garbageQueue.end()){
             if(index->timer){
                 index->timer--;
             }
-            std::advance(index,1);
+            ++index;
         }
+    }
 
+    if(gameMode == 8){
+        int rate = 60 * (4-goal);
+        if(timer % rate == 0){
+            generateGarbage(1,0);
+            refresh = 1;
+
+            if(lengthY-pawn.y <= garbageHeight)
+                pawn.y--;
+        }
     }
 
     int prevLevel = level;
@@ -253,8 +282,8 @@ void Game::update() {
             level = prevLevel;
     }else if(gameMode == 6){
         for(int i = 0; i < 15; i++){
-            if(linesCleared > GameInfo::blitzLevels[i]){
-                level = i+2;
+            if(linesCleared < GameInfo::blitzLevels[i]){
+                level = i+1;
                 break;
             }
         }
@@ -262,8 +291,12 @@ void Game::update() {
             level = prevLevel;
     }
 
-    if((linesCleared >= goal && gameMode == 1 && goal) || (linesCleared >= goal && gameMode == 2) || (garbageCleared >= goal && gameMode == 3) || (timer > goal && (gameMode == 5 || gameMode == 6)))
+    if((linesCleared >= goal && gameMode == 1 && goal) ||
+       (linesCleared >= goal && gameMode == 2) ||
+       (garbageCleared >= goal && gameMode == 3) ||
+       (timer > goal && (gameMode == 5 || gameMode == 6))){
         won = 1;
+    }
 
     if (prevLevel != level && (gameMode == 0 || gameMode == 2 || gameMode == 6))
         sounds.levelUp = 1;
@@ -279,8 +312,10 @@ void Game::update() {
 
     int n = (int)speedCounter;
     for (int i = 0; i < n; i++) {
-        if (checkRotation(0, 1, pawn.rotation))
+        if (checkRotation(0, 1, pawn.rotation)){
             pawn.y++;
+            // lockTimer = maxLockTimer;
+        }
     }
     speedCounter -= n;
 
@@ -293,25 +328,12 @@ void Game::update() {
     }else{
         if (pawn.lowest == pawn.y)
             lockTimer--;
-        else if (lockMoveCounter > 0)
-            lockTimer = maxLockTimer;
 
         if (lockTimer == 0)
             place();
     }
 
     if (!(left || right)){
-        if(das == maxDas){
-            if(previousKey == -1)
-                moveHistory.push_back(2);
-            else if(previousKey == 1)
-                moveHistory.push_back(3);
-        }else if(das){
-            if(previousKey == -1)
-                moveHistory.push_back(0);
-            else if(previousKey == 1)
-                moveHistory.push_back(1);
-        }
         das = 0;
     }else if (das < maxDas){
         das++;
@@ -396,10 +418,24 @@ void Game::place() {
 
     lastDrop = calculateDrop();
 
-    if (clear(lastDrop))
+    if (clear(lastDrop)){
         comboCounter++;
-    else{
+
+        if(gameMode == 7){
+            for(int i = lengthY/2+1; i < lengthY; i++){
+                if(board[i][0] != 0)
+                    break;
+                for(int j = 0; j < 10; j++){
+                    if(j > 2 && j < 7)
+                        continue;
+                    board[i][j] = (i+comboCounter) % 7 + 1;
+                }
+            }
+        }
+
+    } else{
         comboCounter = 0;
+
         if(gameMode == 3 && garbageHeight < 9){
             int toAdd = 9-garbageHeight;
             if(garbageCleared+toAdd+garbageHeight <= goal)
@@ -409,8 +445,6 @@ void Game::place() {
         }else if(gameMode == 4){
             int sum = 0;
             std::list<Garbage>::iterator index = garbageQueue.begin();
-            // for(int i = 0; i < (int) garbageQueue.size(); i++){
-            // }
             while(index != garbageQueue.end()){
                 if(index->timer == 0){
                     sum+=index->amount;
@@ -420,8 +454,13 @@ void Game::place() {
                 }
             }
             generateGarbage(sum,1);
+        }else if(gameMode == 7){
+            lost = 1;
         }
     }
+
+    if(comboCounter > statTracker[7])
+        statTracker[7] = comboCounter;
 
     if (!clearLock)
         next();
@@ -434,10 +473,13 @@ void Game::place() {
     dropLockTimer = dropLockMax;
 
     pushDir = 0;
-
-    moveHistory.clear();
     previousKey = 0;
     pieceCounter++;
+
+    moveHistory.clear();
+
+    if(das == maxDas)
+        moveHistory.push_back(2+(right));
 }
 
 int Game::clear(Drop drop) {
@@ -539,16 +581,20 @@ int Game::clear(Drop drop) {
         add += GameInfo::scoring[clearCount - 1][0] * level;
         isDifficult = GameInfo::scoring[clearCount - 1][1];
         attack = GameInfo::scoring[clearCount - 1][2];
+
+        statTracker[clearCount-1]++;
         break;
     case 1:
         add += GameInfo::scoring[clearCount + 4][0] * level;
         isDifficult = GameInfo::scoring[clearCount + 4][1];
         attack = GameInfo::scoring[clearCount + 4][2];
+        statTracker[4]++;
         break;
     case 2:
         add += GameInfo::scoring[clearCount  + 7][0] * level;
         attack = GameInfo::scoring[clearCount + 7][2];
         isDifficult = true;
+        statTracker[4]++;
         break;
     }
 
@@ -562,6 +608,9 @@ int Game::clear(Drop drop) {
         b2bCounter = 0;
     }
 
+    if(b2bCounter > statTracker[6])
+        statTracker[6] = b2bCounter;
+
     add += GameInfo::scoring[16][0] * level * comboCounter;
 
     attack += GameInfo::comboTable[comboCounter];
@@ -572,6 +621,8 @@ int Game::clear(Drop drop) {
         else
             add += 3500 * level;
         attack = GameInfo::scoring[clearCount - 1 + 11][2];
+
+        statTracker[5]++;
     }
 
     score += add;
@@ -586,7 +637,7 @@ int Game::clear(Drop drop) {
     if(garbageQueue.size()){
         std::list<Garbage>::iterator index = garbageQueue.begin();
         while(attack > 0 && index != garbageQueue.end()){
-            if(!index->timer){
+            if(index->timer == 0){
                 if(attack > index->amount){
                     attack -= index->amount;
                 }else{
@@ -622,7 +673,7 @@ void Game::fillBag() {
 }
 
 void Game::next() {
-    pawn.y = (int)lengthY / 2 - 1;
+    pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
     pawn.rotation = 0;
 
@@ -635,8 +686,22 @@ void Game::next() {
         fillQueueSeed(1,seed);
     pawn.setBlock();
 
-    if (!checkRotation(0, 0, pawn.rotation))
-        lost = 1;
+    bool check = false;
+    for(int i = 0; i < 3; i++){
+        for(int j = 0; j < 10; j++){
+            if(board[21+i][j] != 0){
+                check = true;
+                break;
+            }
+        }
+        if(check)
+            break;
+    }
+    if (!checkRotation(0, 0, pawn.rotation) || check){
+        pawn.y-=1;
+        if (!checkRotation(0, 0, pawn.rotation))
+            lost = 1;
+    }
 
     softDrop = false;
 }
@@ -686,11 +751,15 @@ void Game::hold() {
     pawn.rotation = 0;
     canHold = false;
     sounds.hold = 1;
+    holdCounter++;
 
     lockTimer = maxLockTimer;
     lockMoveCounter = 15;
 
     moveHistory.clear();
+
+    if(das == maxDas)
+        moveHistory.push_back(2+(right));
 }
 
 int** Game::getShape(int n,int r) {
@@ -730,6 +799,12 @@ void Game::keyLeft(int dir) {
 
     if(!dir){
         pushDir = 0;
+
+        if(das == maxDas)
+            moveHistory.push_back(2);
+        else
+            moveHistory.push_back(0);
+
         if(directionCancel)
             das = 0;
     }
@@ -750,6 +825,12 @@ void Game::keyRight(int dir) {
 
     if(!dir){
         pushDir = 0;
+
+        if(das == maxDas)
+            moveHistory.push_back(3);
+        else
+            moveHistory.push_back(1);
+
         if(directionCancel)
             das = 0;
     }
@@ -772,6 +853,8 @@ void Game::keyDown(int dir) {
 }
 
 void Game::removeClearLock() {
+    if(!clearLock)
+        return;
     clearLock = 0;
     std::list<int>::iterator index = linesToClear.begin();
 
@@ -818,8 +901,12 @@ void Game::generateGarbage(int height,int mode){
     }
 
     for(int i = lengthY-height; i < lengthY; i++){
-        if(!mode || qran() % 10 < 3)
-            hole = qran() % lengthX;
+        int prevHole = hole;
+        if(!mode || qran() % 10 < 3){
+            do{
+                hole = qran() % lengthX;
+            }while((!board[i-1][hole] && height < garbageHeight) || hole == prevHole);
+        }
         for(int j = 0; j < lengthX; j++){
             if(j == hole)
                 continue;
@@ -831,8 +918,6 @@ void Game::generateGarbage(int height,int mode){
 }
 
 void Game::keyDrop(){
-    if(disableDiagonals && (left || right))
-        return;
     dropping = true;
 
     moveCounter++;
@@ -895,11 +980,12 @@ Drop Game::calculateDrop(){
     return result;
 }
 
-void Game::setTuning(int newDas, int newArr, int newSfr, bool newDropProtection){
+void Game::setTuning(int newDas, int newArr, int newSfr, int newDropProtection, bool directionalDas){
     maxDas = newDas;
     arr = newArr;
     softDropSpeed = newSfr;
-    dropProtection = newDropProtection;
+    dropLockMax = newDropProtection;
+    directionCancel = directionalDas;
 }
 
 void Game::clearAttack(int id){
@@ -969,9 +1055,33 @@ std::list<int> Game::getBestFinesse(int piece,int dx, int rotation){
 
     for(int i = 0; i < 4; i++){
         result.push_back(GameInfo::finesse[piece][r][dx][i]);
-        if(GameInfo::finesse[piece][r][dx][i] == 6)
+        if(GameInfo::finesse[piece][r][dx][i] == 7)
             break;
     }
 
     return result;
+}
+
+void Game::setTrainingMode(bool mode){
+    trainingMode = mode;
+}
+
+void Game::demoClear(){
+    clearLock = 1;
+
+    for(int i = lengthY-2; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            board[i][j] = 8;
+        }
+    }
+
+    clear(Drop());
+}
+
+void Game::demoFill(){
+    clearLock = 0;
+    for(int i = lengthY-2; i < lengthY; i++){
+        int n = qran() % lengthX;
+        board[i][n] = 0;
+    }
 }

@@ -16,40 +16,20 @@
 
 #include "LinkConnection.h"
 
-#include "logging.hpp"
+#include "logging.h"
 #include "tonc_core.h"
+
+#include "text.h"
+
+#include "flashSaves.h"
+
+#include "posprintf.h"
 
 using namespace Tetris;
 
 void control();
-void showText();
 void showTimer();
-void update();
-void showClearText();
-void startScreen();
-void fallingBlocks();
-void endScreen();
-void endAnimation();
-void showStats();
-void reset();
-void loadSave();
-void saveToSram();
-void loadFromSram();
-std::string timeToString(int);
-void diagnose();
-void progressBar();
-void showBar(int, int, int, int);
-void showFrames();
-void clearGlow();
-void handleMultiplayer();
-void startMultiplayerGame(int);
-void setSkin();
-void showTitleSprites();
-void drawEnemyBoard(int);
-void handleBotGame();
-void sleep();
-void drawUIFrame(int, int, int, int);
-void setLightMode();
+mm_word myEventHandler();
 
 LinkConnection* linkConnection = new LinkConnection();
 
@@ -67,11 +47,9 @@ bool pause = false;
 
 int marathonClearTimer = 20;
 
-u32 highscore = 0;
-int bestTime = 0;
 int initialLevel = 0;
 
-int canDraw = 0;
+bool canDraw = false;
 
 int profileResults[10];
 
@@ -85,9 +63,6 @@ bool restart = false;
 
 bool playAgain = false;
 int nextSeed = 0;
-
-int attackFlashTimer = 0;
-int attackFlashMax = 10;
 
 bool multiplayer = false;
 bool playingBotGame = false;
@@ -113,17 +88,17 @@ void onVBlank(void) {
 
         if (game->refresh) {
             oam_copy(oam_mem, obj_buffer, 21);
-            obj_aff_copy((OBJ_AFFINE*)oam_mem, obj_aff_buffer, 10);
+            obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
             update();
             showBackground();
             game->resetRefresh();
         }else if (game->clearLock){
             showBackground();
         }else{
-            showTimer();
             oam_copy(oam_mem, obj_buffer, 21);
-            obj_aff_copy((OBJ_AFFINE*)oam_mem, obj_aff_buffer, 10);
+            obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
         }
+        showTimer();
     }
 
     mmFrame();
@@ -131,15 +106,25 @@ void onVBlank(void) {
 
 void onHBlank() {
     if (REG_VCOUNT < 160) {
-        clr_fade_fast((COLOR*)palette, GRADIENT_COLOR, pal_bg_mem, 2, (REG_VCOUNT / 20) * 2 + 16);
-        memcpy16(&pal_bg_mem[1], &palette[1], 1);
+        clr_fade_fast((COLOR*)palette[savefile->settings.colors], GRADIENT_COLOR, pal_bg_mem, 2, (REG_VCOUNT / 20) * 2 + 16);
+        memcpy16(&pal_bg_mem[1], &palette[savefile->settings.colors][1], 1);
     } else {
-        clr_fade_fast((COLOR*)palette, GRADIENT_COLOR, pal_bg_mem, 2, 16);
-        memcpy16(&pal_bg_mem[1], &palette[1], 1);
+        clr_fade_fast((COLOR*)palette[savefile->settings.colors], GRADIENT_COLOR, pal_bg_mem, 2, 16);
+        memcpy16(&pal_bg_mem[1], &palette[savefile->settings.colors][1], 1);
     }
 }
 
-int main(void) {
+mm_word myEventHandler(mm_word msg, mm_word param){
+    if(msg == MMCB_SONGMESSAGE)
+        return 0;
+
+    playNextSong();
+
+    return 0;
+}
+
+void initialize(){
+
     irq_init(NULL);
     irq_enable(II_VBLANK);
     irq_add(II_VBLANK, onVBlank);
@@ -151,20 +136,18 @@ int main(void) {
     irq_disable(II_HBLANK);
 
     mmInitDefault((mm_addr)soundbank_bin, 10);
+    mmSetEventHandler((mm_callback)myEventHandler);
 
     REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
     REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3);
     REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0);
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
-// 	// Load bg palette
+ 	// Load bg palette
 
-    memcpy16(pal_bg_mem, palette, paletteLen / 2);
     // 	// //Load bg tiles
     memcpy16(&tile_mem[0][2], sprite3tiles_bin, sprite3tiles_bin_size / 2);
-    memcpy16(&tile_mem[0][3], sprite4tiles_bin, sprite4tiles_bin_size / 2);
     memcpy16(&tile_mem[0][4], sprite5tiles_bin, sprite3tiles_bin_size / 2);
-    memcpy16(&tile_mem[0][5], sprite7tiles_bin, sprite7tiles_bin_size / 2);
     memcpy16(&tile_mem[0][6], sprite8tiles_bin, sprite8tiles_bin_size / 2);
     memcpy16(&tile_mem[0][12], sprite10tiles_bin, sprite10tiles_bin_size / 2);
     memcpy16(&tile_mem[0][13], sprite11tiles_bin, sprite11tiles_bin_size / 2);
@@ -176,6 +159,7 @@ int main(void) {
     memcpy16(&tile_mem[0][31], sprite23tiles_bin, sprite23tiles_bin_size / 2);
     memcpy16(&tile_mem[0][32], sprite24tiles_bin, sprite24tiles_bin_size / 2);
 
+    //hold tileshodl
     memcpy16(&tile_mem[5][0], sprite6tiles_bin, sprite6tiles_bin_size / 2);
 
     //queue frame Tiles
@@ -190,65 +174,53 @@ int main(void) {
     memcpy16(&tile_mem[5][64], title1tiles_bin, title1tiles_bin_size / 2);
     memcpy16(&tile_mem[5][96], title2tiles_bin, title2tiles_bin_size / 2);
 
+    for(int i = 0; i < 8; i ++)
+        memcpy16(&tile_mem[5][128+i], moveSpriteTiles[i], 16);
+
+
     memcpy16(&tile_mem[2][0], fontTiles, fontTilesLen / 2);
 
     //load tetriminoes into tile memory for menu screen animation
 
-    memcpy16((COLOR*)MEM_PAL_OBJ, palette, paletteLen / 2);
-
-    memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
+    setPalette();
+    setClearEffect();
 
     // REG_BLDCNT = BLD_BUILD(BLD_BG1,BLD_BACKDROP,BLD_STD);
     REG_BLDCNT = (1 << 6) + (1 << 13) + (1 << 1);
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
 
-    loadSave();
-
-    // //load mini sprite tiles
-    // for(int i = 0; i < 7; i++)
-    // 	memcpy16(&tile_mem[4][9*16+i*8],mini[1][i],16*7);
-
-    setSkin();
-    setLightMode();
-
     logInitMgba();
 
-    //init glow 
-    for (int i = 0; i < 20; i++)
-        for (int j = 0; j < 10; j++)
-            glow[i][j] = 0;
+}
 
-    oam_init(obj_buffer, 128);
+int main(void) {
+    if(ENABLE_FLASH_SAVE)
+        flash_init();
 
-    // linkConnection->deactivate();
+    loadSave();
 
-    playSongRandom(0);
-
-    showTitleSprites();
-
-    oam_copy(oam_mem, obj_buffer, 128);
+    initialize();
 
     //start screen animation
-    startScreen();
+    while(1){
+        reset();
 
-    oam_init(obj_buffer, 128);
-    drawFrame();
+        if(!playAgain){
+            startScreen();
+        }else{
+            playAgain = false;
+            int goal = game->goal;
+            int training = game->trainingMode;
+            delete game;
+            game = new Game(game->gameMode);
+            game->setGoal(goal);
+            game->setLevel(initialLevel);
+            game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+            game->setTrainingMode(training);
+        }
 
-    mmStop();
-
-    showFrames();
-
-    oam_copy(oam_mem, obj_buffer, 128);
-
-    countdown();
-
-    if (!(game->gameMode == 1 && game->goal == 0)) {
-        playSongRandom(1);
+        gameLoop();
     }
-
-    update();
-
-    gameLoop();
 }
 
 void update() {
@@ -263,16 +235,13 @@ std::string timeToString(int frames) {
     int seconds = t % 60;
     int minutes = t / 60;
 
+	char res[30];
+
+	posprintf(res,"%02d:%02d:%02d",minutes,seconds,millis);
+
     std::string result = "";
-    if (std::to_string(minutes).length() < 2)
-        result += "0";
-    result += std::to_string(minutes) + ":";
-    if (std::to_string(seconds).length() < 2)
-        result += "0";
-    result += std::to_string(seconds) + ":";
-    if (std::to_string(millis).length() < 2)
-        result += "0";
-    result += std::to_string(millis);
+
+    result = res;
 
     return result;
 }
@@ -289,15 +258,21 @@ void reset() {
     REG_BG1HOFS = 0;
     REG_BG0VOFS = 0;
     REG_BG1VOFS = 0;
+    shake = 0;
+    push = 0;
 
-    REG_DISPCNT &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3);
+    floatingList.clear();
+
+    // REG_DISPCNT &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3);
 
     memset32(&se_mem[25], 0x0000, 32 * 20);
     memset32(&se_mem[26], 0x0000, 32 * 20);
     memset32(&se_mem[27], 0x0000, 32 * 20);
 
-    SoftReset();
-    RegisterRamReset(0xff);
+    //reset glow
+    for (int i = 0; i < 20; i++)
+        for (int j = 0; j < 10; j++)
+            glow[i][j] = 0;
 }
 
 std::string nameInput(int place) {
@@ -323,11 +298,12 @@ std::string nameInput(int place) {
     int maxArr = 5;
 
     bool onDone = false;
+
     while (1) {
         VBlankIntrWait();
 
-        if (place == 0 && game->won)
-            aprint("New Record", 10, 7);
+        if (place == 0 && game->gameMode != 4 && (game->won || game->gameMode == 0 || game->gameMode == 2 || game->gameMode >= 5))
+            aprint("New Record", 10, 5);
 
         aprint("Name: ", 11, nameHeight - 2);
 
@@ -447,137 +423,6 @@ std::string nameInput(int place) {
     return result;
 }
 
-
-void progressBar() {
-    if (game->goal == 0)
-        return;
-
-    int current;
-    int max = game->goal;
-
-    if (game->gameMode == 3)
-        current = game->garbageCleared;
-    else if (game->gameMode == 5)
-        current = game->timer;
-    else
-        current = game->linesCleared;
-
-    int color = savefile->settings.palette + 2 * (savefile->settings.palette > 6);
-
-    showBar(current, max, 20, color);
-
-    if (game->gameMode == 4) {
-        if (++attackFlashTimer > attackFlashMax)
-            attackFlashTimer = 0;
-
-        memcpy16(&pal_bg_mem[8 * 16], &palette[color * 16], 16);
-        if (attackFlashTimer < attackFlashMax / 2) {
-            memset32(&pal_bg_mem[8 * 16 + 5], 0x421f, 1);
-        } else {
-            memset32(&pal_bg_mem[8 * 16 + 5], 0x7fff, 1);
-        }
-        //attack bar
-        showBar(game->getIncomingGarbage(), 20, 9, 8);
-
-        //enemy height
-        // u16*dest = (u16*)se_mem[27];
-
-        // for(int i = 19; i >= 0; i--){
-        // 	if(i <= (19-enemyHeight))
-        // 		dest[32*i+29] = 0x000d + savefile->settings.palette * 0x1000;
-        // 	else
-        // 		dest[32*i+29] = 0x000e + savefile->settings.palette * 0x1000;
-        // }
-    }
-}
-
-void showBar(int current, int max, int x, int palette) {
-    palette *= 0x1000;
-
-    if (max > 10000) {
-        current /= 10;
-        max /= 10;
-    }
-
-    int pixels = fx2int(fxmul(fxdiv(int2fx(current), int2fx(max)), int2fx(158)));
-    int segments = fx2int(fxdiv(int2fx(current), fxdiv(int2fx(max), int2fx(20))));
-    int edge = pixels - segments * 8 + 1 * (segments != 0);
-
-    u16* dest = (u16*)se_mem[26];
-
-    dest += x;
-    for (int i = 0; i < 20; i++) {
-
-        if (i == 0) {
-            if (segments == 19) {
-                if (edge == 0)
-                    *dest = 0x0006 + palette;
-                else {
-                    *dest = 0x000a + palette;
-                    for (int j = 0; j < 7; j++) {
-                        TILE* tile = &tile_mem[0][10];
-                        if (j == 0) {
-                            if (6 - j > edge)
-                                tile->data[j + 1] = 0x13300332;
-                            else
-                                tile->data[j + 1] = 0x13344332;
-                        } else {
-                            if (6 - j > edge)
-                                tile->data[j + 1] = 0x13000032;
-                            else
-                                tile->data[j + 1] = 0x13444432;
-                        }
-                    }
-                }
-            } else if (segments >= 20)
-                *dest = 0x0008 + palette;
-            else
-                *dest = 0x0006 + palette;
-
-        } else if (i == 19) {
-            if (segments == 0) {
-                if (edge == 0)
-                    *dest = 0x0806 + palette;
-                else {
-                    *dest = 0x080a + palette;
-                    for (int j = 0; j < 7; j++) {
-                        TILE* tile = &tile_mem[0][10];
-                        if (j == 0) {
-                            if (j >= edge)
-                                tile->data[j + 1] = 0x13300332;
-                            else
-                                tile->data[j + 1] = 0x13344332;
-                        } else {
-                            if (j >= edge)
-                                tile->data[j + 1] = 0x13000032;
-                            else
-                                tile->data[j + 1] = 0x13444432;
-                        }
-                    }
-                }
-            } else
-                *dest = 0x0808 + palette;
-        } else {
-            if (19 - i > segments) {
-                *dest = 0x0007 + palette;
-            } else if (19 - i == segments) {
-                *dest = 0x000b + palette;
-                for (int j = 0; j < 8; j++) {
-                    TILE* tile = &tile_mem[0][11];
-                    if (7 - j > edge) {
-                        tile->data[j] = 0x13000032;
-                    } else {
-                        tile->data[j] = 0x13444432;
-                    }
-                }
-            } else {
-                *dest = 0x0009 + palette;
-            }
-        }
-
-        dest += 32;
-    }
-}
 
 void setSkin() {
     for (int i = 0; i < 7; i++)
@@ -741,58 +586,24 @@ void sleep() {
     showTimer();
 }
 
-void drawUIFrame(int x, int y, int w, int h) {
-    u16* dest = (u16*)&se_mem[26];
-    u16* dest2 = (u16*)&se_mem[27];
-
-    dest2 += y * 32 + x;
-
-    int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6)) * 0x1000;
-
-    for (int i = 0; i < h; i++) {
-        for (int j = 0; j < w; j++) {
-            int tile = 0;
-            if ((i == 0 && (j == 0 || j == w - 1)) || (i == h - 1 && (j == 0 || j == w - 1))) {
-                tile = 29 + (i > 0) * 0x800 + (j > 0) * 0x400;
-            } else if (i == 0 || i == h - 1) {
-                tile = 28 + (i > 0) * 0x800;
-            } else if (j == 0 || j == w - 1) {
-                tile = 4 + (j > 0) * 0x400;
-            }
-            if (tile)
-                *dest2++ = tile + color * (tile != 12);
-            else
-                dest2++;
-        }
-        dest2 += 32 - w;
-    }
-
-    dest += (y + 1) * 32 + x + 1;
-    for (int i = 1; i < h - 1; i++) {
-        for (int j = 1; j < w - 1; j++) {
-            *dest++ = 12 + 4 * 0x1000 * (savefile->settings.lightMode);
-        }
-        dest += 32 - w + 2;
-    }
-}
-
 void diagnose() {
     if (!DIAGNOSE)
         return;
-    // aprintf(game->linesSent, 0, 0);
-    //
-    // aprintf(game->moveCounter,0,0);
-    // aprintf(game->timer,0,5);
-
-    // int statHeight = 4;
 
     std::string str = "";
 
     for(int i = 0; i < 5; i++){
-    	// aprint("       ",20,statHeight+i);
-    	// std::string n = std::to_string(profileResults[i]);
-    	// aprint(n,20,statHeight+i);
         str += std::to_string(profileResults[i]) + " ";
     }
-    log(str);
+
+    // str += std::to_string(game->previousBest.size()) + " " + std::to_string(game->moveHistory.size());
+
+    // log(str);
+}
+
+void setPalette(){
+    memcpy16(pal_bg_mem, palette[savefile->settings.colors], paletteLen / 2);
+    memcpy16(pal_obj_mem, palette[savefile->settings.colors], paletteLen / 2);
+    memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
+    setLightMode();
 }

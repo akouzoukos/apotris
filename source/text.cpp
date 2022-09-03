@@ -51,12 +51,12 @@ void aprintColor(std::string str, int x, int y,int palette){
 }
 
 void clearText(){
-    memset32(&se_mem[29],0x0000,32*20);
+    memset32(&se_mem[29], 0, 32*20);
 
 	if(textArea == nullptr)
 		return;
 
-	memset16(&tile_mem[2][textArea->tileId],0,(textArea->endX)*(textArea->endY)*2);
+	memset32(&tile_mem[2][textArea->tileId],0,(textArea->endX-textArea->startX+1)*(textArea->endY-textArea->startY)*8);
 
 	u16* dest = (u16*) se_mem[29];
 	int counter = 0;
@@ -80,6 +80,10 @@ void setSmallTextArea(int tid, int startX,int startY,int endX,int endY){
 			dest[i*32+j] = 0xf000 + textArea->tileId + counter++;
 }
 
+void clearSmallText(){
+	memset32(&tile_mem[2][textArea->tileId],0,(textArea->endX-textArea->startX+1)*(textArea->endY-textArea->startY)*8);
+}
+
 void aprints(std::string str, int x, int y, int colorIndex){//x and y are pixel
 	if(textArea == nullptr)
 		return;
@@ -88,9 +92,6 @@ void aprints(std::string str, int x, int y, int colorIndex){//x and y are pixel
     //width of current line, acts like a cursor position so that
     //text is drawn on the next line if w is greater than text area width
 	int w = 0;
-
-	//Empty everything from the start and below of writing area
-	memset32(&tile_mem[2][textArea->tileId+(y/8)*(textArea->endX-1)+x/8],0,(textArea->endX-1)*((textArea->endY-1)-y/8)*8);
 
 	for(int i = 0; i < (int) str.length(); i++){
 		if(str[i] == '\n'){
@@ -111,7 +112,7 @@ void aprints(std::string str, int x, int y, int colorIndex){//x and y are pixel
 		int counter = 0;
 		for(int j = 0; j < 5; j++){
 			for(int k = 0; k < 3; k++){
-				dest2 = (TILE *) &tile_mem[2][textArea->tileId+((y+j+drop)/8)*(textArea->endX-1)+(x+w+k)/8];
+				dest2 = (TILE *) &tile_mem[2][textArea->tileId+((y+j+drop)/8)*(textArea->endX-textArea->startX+1)+(x+w+k)/8];
 
                 //figure out if pixel at j,k should be drawn
                 int draw = (character >> (15-counter)) & 1;

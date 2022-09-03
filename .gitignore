@@ -1,5 +1,9 @@
 build/
+.cache/
+.vscode/
 *.gba
 *.elf
 *.sav
 *.pnproj
+*.png
+*.el

@@ -110,9 +110,9 @@ namespace Tetris
         int hold = 0;
         int clear = 0;
         int levelUp = 0;
+        int finesse = 0;
 
         SoundFlags() {}
-
         SoundFlags(const SoundFlags& oldFlags){
             shift = oldFlags.shift;
             rotate = oldFlags.rotate;
@@ -121,6 +121,7 @@ namespace Tetris
             hold = oldFlags.hold;
             clear = oldFlags.clear;
             levelUp = oldFlags.levelUp;
+            finesse = oldFlags.finesse;
         }
     };
 
@@ -209,7 +210,6 @@ namespace Tetris
         Drop lastDrop;
 
         bool dropProtection = true;
-        bool disableDiagonals = false;
         bool directionCancel = true;
 
         int dropLockTimer = 0;
@@ -254,6 +254,10 @@ namespace Tetris
         int previousKey = 0;
         bool softDrop = false;
         bool canHold = true;
+        int holdCounter = 0;
+        bool trainingMode = false;
+
+        int statTracker[8];
 
         int checkRotation(int, int, int);
         void rotateCW();
@@ -275,13 +279,16 @@ namespace Tetris
         void setLevel(int);
         void setGoal(int);
         Drop getDrop();
-        void setTuning(int,int,int,bool);
+        void setTuning(int,int,int,int,bool);
         void clearAttack(int);
         void setWin();
         void addToGarbageQueue(int,int);
         std::list<int> getBestFinesse(int,int,int);
         int getIncomingGarbage();
         Move findBestDrop();
+        void setTrainingMode(bool);
+        void demoClear();
+        void demoFill();
 
         Game(){}
         Game(int gm) {
@@ -307,8 +314,18 @@ namespace Tetris
             else if(gameMode == 3){
                 goal = 100;
                 generateGarbage(9,0);
+            }else if(gameMode == 7){
+                for(int i = lengthY/2+1; i < lengthY; i++){
+                    for(int j = 0; j < 10; j++){
+                       if(j > 2 && j < 7 && !(i == lengthY-2 && j < 5) && !(i == lengthY-1 && j < 4))
+                           continue;
+                       board[i][j] = i % 7 + 1;
+                    }
+                }
             }
-            
+
+            for(int i = 0; i < 8; i ++)
+                statTracker[i] = 0;
         }
 
         Game(int gm, int sd){
@@ -336,6 +353,9 @@ namespace Tetris
                 goal = 100;
                 generateGarbage(9,0);
             }
+
+            for(int i = 0; i < 8; i ++)
+                statTracker[i] = 0;
         }
 
         Game(const Game& oldGame){
@@ -375,7 +395,6 @@ namespace Tetris
             pushDir = oldGame.pushDir;
             b2bCounter = oldGame.b2bCounter;
             bagCounter = oldGame.bagCounter;
-
         }
 
         ~Game(){
