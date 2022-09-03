@@ -46,7 +46,10 @@ void loadSave() {
         temp->newGame = SAVE_TAG;
         temp->settings.sfxVolume = 10;
         temp->settings.directionalDas = false;
-        temp->settings.shakeAmount = 2;
+
+        if(temp->settings.shake)
+            temp->settings.shakeAmount = 2;
+
         temp->settings.noDiagonals = false;
         temp->settings.maxQueue = 5;
         temp->settings.colors = 0;
@@ -74,7 +77,7 @@ void loadSave() {
         delete temp;
     }else if (savefile->newGame == 0x4b) {
         Save* temp = new Save();
-        int oldSize = sizeof(Test2) + sizeof(u8);
+        int oldSize = sizeof(Test) + sizeof(u8);
 
         u8* tmp = (u8*)temp;
 
@@ -94,7 +97,8 @@ void loadSave() {
         temp->settings.lightMode = false;
         temp->settings.sfxVolume = 10;
         temp->settings.directionalDas = false;
-        temp->settings.shakeAmount = 2;
+        if(temp->settings.shake)
+            temp->settings.shakeAmount = 2;
         temp->settings.noDiagonals = false;
         temp->settings.maxQueue = 5;
         temp->settings.colors = 0;
