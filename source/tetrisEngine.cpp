@@ -270,7 +270,7 @@ void Game::update() {
             generateGarbage(1,0);
             refresh = 1;
 
-            if(lengthY-pawn.y <= garbageHeight)
+            while(!checkRotation(0,0,pawn.rotation))
                 pawn.y--;
         }
     }
