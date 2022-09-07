@@ -19,6 +19,7 @@ int onRecord();
 std::string nameInput(int);
 
 int mode = 0;
+bool showingStats = false;
 
 bool saveExists = false;
 Tetris::Game* quickSave;
@@ -146,7 +147,6 @@ int endScreen() {
     mmStop();
 
     int selection = 0;
-    bool showingStats = false;
 
     //calculate pps
     FIXED t = gameSeconds * float2fx(0.0167f);

@@ -585,7 +585,7 @@ void showText() {
         aprintf(game->linesSent, 4, 18);
     }
 
-    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX) {
+    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != 7) {
         aprint("Press", 1, 3);
         aprint("SELECT", 1, 5);
         aprint("for Saves", 1, 7);

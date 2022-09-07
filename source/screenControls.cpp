@@ -157,7 +157,15 @@ bool controlsControl(){
     if(key_hit(KEY_START)){
         if(selection < 8){
             int* keys = (int*) &savefile->settings.keys;
-            keys[selection] = 0;
+
+            //QUICK FIX FOR ROTATE LABELS, GONNA CHANGE NEXT MAJOR UPDATE
+            int temp = selection;
+            if(selection == 2)
+                temp++;
+            else if(selection == 3)
+                temp--;
+
+            keys[temp] = 0;
 
         }else{
             selection = options.size();
@@ -190,9 +198,9 @@ void controlsText(){
 
     showKey(k.moveRight, endX, startY+space, (selection == 1));
 
-    showKey(k.rotateCW, endX, startY+space*2, (selection == 2));
+    showKey(k.rotateCCW, endX, startY+space*2, (selection == 2));
 
-    showKey(k.rotateCCW, endX, startY+space*3, (selection == 3));
+    showKey(k.rotateCW, endX, startY+space*3, (selection == 3));
 
     showKey(k.rotate180, endX, startY+space*4, (selection == 4));
 
@@ -300,6 +308,12 @@ void changeInput(int selection){
                 if(std::find(foundKeys.begin(), foundKeys.end(),(int) key) != foundKeys.end())
                     keys[i]-=key;
             }
+
+            //QUICK FIX FOR ROTATE LABELS, GONNA CHANGE NEXT MAJOR UPDATE
+            if(selection == 2)
+                selection++;
+            else if(selection == 3)
+                selection--;
 
             keys[selection] = key;
             break;

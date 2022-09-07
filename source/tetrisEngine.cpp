@@ -411,7 +411,17 @@ void Game::place() {
         }
     }
 
-    if (pawn.y < ((int)lengthY / 2 - 1)) {
+    int lowestPart = 0;
+
+    for(int i = 3; i >= 0; i--)//find height of lowest block in column
+        for(int j = 0; j < 4; j++)
+            if(pawn.board[pawn.rotation][i][j]){
+                lowestPart = i;
+                break;
+            }
+
+    // if (pawn.y < ((int)lengthY / 2 - 2)) {
+    if (pawn.y+lowestPart < ((int) lengthY / 2 - 2)) {
         lost = 1;
         return;
     }
@@ -422,7 +432,7 @@ void Game::place() {
         comboCounter++;
 
         if(gameMode == 7){
-            for(int i = lengthY/2+1; i < lengthY; i++){
+            for(int i = lengthY/2-1; i < lengthY; i++){
                 if(board[i][0] != 0)
                     break;
                 for(int j = 0; j < 10; j++){
@@ -434,6 +444,8 @@ void Game::place() {
         }
 
     } else{
+        if(gameMode == 7 && comboCounter)
+            lost = 1;
         comboCounter = 0;
 
         if(gameMode == 3 && garbageHeight < 9){
@@ -454,8 +466,6 @@ void Game::place() {
                 }
             }
             generateGarbage(sum,1);
-        }else if(gameMode == 7){
-            lost = 1;
         }
     }
 
@@ -686,6 +696,7 @@ void Game::next() {
         fillQueueSeed(1,seed);
     pawn.setBlock();
 
+    //check if stack has reached top 3 lines
     bool check = false;
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 10; j++){
@@ -697,7 +708,8 @@ void Game::next() {
         if(check)
             break;
     }
-    if (!checkRotation(0, 0, pawn.rotation) || check){
+
+    if (check || !checkRotation(0, 0, pawn.rotation)){
         pawn.y-=1;
         if (!checkRotation(0, 0, pawn.rotation))
             lost = 1;
