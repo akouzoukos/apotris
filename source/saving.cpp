@@ -27,6 +27,7 @@ void loadFromSram() {
 }
 
 void loadSave() {
+    delete savefile;
     savefile = new Save();
     loadFromSram();
 

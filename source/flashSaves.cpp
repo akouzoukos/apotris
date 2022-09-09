@@ -3,6 +3,7 @@
 #include "stddef.h"
 #include "flashSaves.h"
 #include "LinkConnection.h"
+#include "logging.h"
 
 #include "text.h"
 
@@ -15,6 +16,7 @@ void save_sram_flash();
 u32 flash_size = 0;
 u32 flash_sram_area = 0;
 u8 flash_type = 0;
+bool escape = false;
 
 __attribute__((section(".iwram"), target("arm")))
 static void bytecopy(vu8 *dst, vu8 *src, int count) {
@@ -41,6 +43,21 @@ static int bytecmp(vu8 *buf1, vu8 *buf2, size_t count) {
 // not visible to the system while checking.
 __attribute__((section(".ewram")))
 u32 get_flash_type() {
+
+	//test if able to write to SRAM/FRAM
+    volatile u8* sf = (volatile u8*)sram_mem;
+
+    savefile = new Save();
+    u8* arr = (u8*)savefile;
+
+    for (int i = 0; i < (int)sizeof(Save); i++)
+		arr[i] = (u8)sf[i];
+
+	if(savefile->newGame >= 0x4b && savefile->newGame <= SAVE_TAG){
+		escape = true;
+		return 0;
+	}
+
 	u32 rom_data, data;
 	u16 ie = REG_IE;
 	//stop_dma_interrupts();
@@ -277,6 +294,8 @@ void flash_init() {
 		bytecopy(AGB_SRAM, ((vu8*)AGB_ROM+flash_sram_area), AGB_SRAM_SIZE);
 
 	} else { // Emulator mode?
+		if(escape)
+			return;
 
 		if ((*(vu32*)(AGB_ROM+0x400000-0x40000) == STATEID) || (*(vu32*)(AGB_ROM+0x400000-0x40000) == STATEID2)) {
 			flash_sram_area = 0x400000-0x40000;
@@ -292,7 +311,6 @@ void flash_init() {
 			bytecopy(AGB_SRAM, ((vu8*)AGB_ROM+flash_sram_area), AGB_SRAM_SIZE);
 		}
 	}
-
 }
 
 void save_sram_flash()
@@ -325,6 +343,7 @@ void save_sram_flash()
     irq_enable(II_SERIAL);
     irq_delete(II_KEYPAD);
     irq_enable(II_VBLANK);
+
 	aprint("   Saved!",21,19);//spaces necessary to "erase" the previous text
 }
 #endif

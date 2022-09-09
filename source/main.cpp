@@ -190,7 +190,6 @@ void initialize(){
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
 
     logInitMgba();
-
 }
 
 int main(void) {
