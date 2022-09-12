@@ -226,6 +226,7 @@ void update() {
     clearText();
     showText();
     showTimer();
+    showClearText();
 }
 
 std::string timeToString(int frames) {
