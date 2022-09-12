@@ -143,6 +143,33 @@ public:
     }
 };
 
+class PlaceEffect{
+public:
+
+        int x;
+        int y;
+        int dx;
+        int dy;
+        int piece;
+        int rotation;
+        int rotating;
+
+        int timer = 12;
+
+        OBJ_ATTR* sprite;
+
+        PlaceEffect(){}
+        PlaceEffect(int _x, int _y, int _dx, int _dy, int _piece, int _rotation, int _rotating){
+            x = _x;
+            y = _y;
+            dx = _dx;
+            dy = _dy;
+            piece = _piece;
+            rotation = _rotation;
+            rotating = _rotating;
+        }
+};
+
 #define TRAINING_MESSAGE_MAX 300
 #define MAX_SKINS 7
 #define MAX_SHADOWS 5
@@ -214,6 +241,7 @@ extern void setPalette();
 extern void loadSave();
 extern void startScreen();
 extern void showText();
+extern void showPlaceEffect();
 
 extern std::string timeToString(int);
 
@@ -237,6 +265,7 @@ extern bool restart;
 
 extern std::list<Effect> effectList;
 extern std::list<FloatText> floatingList;
+extern std::list<PlaceEffect> placeEffectList;
 
 extern int glow[20][10];
 

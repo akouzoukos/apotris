@@ -35,3 +35,5 @@ extern const uint16_t palette[2][256];
 extern const uint8_t * mini[2][7];
 
 extern const uint8_t * moveSpriteTiles[8];
+
+extern const uint8_t * placeEffectTiles[15];

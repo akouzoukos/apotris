@@ -260,6 +260,7 @@ int endScreen() {
             playSongRandom(1);
 
             floatingList.clear();
+            placeEffectList.clear();
 
             drawFrame();
             clearText();
@@ -539,6 +540,7 @@ int pauseMenu(){
                         showHold();
                         update();
                         floatingList.clear();
+                        placeEffectList.clear();
                         clearGlow();
 
                         if (ENABLE_BOT) {

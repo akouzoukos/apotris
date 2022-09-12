@@ -22,6 +22,17 @@ namespace Tetris
         int startY = 0;
         int endY = 0;
 
+        int x;
+        int y;
+
+        int dx;
+        int dy;
+
+        int piece;
+        int rotation;
+        int rotating;
+
+
         Drop(){}
         Drop(const Drop& oldDrop){
             on = oldDrop.on;
@@ -29,6 +40,13 @@ namespace Tetris
             endX = oldDrop.endX;
             startY = oldDrop.startY;
             endY = oldDrop.endY;
+            x = oldDrop.x;
+            y = oldDrop.y;
+            dx = oldDrop.dx;
+            dy = oldDrop.dy;
+            piece = oldDrop.piece;
+            rotation = oldDrop.rotation;
+            rotating = oldDrop.rotating;
         }
     };
 
@@ -204,6 +222,9 @@ namespace Tetris
         int down = 0;
 
         int lastMoveRotation = 0;
+        int lastMoveDx = 0;
+        int lastMoveDy = 0;
+
         int finesseCounter = 0;
         bool dropping = false;
 

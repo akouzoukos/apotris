@@ -22,6 +22,22 @@
 #include "move7tiles_bin.h"
 #include "move8tiles_bin.h"
 
+#include "effect1_tiles_bin.h"
+#include "effect2_tiles_bin.h"
+#include "effect3_tiles_bin.h"
+#include "effect4_tiles_bin.h"
+#include "effect5_tiles_bin.h"
+#include "effect6_tiles_bin.h"
+#include "effect7_tiles_bin.h"
+#include "effect8_tiles_bin.h"
+#include "effect9_tiles_bin.h"
+#include "effect10_tiles_bin.h"
+#include "effect11_tiles_bin.h"
+#include "effect12_tiles_bin.h"
+#include "effect13_tiles_bin.h"
+#include "effect14_tiles_bin.h"
+#include "effect15_tiles_bin.h"
+
 const uint8_t * mini[2][7] = {
     {
         small1tiles_bin,
@@ -51,6 +67,24 @@ const uint8_t * moveSpriteTiles[8] = {
         move6tiles_bin,
         move7tiles_bin,
         move8tiles_bin,
+};
+
+const uint8_t * placeEffectTiles[15] = {
+        effect1_tiles_bin,
+        effect2_tiles_bin,
+        effect3_tiles_bin,
+        effect4_tiles_bin,
+        effect5_tiles_bin,
+        effect6_tiles_bin,
+        effect7_tiles_bin,
+        effect8_tiles_bin,
+        effect9_tiles_bin,
+        effect10_tiles_bin,
+        effect11_tiles_bin,
+        effect12_tiles_bin,
+        effect13_tiles_bin,
+        effect14_tiles_bin,
+        effect15_tiles_bin,
 };
 
 const uint16_t palette[2][256] __attribute__((aligned(4)))=
