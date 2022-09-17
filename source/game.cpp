@@ -1219,8 +1219,6 @@ void showPlaceEffect(){
             spin = 0x4000 * (it->rotating) * ((it->timer-6));
             spin /= 12;
 
-            log(std::to_string(it->timer-6));
-
             if(it->dx || it->dy){
                 int mix = 255 * (6-(it->timer/2));
 
