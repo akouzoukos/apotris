@@ -161,6 +161,7 @@ public:
 #define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1
+#define ENABLE_RUMBLE 1
 // #define GRADIENT_COLOR 0x1a9d
 
 extern void gameLoop();
@@ -271,3 +272,5 @@ extern int currentMenu;
 
 extern int previousOptionScreen;
 extern bool goToOptions;
+
+extern int rumbleMax;

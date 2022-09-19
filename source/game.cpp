@@ -12,6 +12,8 @@
 #include <string>
 #include "text.h"
 
+#include "rumble.h"
+
 using namespace Tetris;
 
 void diagnose();
@@ -59,6 +61,9 @@ int restartTimer = 0;
 int attackFlashTimer = 0;
 int attackFlashMax = 10;
 
+int rumbleTimer = 0;
+int rumbleMax = 1;
+
 std::list<FloatText> floatingList;
 
 std::list<Effect> effectList;
@@ -76,6 +81,8 @@ void checkSounds() {
         if(!game->sounds.finesse)
             for(int i = 0; i < 3; i++)
                 obj_hide(moveSprites[i]);
+
+        rumbleTimer = (savefile->settings.shakeAmount) * rumbleMax;
     }
     if (game->sounds.invalid)
         sfx(SFX_INVALID);
@@ -728,11 +735,25 @@ void gameLoop(){
         canDraw = true;
         VBlankIntrWait();
 
+        rumble_update();
+
         if (clearTimer == maxClearTimer || (game->gameMode == 8 && clearTimer)) {
             game->removeClearLock();
             shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
+            rumbleTimer = rumbleMax * 8;
             clearTimer = 0;
             update();
+        }
+
+        if(rumbleTimer > 0){
+            rumbleTimer--;
+
+            rumble_set_state(rumble_start);
+
+            aprint("on",0,0);
+        }else{
+            rumble_set_state(rumble_hard_stop);
+            aprint("  ",0,0);
         }
 
         if (game->won || game->lost){

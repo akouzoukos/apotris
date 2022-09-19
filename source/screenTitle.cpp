@@ -6,9 +6,9 @@
 #include "soundbank.h"
 #include "LinkConnection.h"
 #include "flashSaves.h"
-#include "tonc_bios.h"
 
 #include "posprintf.h"
+#include "logging.h"
 
 void drawUIFrame(int, int, int, int);
 void fallingBlocks();
