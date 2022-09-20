@@ -690,10 +690,8 @@ void Game::next() {
     pawn.current = queue.front();
     queue.pop_front();
 
-    if(gameMode != 4)
-        fillQueue(1);
-    else
-        fillQueueSeed(1,seed);
+    fillQueue(1);
+
     pawn.setBlock();
 
     //check if stack has reached top 3 lines
@@ -718,14 +716,12 @@ void Game::next() {
     softDrop = false;
 }
 
-void Game::fillQueueSeed(int count, int s){
-    sqran(s);
-    seed+= qran();
-
-    fillQueue(count);
-}
-
 void Game::fillQueue(int count) {
+    if(seed != 0){
+        sqran(seed);
+        seed+= qran();
+    }
+
     int i;
     for (i = 0; i < count; i++) {
         int n = qran() % bag.size();

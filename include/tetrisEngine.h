@@ -291,42 +291,6 @@ namespace Tetris
         void demoFill();
 
         Game(){}
-        Game(int gm) {
-            gameMode = gm;
-            board = new int* [lengthY];
-
-            for (int i = 0; i < lengthY; i++) {
-                board[i] = new int[lengthX];
-                for (int j = 0; j < lengthX; j++)
-                    board[i][j] = 0;
-            }
-            
-            fillBag();
-            fillQueue(5);
-            linesToClear = std::list<int>();
-
-            pawn = Pawn(0,0);
-
-            if(gameMode == 1)
-                goal = 40;
-            else if(gameMode == 2)
-                goal = 150;
-            else if(gameMode == 3){
-                goal = 100;
-                generateGarbage(9,0);
-            }else if(gameMode == 7){
-                for(int i = lengthY/2-1; i < lengthY; i++){
-                    for(int j = 0; j < 10; j++){
-                       if(j > 2 && j < 7 && !(i == lengthY-2 && j < 5) && !(i == lengthY-1 && j < 4))
-                           continue;
-                       board[i][j] = i % 7 + 1;
-                    }
-                }
-            }
-
-            for(int i = 0; i < 8; i ++)
-                statTracker[i] = 0;
-        }
 
         Game(int gm, int sd){
             gameMode = gm;
@@ -338,10 +302,9 @@ namespace Tetris
                 for (int j = 0; j < lengthX; j++)
                     board[i][j] = 0;
             }
-            
+
             fillBag();
-            fillQueueSeed(5,seed);
-            linesToClear = std::list<int>();
+            fillQueue(5);
 
             pawn = Pawn(0,0);
 
@@ -357,6 +320,8 @@ namespace Tetris
             for(int i = 0; i < 8; i ++)
                 statTracker[i] = 0;
         }
+
+        Game(int gm) : Game(gm,0){}
 
         Game(const Game& oldGame){
             canHold = oldGame.canHold;
