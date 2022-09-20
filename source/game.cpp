@@ -749,11 +749,8 @@ void gameLoop(){
             rumbleTimer--;
 
             rumble_set_state(rumble_start);
-
-            aprint("on",0,0);
         }else{
             rumble_set_state(rumble_hard_stop);
-            aprint("  ",0,0);
         }
 
         if (game->won || game->lost){
