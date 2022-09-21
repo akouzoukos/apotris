@@ -269,6 +269,7 @@ void graphicTest() {
                     }
                 } else {
                     if (savefile->settings.shakeAmount < 4) {
+                        savefile->settings.shake = true;
                         savefile->settings.shakeAmount++;
                         sfx(SFX_MENUMOVE);
                     } else {

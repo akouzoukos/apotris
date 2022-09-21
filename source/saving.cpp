@@ -50,6 +50,10 @@ void loadSave() {
 
         if(temp->settings.shake)
             temp->settings.shakeAmount = 2;
+        else{
+            temp->settings.shake = true;
+            temp->settings.shakeAmount = 0;
+        }
 
         temp->settings.noDiagonals = false;
         temp->settings.maxQueue = 5;
@@ -98,8 +102,6 @@ void loadSave() {
         temp->settings.lightMode = false;
         temp->settings.sfxVolume = 10;
         temp->settings.directionalDas = false;
-        if(temp->settings.shake)
-            temp->settings.shakeAmount = 2;
         temp->settings.noDiagonals = false;
         temp->settings.maxQueue = 5;
         temp->settings.colors = 0;
@@ -108,6 +110,13 @@ void loadSave() {
         temp->settings.abHold = true;
         temp->settings.clearEffect = 0;
         temp->settings.resetHold = false;
+
+        if(temp->settings.shake)
+            temp->settings.shakeAmount = 2;
+        else{
+            temp->settings.shake = true;
+            temp->settings.shakeAmount = 0;
+        }
 
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 5; j++)
