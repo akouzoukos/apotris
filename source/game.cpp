@@ -82,7 +82,7 @@ void checkSounds() {
             for(int i = 0; i < 3; i++)
                 obj_hide(moveSprites[i]);
 
-        rumbleTimer = (savefile->settings.shakeAmount) * rumbleMax;
+        rumbleTimer = rumbleMax;
     }
     if (game->sounds.invalid)
         sfx(SFX_INVALID);
