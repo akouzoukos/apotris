@@ -315,6 +315,7 @@ namespace Tetris
             else if(gameMode == 3){
                 goal = 100;
                 generateGarbage(9,0);
+            }else if(gameMode == 9){
             }
 
             for(int i = 0; i < 8; i ++)

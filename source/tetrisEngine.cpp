@@ -4,7 +4,6 @@
 #include <iostream>
 #include "tonc.h"
 
-
 using namespace Tetris;
 
 int Game::checkRotation(int dx, int dy, int r) {
@@ -738,7 +737,7 @@ void Game::fillQueue(int count) {
 }
 
 void Game::hold() {
-    if (!canHold || clearLock)
+    if (!canHold || clearLock || gameMode == 9)
         return;
 
     moveCounter++;
