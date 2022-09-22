@@ -466,6 +466,8 @@ void setSkin() {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
                     memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
+                }else{
+                    memcpy16(&tile_mem[4][16 * i + j * 4 + k], &tile_mem[4][0], sprite1tiles_bin_size / 2);
                 }
             }
         }

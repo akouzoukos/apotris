@@ -134,7 +134,7 @@ namespace Tetris
         int rotation = 0;
         int board[4][4][4];
         int lowest;
-        void setBlock();
+        void setBlock(bool alt);
 
         Pawn(int newX, int newY) {
             x = newX;
@@ -217,6 +217,8 @@ namespace Tetris
 
         bool specialTspin = false;
 
+        int pieceHistory = -1;
+
     public:
         int lengthX = 10;
         int lengthY = 40;
@@ -256,6 +258,8 @@ namespace Tetris
         bool canHold = true;
         int holdCounter = 0;
         bool trainingMode = false;
+
+        int entryDelay = 0;
 
         int statTracker[8];
 
@@ -304,7 +308,17 @@ namespace Tetris
             }
 
             fillBag();
-            fillQueue(5);
+
+            if(gameMode == 9){
+                maxLockTimer = 1;
+                fillQueue(1);
+
+                maxDas = 16;
+                arr = 6;
+                softDropSpeed = 2;
+
+            }else
+                fillQueue(5);
 
             pawn = Pawn(0,0);
 
@@ -315,7 +329,6 @@ namespace Tetris
             else if(gameMode == 3){
                 goal = 100;
                 generateGarbage(9,0);
-            }else if(gameMode == 9){
             }
 
             for(int i = 0; i < 8; i ++)
@@ -557,14 +570,14 @@ namespace Tetris
             for(int i = 0; i < 4; i++){
                 for(int j = 0; j < 4; j++){
                     if(game->pawn.board[jj][i][j] == 0)
-                    continue;
+                        continue;
                     int x = game->pawn.x+ii+j;
                     int y = lowest+i;
 
                     if(y > game->lengthY-1 || x > game->lengthX)
                         continue;
 
-                    testBoard[lowest+i-20][game->pawn.x+ii+j] = 1;
+                    testBoard[lowest+i-20][x] = 1;
                 }
             }
 

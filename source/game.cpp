@@ -288,7 +288,7 @@ void showPawn() {
 
 void showShadow() {
     pawnShadow = &obj_buffer[1];
-    if (game->clearLock) {
+    if (game->clearLock || game->gameMode == 9) {
         obj_hide(pawnShadow);
         return;
     }
@@ -347,10 +347,14 @@ void showHold() {
     holdFrameSprite = &obj_buffer[10];
     int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6));
 
-    obj_unhide(holdFrameSprite, 0);
-    obj_set_attr(holdFrameSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_PALBANK(color));
-    holdFrameSprite->attr2 = ATTR2_BUILD(512, color, 3);
-    obj_set_pos(holdFrameSprite, 4 * 8 + 5 + (push < 0) * push, 9 * 8 - 2);
+    if(game->gameMode != 9){
+        obj_unhide(holdFrameSprite, 0);
+        obj_set_attr(holdFrameSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_PALBANK(color));
+        holdFrameSprite->attr2 = ATTR2_BUILD(512, color, 3);
+        obj_set_pos(holdFrameSprite, 4 * 8 + 5 + (push < 0) * push, 9 * 8 - 2);
+    }else{
+        obj_hide(holdFrameSprite);
+    }
 
     if (game->held == -1) {
         obj_hide(holdSprite);
@@ -378,6 +382,9 @@ void showHold() {
 void showQueue() {
     int maxQueue = savefile->settings.maxQueue;
 
+    if(game->gameMode == 9)
+        maxQueue = 1;
+
     for (int i = 0; i < maxQueue; i++)
         queueSprites[i] = &obj_buffer[3 + i];
 
@@ -403,14 +410,13 @@ void showQueue() {
     }
 
     int startX = 22 * 8 + 1;
-    int yoffset = 3 * (maxQueue == 1);
+    int yoffset = 3 * (maxQueue == 1) - (4 * (game->gameMode == 9));
 
     std::list<int>::iterator q = game->queue.begin();
-    for (int k = 0; k < 5; k++) {
+    for (int k = 0; k < 5; k++){
 
         if(k >= maxQueue){
             obj_hide(queueSprites[k]);
-            q++;
             continue;
         }
 
@@ -431,7 +437,9 @@ void showQueue() {
             obj_aff_scale(&obj_aff_buffer[k], size, size);
             obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push - 4, (3 + (k * 3)) * 6 - 3 * (n == 0) - 4 + yoffset);
         }
-        ++q;
+
+        if(q != game->queue.end())
+            ++q;
     }
 }
 
@@ -532,7 +540,7 @@ void showTimer() {
 }
 
 void showText() {
-    if (game->gameMode == 0 || game->gameMode == 2 || game->gameMode == 5 || game->gameMode == 6) {
+    if (game->gameMode == 0 || game->gameMode == 2 || game->gameMode == 5 || game->gameMode == 6 || game->gameMode == 9) {
 
         aprint("Score", 3, 3);
 
@@ -585,7 +593,7 @@ void showText() {
         aprintf(game->linesSent, 4, 18);
     }
 
-    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != 7) {
+    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != 7 && game->gameMode != 9) {
         aprint("Press", 1, 3);
         aprint("SELECT", 1, 5);
         aprint("for Saves", 1, 7);
@@ -673,6 +681,7 @@ void showClearText() {
 }
 
 void gameLoop(){
+    setSkin();
     clearSmallText();
     setSmallTextArea(100, 2, 14, 8, 17);
     gameSeconds = 0;
