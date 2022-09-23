@@ -613,6 +613,14 @@ namespace GameInfo{
             50,0,0
         }
     };
+
+    static constexpr int classicScoring[4]={
+        40,
+        100,
+        300,
+        1200
+    };
+
     
     static constexpr int comboTable[20]={
         0,1,1,2,2, 3,3,4,4,4,

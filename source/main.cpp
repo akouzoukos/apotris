@@ -7,6 +7,7 @@
 #include <sstream>
 #include <maxmod.h>
 
+#include "classic1tiles_bin.h"
 #include "def.h"
 #include "tetrisEngine.h"
 #include "sprites.h"
@@ -24,6 +25,9 @@
 #include "flashSaves.h"
 
 #include "posprintf.h"
+
+#include "classic_pal_bin.h"
+#include "tonc_memmap.h"
 
 using namespace Tetris;
 
@@ -453,6 +457,13 @@ void setSkin() {
     case 6:
         blockSprite = (u8*)sprite21tiles_bin;
         break;
+    case 7:
+        setPalette();
+        for(int i = 0; i < 8; i++)
+            memcpy16(&tile_mem[0][48+i],classicTiles[i],classic1tiles_bin_size/2);
+
+        blockSprite = (u8*)sprite21tiles_bin;
+        break;
     }
 
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
@@ -465,13 +476,17 @@ void setSkin() {
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
-                    memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
+                    if(savefile->settings.skin != 7)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
+                    else
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], classicTiles[i], sprite1tiles_bin_size / 2);
                 }else{
                     memcpy16(&tile_mem[4][16 * i + j * 4 + k], &tile_mem[4][0], sprite1tiles_bin_size / 2);
                 }
             }
         }
     }
+
     for (int i = 0; i < 4; i++)
         delete[] board[i];
     delete[] board;
@@ -606,6 +621,13 @@ void diagnose() {
 void setPalette(){
     memcpy16(pal_bg_mem, palette[savefile->settings.colors], paletteLen / 2);
     memcpy16(pal_obj_mem, palette[savefile->settings.colors], paletteLen / 2);
+
+    if(savefile->settings.skin == 7){
+        for(int i = 0; i < 8; i++){
+            memcpy16(&pal_bg_mem[i*16], classic_pal_bin,4);
+            memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
+        }
+    }
     memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
     setLightMode();
 }

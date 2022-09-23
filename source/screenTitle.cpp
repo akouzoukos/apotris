@@ -168,6 +168,7 @@ void startScreen() {
         VBlankIntrWait();
         if (!onSettings) {
             irq_disable(II_HBLANK);
+            setPalette();
         } else {
             irq_enable(II_HBLANK);
         }
@@ -627,6 +628,9 @@ void startScreen() {
                             training = true;
                         }
 
+                        if(toStart == 9)
+                            level = 0;
+
                         initialLevel = level;
                         previousOptionMax = options;
 
@@ -802,6 +806,7 @@ void startScreen() {
     clearText();
     onSettings = false;
     irq_disable(II_HBLANK);
+    setPalette();
     memset16(pal_bg_mem, 0x0000, 1);
 
     memset16(&se_mem[26], 0x0000, 32 * 20);
@@ -1325,8 +1330,12 @@ void fallingBlocks() {
         for (j = 0; j < 30; j++) {
             if (!backgroundArray[i][j])
                 *dest++ = 2 * (!savefile->settings.lightMode);
-            else
-                *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+            else{
+                if(savefile->settings.skin != 7)
+                    *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+                else
+                    *dest++ = (48 + backgroundArray[i][j] - 1);
+            }
         }
         dest += 2;
     }

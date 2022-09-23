@@ -22,6 +22,26 @@
 #include "move7tiles_bin.h"
 #include "move8tiles_bin.h"
 
+#include "classic1tiles_bin.h"
+#include "classic2tiles_bin.h"
+#include "classic3tiles_bin.h"
+#include "classic4tiles_bin.h"
+#include "classic5tiles_bin.h"
+#include "classic6tiles_bin.h"
+#include "classic7tiles_bin.h"
+#include "classic8tiles_bin.h"
+
+const uint8_t * classicTiles[8] = {
+        classic1tiles_bin,
+        classic2tiles_bin,
+        classic3tiles_bin,
+        classic4tiles_bin,
+        classic5tiles_bin,
+        classic6tiles_bin,
+        classic7tiles_bin,
+        classic8tiles_bin,
+};
+
 const uint8_t * mini[2][7] = {
     {
         small1tiles_bin,

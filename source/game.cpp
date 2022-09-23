@@ -1,3 +1,4 @@
+#include "classic_pal_bin.h"
 #include "def.h"
 #include "soundbank.h"
 #include "sprites.h"
@@ -240,8 +241,14 @@ void showBackground() {
                         n = 0;
                 }
                 *dest++ = n + (savefile->settings.lightMode * 0x1000);
-            } else
-                *dest++ = (1 + (((u32)(game->board[i][j] - 1)) << 12));
+            } else{
+                int offset = 1;
+
+                if(savefile->settings.skin == 7)
+                    offset = 48 + (game->board[i][j]-1);
+
+                *dest++ = (offset + (((u32)(game->board[i][j] - 1)) << 12));
+            }
             if (game->clearLock && i == *l2c) {
                 dest--;
                 if (!showEdges)
@@ -273,9 +280,12 @@ void showPawn() {
 
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (game->pawn.board[game->pawn.rotation][i][j] > 0)
-                memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
-            else
+            if (game->pawn.board[game->pawn.rotation][i][j] > 0){
+                if(savefile->settings.skin != 7)
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
+                else
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], classicTiles[game->pawn.current], sprite1tiles_bin_size / 2);
+            }else
                 memset16(&tile_mem[4][16 * 7 + i * 4 + j], 0, sprite1tiles_bin_size / 2);
         }
     }
@@ -307,7 +317,10 @@ void showShadow() {
         shadowTexture = (u8*)sprite16tiles_bin;
         break;
     case 3:
-        shadowTexture = blockSprite;
+        if(savefile->settings.skin != 7)
+            shadowTexture = blockSprite;
+        else
+            shadowTexture = (u8*)classicTiles[game->pawn.current];
         bld = true;
         break;
     case 4:
@@ -331,10 +344,17 @@ void showShadow() {
 
     int n = game->pawn.current;
 
-    if (!savefile->settings.lightMode)
-        clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
-    else
-        clr_adj_brightness(&pal_obj_mem[8 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.15));
+    if (!savefile->settings.lightMode){
+        if(savefile->settings.skin != 7)
+            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
+        else
+            clr_fade_fast((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
+    }else{
+        if(savefile->settings.skin != 7)
+            clr_adj_brightness(&pal_obj_mem[8 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.15));
+        else
+            clr_adj_brightness(&pal_obj_mem[8 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.15));
+    }
 
     obj_set_attr(pawnShadow, ATTR0_SQUARE, ATTR1_SIZE(2), 8);
 
@@ -410,7 +430,7 @@ void showQueue() {
     }
 
     int startX = 22 * 8 + 1;
-    int yoffset = 3 * (maxQueue == 1) - (4 * (game->gameMode == 9));
+    int yoffset = 3 * (maxQueue == 1) - (5 * (game->gameMode == 9));
 
     std::list<int>::iterator q = game->queue.begin();
     for (int k = 0; k < 5; k++){
@@ -423,7 +443,7 @@ void showQueue() {
         int n = *q;
 
         int add = !(n == 0 || n == 3);
-        if ((savefile->settings.skin == 0 || savefile->settings.skin == 5)) {
+        if ((savefile->settings.skin == 0 || savefile->settings.skin == 5) && game->gameMode != 9) {
             obj_unhide(queueSprites[k], 0);
             obj_set_attr(queueSprites[k], ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(n));
             queueSprites[k]->attr2 = ATTR2_BUILD(16 * 9 + 8 * n, n, 3);
@@ -530,7 +550,7 @@ void showTimer() {
         aprintf(game->finesse, 4, 15);
     }
 
-    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX) {
+    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != 9) {
         if (++trainingMessageTimer == TRAINING_MESSAGE_MAX) {
             aprint("     ", 1, 3);
             aprint("      ", 1, 5);
@@ -630,22 +650,25 @@ void showFinesse(){
 }
 
 void showClearText() {
-    if (game->comboCounter > 1) {
-        aprint("Combo x", 21, clearTextHeight - 1);
 
-        aprintf(game->comboCounter, 28, clearTextHeight - 1);
-    } else {
-        aprint("          ", 20, clearTextHeight - 1);
-    }
+    if(game->gameMode != 9){
+        if (game->comboCounter > 1) {
+            aprint("Combo x", 21, clearTextHeight - 1);
 
-    if (game->b2bCounter > 0) {
-        aprint("Streak", 22, clearTextHeight + 1);
+            aprintf(game->comboCounter, 28, clearTextHeight - 1);
+        } else {
+            aprint("          ", 20, clearTextHeight - 1);
+        }
 
-        aprint("x", 24, clearTextHeight + 2);
-        aprintf(game->b2bCounter + 1, 25, clearTextHeight + 2);
-    } else {
-        aprint("          ", 20, clearTextHeight + 1);
-        aprint("          ", 20, clearTextHeight + 2);
+        if (game->b2bCounter > 0) {
+            aprint("Streak", 22, clearTextHeight + 1);
+
+            aprint("x", 24, clearTextHeight + 2);
+            aprintf(game->b2bCounter + 1, 25, clearTextHeight + 2);
+        } else {
+            aprint("          ", 20, clearTextHeight + 1);
+            aprint("          ", 20, clearTextHeight + 2);
+        }
     }
 
     std::list<FloatText>::iterator index = floatingList.begin();
@@ -790,10 +813,8 @@ void addGlow(Tetris::Drop location) {
             if (game->previousClear.isBackToBack == 1) {
                 effectList.push_back(Effect(1, xCenter, location.endY));
             }
-
         }
     }
-
 }
 
 void clearGlow() {

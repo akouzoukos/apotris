@@ -227,7 +227,7 @@ namespace Tetris
         Pawn pawn = Pawn(0, 0);
         int held = -1;
         int linesCleared = 0;
-        int level = 1;
+        int level = 0;
         int score = 0;
         int comboCounter = 0;
         std::list<int> linesToClear;

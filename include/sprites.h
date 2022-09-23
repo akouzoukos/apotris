@@ -24,6 +24,7 @@
 #include "../build/sprite23tiles_bin.h"
 #include "../build/sprite24tiles_bin.h"
 #include "../build/sprite25tiles_bin.h"
+#include "../build/sprite26tiles_bin.h"
 
 #include "../build/title1tiles_bin.h"
 #include "../build/title2tiles_bin.h"
@@ -35,3 +36,5 @@ extern const uint16_t palette[2][256];
 extern const uint8_t * mini[2][7];
 
 extern const uint8_t * moveSpriteTiles[8];
+
+extern const uint8_t * classicTiles[8];
