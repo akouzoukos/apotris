@@ -454,7 +454,6 @@ void setSkin() {
         blockSprite = (u8*)sprite21tiles_bin;
         break;
     case 7:
-        setPalette();
         for(int i = 0; i < 8; i++)
             memcpy16(&tile_mem[0][48+i],classicTiles[i],classic1tiles_bin_size/2);
 
@@ -462,6 +461,7 @@ void setSkin() {
         break;
     }
 
+    setPalette();
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
