@@ -8,6 +8,7 @@
 #include "text.h"
 
 #include "classic_pal_bin.h"
+#include "logging.h"
 
 using namespace Tetris;
 
@@ -287,9 +288,16 @@ void showPawn() {
     }
 
     int n = game->pawn.current;
-    obj_set_attr(pawnSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_PALBANK(n));
-    pawnSprite->attr2 = ATTR2_BUILD(16 * 7, n, 2);
-    obj_set_pos(pawnSprite, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->pawn.y - 20) * 8 + shake * savefile->settings.shake);
+
+    if(!game->pawn.big){
+        obj_set_attr(pawnSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * 7, n, 2));
+        obj_set_pos(pawnSprite, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->pawn.y - 20) * 8 + shake * savefile->settings.shake);
+    }else{
+        obj_set_attr(pawnSprite, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(31), ATTR2_BUILD(16 * 7, n, 2));
+        obj_aff_identity(&obj_aff_buffer[31]);
+        obj_aff_scale(&obj_aff_buffer[31], 1<<7, 1<<7);
+        obj_set_pos(pawnSprite, (10 + game->pawn.x*2) * 8 + push * savefile->settings.shake, (game->pawn.y*2 - 20) * 8 + shake * savefile->settings.shake);
+    }
 }
 
 void showShadow() {
@@ -352,10 +360,15 @@ void showShadow() {
             clr_adj_brightness(&pal_obj_mem[8 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.15));
     }
 
-    obj_set_attr(pawnShadow, ATTR0_SQUARE, ATTR1_SIZE(2), 8);
-
-    pawnShadow->attr2 = ATTR2_BUILD(16 * 8, 8, 2);
-    obj_set_pos(pawnShadow, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->lowest() - 20) * 8 + shake * savefile->settings.shake);
+    if(!game->pawn.big){
+        obj_set_attr(pawnShadow, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * 8, 8, 2));
+        obj_set_pos(pawnShadow, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->lowest() - 20) * 8 + shake * savefile->settings.shake);
+    }else{
+        obj_set_attr(pawnShadow, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(30), ATTR2_BUILD(16 * 8, 8, 2));
+        obj_aff_identity(&obj_aff_buffer[30]);
+        obj_aff_scale(&obj_aff_buffer[30],1<<7,1<<7);
+        obj_set_pos(pawnShadow, (10 + game->pawn.x*2) * 8 + push * savefile->settings.shake, (game->lowest()*2 - 20) * 8 + shake * savefile->settings.shake);
+    }
 }
 
 void showHold() {

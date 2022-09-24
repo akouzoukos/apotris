@@ -10,6 +10,9 @@ using namespace Tetris;
 using namespace GameInfo;
 
 int Game::checkRotation(int dx, int dy, int r) {
+    // int x = (dx + pawn.x) * ((pawn.big)?2:1);
+    // int y = (dy + pawn.y) * ((pawn.big)?2:1);
+
     int x = dx + pawn.x;
     int y = dy + pawn.y;
 
@@ -18,15 +21,27 @@ int Game::checkRotation(int dx, int dy, int r) {
         if(total >= 4)
             break;
 
+
         for (int j = 0; j < 4; j++) {
             if (pawn.board[r][i][j] == 0)
                 continue;
             
             total++;
 
-            if (x + j < 0 || x + j > lengthX - 1 || y + i < 0 || y + i > lengthY - 1 || board[i + y][j + x] != 0) 
-                return 0;
-            
+            if(!pawn.big){
+                if (x + j < 0 || x + j > lengthX - 1 || y + i < 0 || y + i > lengthY - 1 || board[i+y][j+x] != 0)
+                    return 0;
+            }else{
+                for(int k = 0; k < 2; k++){
+                    for(int l = 0; l < 2; l++){
+                        int xoffset = (x+j) * 2 + l;
+                        int yoffset = (y+i) * 2 + k;
+                        if (xoffset < 0 || xoffset > lengthX - 1 || yoffset < 0 || yoffset > lengthY - 1 || board[yoffset][xoffset] != 0)
+                            return 0;
+                    }
+                }
+            }
+
             if(total >= 4)
                 break;
         }
@@ -48,9 +63,7 @@ void Pawn::setBlock(bool alt) {
 }
 
 void Game::rotateCW() {
-    // if (clearLock || entryDelay)
-    //     return;
-    if (entryDelay)
+    if (clearLock || entryDelay)
         return;
 
     moveCounter++;
@@ -85,10 +98,8 @@ void Game::rotateCW() {
 }
 
 void Game::rotateCCW() {
-    if (entryDelay)
+    if (clearLock || entryDelay)
         return;
-    // if (clearLock || entryDelay)
-    //     return;
 
     moveCounter++;
     lastMoveRotation = 1;
@@ -122,10 +133,8 @@ void Game::rotateCCW() {
 }
 
 void Game::rotateTwice() {
-    if (gameMode == CLASSIC)
+    if (clearLock || gameMode == CLASSIC)
         return;
-    // if (clearLock || gameMode == CLASSIC)
-    //     return;
 
     moveCounter++;
     lastMoveRotation = 1;
@@ -395,15 +404,33 @@ int Game::lowest() {
             if(pawn.board[pawn.rotation][i][j] && blocks[j] == -1)
                 blocks[j] = i;
 
-    for(int i = 0; i < lengthY - pawn.y; i++){
-        for(int j = 0; j < 4; j++){
-            if(blocks[j] == -1)
-                continue;
-            int x = pawn.x+j;
-            int y = pawn.y+i;
-            if(y+blocks[j] >= lengthY || board[y+blocks[j]][x])
-                return y-1;
+    if(!pawn.big){
+        for(int i = 0; i < lengthY - pawn.y; i++){
+            for(int j = 0; j < 4; j++){
+                if(blocks[j] == -1)
+                    continue;
+                int x = pawn.x+j;
+                int y = pawn.y+i+blocks[j];
+                if(y >= lengthY || board[y][x])
+                    return pawn.y+i-1;
+            }
         }
+    }else{
+        for(int i = 0; i < (lengthY - pawn.y)*2; i++){
+            for(int j = 0; j < 4; j++){
+                if(blocks[j] == -1)
+                    continue;
+                int x = (pawn.x+j)*2;
+                int y = (pawn.y+i+blocks[j])*2;
+                for(int k = 0; k < 2; k++){
+                    for(int l = 0; l < 2; l++){
+                        if(y+k >= lengthY || board[y+k][x+l])
+                            return pawn.y+i-1;
+                    }
+                }
+            }
+        }
+
     }
     
     return pawn.y;
@@ -421,10 +448,25 @@ void Game::place() {
             int x = pawn.x + j;
             int y = pawn.y + i;
 
-            if (y > lengthY - 1 || x > lengthX)
-                continue;
+            if(!pawn.big){
+                if (y > lengthY - 1 || x > lengthX)
+                    continue;
 
-            board[y][x] = pawn.current + 1;
+                board[y][x] = pawn.current + 1;
+            }else{
+                x *=2;
+                y *=2;
+
+                for(int k = 0; k < 2; k++){
+                    for(int l = 0; l < 2; l++){
+                        if (y+k > lengthY - 1 || x+l > lengthX)
+                            continue;
+
+                        board[y+k][x+l] = pawn.current + 1;
+
+                    }
+                }
+            }
         }
     }
 
@@ -437,7 +479,7 @@ void Game::place() {
                 break;
             }
 
-    if (pawn.y+lowestPart < ((int) lengthY / 2 - 2)) {
+    if ((pawn.y+lowestPart) * (1+pawn.big) < (lengthY / 2 - 2)) {
         lost = 1;
         return;
     }
@@ -539,34 +581,35 @@ int Game::clear(Drop drop) {
     if (pawn.current == 5 && lastMoveRotation && gameMode != CLASSIC) {
         int frontCount = 0;
         int backCount = 0;
-        int x = pawn.x;
-        int y = pawn.y;
+        int x = pawn.x * (1+pawn.big);
+        int y = pawn.y * (1+pawn.big);
+        int offset = 2 * (1+pawn.big);
 
         switch (pawn.rotation) {
         case 0:
-            frontCount += (board[y][x] != 0) + (board[y][x + 2] != 0);
-            if (y + 2 > lengthY - 1)
+            frontCount += (board[y][x] != 0) + (board[y][x + offset] != 0);
+            if (y + offset > lengthY - 1)
                 backCount = 2;
             else
-                backCount += (board[y + 2][x] != 0) + (board[y + 2][x + 2] != 0);
+                backCount += (board[y + offset][x] != 0) + (board[y + offset][x + offset] != 0);
             break;
         case 1:
-            frontCount += (board[y][x + 2] != 0) + (board[y + 2][x + 2] != 0);
+            frontCount += (board[y][x + offset] != 0) + (board[y + offset][x + offset] != 0);
             if (x < 0)
                 backCount = 2;
             else
-                backCount += (board[y][x] != 0) + (board[y + 2][x] != 0);
+                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
             break;
         case 2:
-            frontCount += (board[y + 2][x] != 0) + (board[y + 2][x + 2] != 0);
-            backCount += (board[y][x] != 0) + (board[y][x + 2]);
+            frontCount += (board[y + offset][x] != 0) + (board[y + offset][x + offset] != 0);
+            backCount += (board[y][x] != 0) + (board[y][x + offset]);
             break;
         case 3:
-            frontCount += (board[y][x] != 0) + (board[y + 2][x] != 0);
+            frontCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
             if (x > lengthX - 1)
                 backCount = 2;
             else
-                backCount += (board[y][x + 2] != 0) + (board[y + 2][x + 2] != 0);
+                backCount += (board[y][x + offset] != 0) + (board[y + offset][x + offset] != 0);
             break;
         }
         if ((frontCount == 2 && backCount > 0) || (frontCount > 0 && backCount == 2 && specialTspin))
@@ -585,7 +628,6 @@ int Game::clear(Drop drop) {
 
         if (toClear) {
             linesToClear.push_back(i);
-            linesCleared++;
             clearCount++;
             if(gameMode == DIG && i >= lengthY-garbageHeight)
                 garbageToRemove++;
@@ -595,7 +637,12 @@ int Game::clear(Drop drop) {
     garbageHeight-=garbageToRemove;
     garbageCleared+=garbageToRemove;
 
-    if (linesCleared > 0) {
+    if (clearCount > 0) {
+        if(pawn.big)
+            clearCount/=2;
+
+        linesCleared+=clearCount;
+
         for (j = 0; j < lengthY; j++) {
             bool skip = false;
             auto index = linesToClear.begin();
@@ -749,6 +796,12 @@ void Game::fillBag() {
 void Game::next() {
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
+
+    if(pawn.big){
+        pawn.x/=2;
+        pawn.y/=2;
+    }
+
     pawn.rotation = 0;
 
     pawn.current = queue.front();
@@ -830,6 +883,11 @@ void Game::hold() {
         pawn.setBlock(gameMode == CLASSIC);
         pawn.x = (int)lengthX / 2 - 2;
 		pawn.y = (int)lengthY / 2 - 1;
+
+        if(pawn.big){
+            pawn.x/=2;
+            pawn.y/=2;
+        }
     }
 
     pawn.rotation = 0;
@@ -1049,7 +1107,7 @@ Drop Game::calculateDrop(){
     result.startX += start;
     result.endX = result.startX + end - start;
 
-    result.startY = pawn.y - 20;
+    result.startY = pawn.y;
     
     int add = 0;
     for(int i = 3; i >=0; i--){
@@ -1066,7 +1124,7 @@ Drop Game::calculateDrop(){
         }
     }
     
-    result.endY = pawn.y - 20 + add;
+    result.endY = pawn.y + add;
 
     if(gameMode != CLASSIC){
         if(((pawn.current == 2 && pawn.rotation == 3) || (pawn.current == 1 && pawn.rotation == 1)))
@@ -1076,6 +1134,16 @@ Drop Game::calculateDrop(){
             result.endY--;
     }
 
+
+    if(pawn.big){
+        result.startX *=2;
+        result.endX *=2;
+        result.startY *=2;
+        result.endY *=2;
+    }
+
+    result.startY -= 20;
+    result.endY -= 20;
 
     return result;
 }

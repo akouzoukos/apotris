@@ -92,7 +92,7 @@ int previousOptionMax = 0;
 
 Settings previousSettings;
 std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
+std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","Big","2P Battle","Training"};
 
 void startScreen() {
     int selection = 0;
@@ -311,11 +311,14 @@ void startScreen() {
                     } else if (selection == 7) {//Classic
                         options = 2;
                         n = CLASSIC;
-                    } else if (selection == 8) {//2p Battle
+                    } else if (selection == 8) {//Classic
+                        options = 2;
+                        n = BIG;
+                    } else if (selection == 9) {//2p Battle
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 9) {//Training
+                    } else if (selection == 10) {//Training
                         options = 2;
                         n = -4;
 
