@@ -1,4 +1,5 @@
 #include "maxmod.h"
+#include "rumble.h"
 #include "tonc.h"
 #include "def.h"
 #include "soundbank.h"
@@ -343,6 +344,8 @@ void endAnimation() {
     REG_BG1HOFS = 0;
     REG_BG0VOFS = 0;
     REG_BG1VOFS = 0;
+
+    rumble_set_state(RumbleState(rumble_stop));
 
     // int timer = 0;
     // int maxTimer = 20;

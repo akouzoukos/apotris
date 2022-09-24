@@ -17,6 +17,7 @@
 #include "LinkConnection.h"
 
 #include "logging.h"
+#include "tonc_bios.h"
 #include "tonc_core.h"
 
 #include "text.h"
@@ -25,11 +26,19 @@
 
 #include "posprintf.h"
 
+#include "rumble.h"
+#include "gbp_logo.hpp"
+#include "tonc_input.h"
+#include "tonc_memdef.h"
+#include "tonc_memmap.h"
+
 using namespace Tetris;
 
 void control();
 void showTimer();
 mm_word myEventHandler();
+bool unlock_gbp();
+void initRumble();
 
 LinkConnection* linkConnection = new LinkConnection();
 
@@ -66,6 +75,8 @@ int nextSeed = 0;
 
 bool multiplayer = false;
 bool playingBotGame = false;
+
+bool rumble_enabled = false;
 
 void onVBlank(void) {
 
@@ -136,12 +147,15 @@ void initialize(){
     mmInitDefault((mm_addr)soundbank_bin, 10);
     mmSetEventHandler((mm_callback)myEventHandler);
 
+    logInitMgba();
+
+    initRumble();
+
     REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
     REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3);
     REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0);
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
- 	// Load bg palette
 
     // 	// //Load bg tiles
     memcpy16(&tile_mem[0][2], sprite3tiles_bin, sprite3tiles_bin_size / 2);
@@ -187,7 +201,6 @@ void initialize(){
     REG_BLDCNT = (1 << 6) + (1 << 13) + (1 << 1);
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
 
-    logInitMgba();
 }
 
 int main(void) {
@@ -261,6 +274,8 @@ void reset() {
 
     floatingList.clear();
     placeEffectList.clear();
+    rumbleTimer = 0;
+    rumble_set_state(RumbleState(rumble_stop));
 
     // REG_DISPCNT &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3);
 
@@ -605,4 +620,47 @@ void setPalette(){
     memcpy16(pal_obj_mem, palette[savefile->settings.colors], paletteLen / 2);
     memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
     setLightMode();
+}
+
+void initRumble(){
+    if(!ENABLE_RUMBLE)
+        return;
+
+    RegisterRamReset(RESET_VRAM);
+    REG_DISPCNT = DCNT_MODE0 | DCNT_BG0;
+    *((volatile u16*)0x4000008) = 0x0088;
+
+    if (unlock_gbp()) {
+
+        RumbleGBPConfig conf{[](void (*rumble_isr)(void)) {
+            irq_enable(II_SERIAL);
+            irq_add(II_SERIAL, rumble_isr);
+        }};
+
+        rumble_init(&conf);
+    } else {
+        rumble_init(nullptr);
+    }
+}
+
+bool unlock_gbp(){
+    bool gbp_detected = false;
+
+    memcpy16((u16*)0x6008000, gbp_logo_pixels, (sizeof gbp_logo_pixels)/2);
+    memcpy16((u16*)0x6000000, gbp_logo_tiles, (sizeof gbp_logo_tiles)/2);
+    memcpy16(pal_bg_mem, gbp_logo_palette, (sizeof gbp_logo_palette)/2);
+
+    static volatile u32* keys = (volatile u32*)0x04000130;
+
+    for(int i = 0; i < 120; i++){
+        // if(key_is_down(KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT)){
+        if(*keys==0x030f){
+            gbp_detected = true;
+        }
+        VBlankIntrWait();
+    }
+
+    RegisterRamReset(RESET_VRAM);
+
+    return gbp_detected;
 }

@@ -10,6 +10,8 @@
 #include "tonc_memdef.h"
 #include "tonc_oam.h"
 
+#include "rumble.h"
+
 using namespace Tetris;
 
 void diagnose();
@@ -58,6 +60,9 @@ int restartTimer = 0;
 int attackFlashTimer = 0;
 int attackFlashMax = 10;
 
+int rumbleTimer = 0;
+int rumbleMax = 1;
+
 std::list<FloatText> floatingList;
 
 std::list<Effect> effectList;
@@ -77,9 +82,13 @@ void checkSounds() {
         if(!game->sounds.finesse)
             for(int i = 0; i < 3; i++)
                 obj_hide(moveSprites[i]);
+
+        rumbleTimer = rumbleMax;
     }
-    if (game->sounds.invalid)
+    if (game->sounds.invalid){
         sfx(SFX_INVALID);
+        rumbleTimer = rumbleMax;
+    }
     if (game->sounds.rotate)
         sfx(SFX_ROTATE);
     if (game->sounds.finesse){
@@ -731,11 +740,22 @@ void gameLoop(){
         canDraw = true;
         VBlankIntrWait();
 
+        rumble_update();
+
         if (clearTimer == maxClearTimer || (game->gameMode == 8 && clearTimer)) {
             game->removeClearLock();
             shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
+            rumbleTimer = rumbleMax * 8;
             clearTimer = 0;
             update();
+        }
+
+        if(rumbleTimer > 0){
+            rumbleTimer--;
+
+            rumble_set_state(rumble_start);
+        }else{
+            rumble_set_state(rumble_hard_stop);
         }
 
         if (game->won || game->lost){
