@@ -2,8 +2,6 @@
 #include "tonc.h"
 #include "soundbank.h"
 #include "text.h"
-#include "tonc_bios.h"
-#include "tonc_memdef.h"
 #include <map>
 #include <string>
 #include <algorithm>
@@ -40,6 +38,9 @@ static int dasVer = 0;
 static int maxArr = 3;
 static int arr = 0;
 
+static int rumbleMessageTimer = 0;
+static const int rumbleMessageMax = 300;
+
 static std::list<std::string> options = {
     "Move Left",
     "Move Right",
@@ -51,6 +52,7 @@ static std::list<std::string> options = {
     "Hold",
     "A+B to Hold",
     "Quick Reset",
+    "Rumble",
     "Reset Controls",
 };
 
@@ -87,6 +89,17 @@ bool controlsControl(){
         }else if (selection == 9) {
             savefile->settings.resetHold = !savefile->settings.resetHold;
         }else if (selection == 10) {
+            if (key_hit(KEY_LEFT)) {
+                if (savefile->settings.rumble > 0) {
+                    savefile->settings.rumble--;
+                }
+            } else {
+                if (savefile->settings.rumble < 2) {
+                    savefile->settings.rumble++;
+                }
+            }
+
+        }else if (selection == 11) {
             setDefaultKeys();
         }
 
@@ -220,6 +233,10 @@ void controlsText(){
     else
         aprint("PRESS", endX-1, startY+space*9);
 
+    std::string rumbleString = std::to_string(savefile->settings.rumble * 50) + "%";
+
+    aprint(rumbleString, endX+2-rumbleString.size(), startY + 10);
+
     //show cursor
     if (selection == 8) {
         aprint("[", endX - 2, startY + space * selection);
@@ -228,12 +245,18 @@ void controlsText(){
         aprint("[", endX - 2, startY + space * selection);
         aprint("]", endX + 3 + (!savefile->settings.resetHold), startY + space * selection);
     } else if (selection == 10) {
+        if (savefile->settings.rumble > 0)
+            aprint("<", endX - 1 - savefile->settings.rumble, startY + selection);
+        if (savefile->settings.rumble < 2)
+            aprint(">", endX + 2, startY + selection);
+    } else if (selection == 11) {
         aprint("[", endX - 2, startY + space * selection);
         aprint("]", endX + 1, startY + space * selection);
     }else if (selection == (int) options.size()){
         aprint("[",12,17);
         aprint("]",17,17);
     }
+
 }
 
 void showKey(int key, int x, int y,bool selected){

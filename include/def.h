@@ -74,6 +74,7 @@ typedef struct Settings{
     int clearEffect;
     bool resetHold;
     bool placeEffect;
+    int rumble;
 
     int placeHolder[100];
 }ALIGN(4) Settings;
@@ -196,8 +197,6 @@ public:
 #define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1
-#define ENABLE_RUMBLE 1
-// #define GRADIENT_COLOR 0x1a9d
 
 extern void gameLoop();
 extern void playSong(int,int);
@@ -312,3 +311,5 @@ extern bool goToOptions;
 
 extern int rumbleTimer;
 extern int rumbleMax;
+
+extern bool rumbleInitialized;

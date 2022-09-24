@@ -750,7 +750,7 @@ void gameLoop(){
             update();
         }
 
-        if(rumbleTimer > 0){
+        if(rumbleTimer*savefile->settings.rumble > 0){
             rumbleTimer--;
 
             rumble_set_state(rumble_start);

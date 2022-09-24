@@ -46,6 +46,7 @@ void loadSave() {
 
         temp->newGame = SAVE_TAG;
         temp->settings.placeEffect = false;
+        temp->settings.rumble = 0;
 
         memcpy32(savefile, temp, sizeof(Save) / 4);
 

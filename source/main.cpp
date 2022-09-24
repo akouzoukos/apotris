@@ -1,5 +1,4 @@
 #include <tonc.h>
-#include <tonc_video.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -17,8 +16,6 @@
 #include "LinkConnection.h"
 
 #include "logging.h"
-#include "tonc_bios.h"
-#include "tonc_core.h"
 
 #include "text.h"
 
@@ -28,9 +25,6 @@
 
 #include "rumble.h"
 #include "gbp_logo.hpp"
-#include "tonc_input.h"
-#include "tonc_memdef.h"
-#include "tonc_memmap.h"
 
 using namespace Tetris;
 
@@ -77,6 +71,8 @@ bool multiplayer = false;
 bool playingBotGame = false;
 
 bool rumble_enabled = false;
+
+bool rumbleInitialized = false;
 
 void onVBlank(void) {
 
@@ -623,9 +619,10 @@ void setPalette(){
 }
 
 void initRumble(){
-    if(!ENABLE_RUMBLE)
+    if(!savefile->settings.rumble)
         return;
 
+    rumbleInitialized = true;
     RegisterRamReset(RESET_VRAM);
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0;
     *((volatile u16*)0x4000008) = 0x0088;
