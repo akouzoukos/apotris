@@ -1182,7 +1182,8 @@ void showPlaceEffect(){
             break;
         case 2:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
-            xoffset = yoffset = -4;
+            xoffset = -5;
+            yoffset = -4;
             flip = true;
             break;
         case 3:
@@ -1200,7 +1201,8 @@ void showPlaceEffect(){
             break;
         case 6:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
-            xoffset = yoffset = -4;
+            xoffset = -5;
+            yoffset = -4;
             flip = true;
             break;
         default:
@@ -1251,11 +1253,11 @@ void showPlaceEffect(){
 }
 
 void addPlaceEffect(Tetris::Drop drop){
-    if((int)placeEffectList.size() >= 3)
+    if((int)placeEffectList.size() >= 3 || !savefile->settings.placeEffect)
         return;
 
-    int x = (drop.x + 10) * 8 - 16 - 32;
-    int y = drop.y * 8 - 16;
+    // int x = (drop.x + 10) * 8 - 16 - 32;
+    // int y = drop.y * 8 - 16;
 
-    placeEffectList.push_back(PlaceEffect(x, y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating));
+    placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating));
 }

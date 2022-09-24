@@ -31,7 +31,26 @@ void loadSave() {
     savefile = new Save();
     loadFromSram();
 
-    if (savefile->newGame == 0x4c) {
+    if (savefile->newGame == 0x4d) {
+        Save* temp = new Save();
+        int oldSize = sizeof(Test3);
+
+        u8* tmp = (u8*)temp;
+
+        u8* sf = (u8*)savefile;
+
+        for (int i = 0; i < oldSize; i++)
+            tmp[i] = sf[i];
+
+        memcpy16(&tmp[sizeof(Settings)+ sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
+
+        temp->newGame = SAVE_TAG;
+        temp->settings.placeEffect = false;
+
+        memcpy32(savefile, temp, sizeof(Save) / 4);
+
+        delete temp;
+    }else if (savefile->newGame == 0x4c) {
         Save* temp = new Save();
         int oldSize = sizeof(Test2) + sizeof(u8);
 
@@ -42,7 +61,7 @@ void loadSave() {
         for (int i = 0; i < oldSize; i++)
             tmp[i] = sf[i];
 
-        memcpy16(&tmp[sizeof(Settings) + sizeof(u8) + sizeof(int) - 4], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
+        memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
 
         temp->newGame = SAVE_TAG;
         temp->settings.sfxVolume = 10;
@@ -87,7 +106,7 @@ void loadSave() {
         for (int i = 0; i < oldSize; i++)
             tmp[i] = sf[i];
 
-        memcpy16(&tmp[sizeof(Settings) + sizeof(u8) + sizeof(int) - 4], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
+        memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
 
         temp->newGame = SAVE_TAG;
         temp->settings.edges = false;
