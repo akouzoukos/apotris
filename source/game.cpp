@@ -84,8 +84,10 @@ void checkSounds() {
 
         rumbleTimer = rumbleMax;
     }
-    if (game->sounds.invalid)
+    if (game->sounds.invalid){
         sfx(SFX_INVALID);
+        rumbleTimer = rumbleMax;
+    }
     if (game->sounds.rotate)
         sfx(SFX_ROTATE);
     if (game->sounds.finesse){

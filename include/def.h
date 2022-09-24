@@ -273,4 +273,5 @@ extern int currentMenu;
 extern int previousOptionScreen;
 extern bool goToOptions;
 
+extern int rumbleTimer;
 extern int rumbleMax;

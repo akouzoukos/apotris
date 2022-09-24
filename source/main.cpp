@@ -275,6 +275,8 @@ void reset() {
     push = 0;
 
     floatingList.clear();
+    rumbleTimer = 0;
+    rumble_set_state(RumbleState(rumble_stop));
 
     // REG_DISPCNT &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3);
 
