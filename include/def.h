@@ -73,6 +73,9 @@ typedef struct Settings{
     struct Keys keys;
     int clearEffect;
     bool resetHold;
+    bool placeEffect;
+
+    int placeHolder[100];
 }ALIGN(4) Settings;
 
 typedef struct Test{
@@ -84,6 +87,11 @@ typedef struct Test2{
     bool t1[18];
     int t2[10];
 }ALIGN(4) Test2;
+
+typedef struct Test3{
+    bool t1[14];//14
+    int t2[30];//22
+}ALIGN(4) Test3;
 
 typedef struct Save{
     u8 newGame;
@@ -143,6 +151,33 @@ public:
     }
 };
 
+class PlaceEffect{
+public:
+
+        int x;
+        int y;
+        int dx;
+        int dy;
+        int piece;
+        int rotation;
+        int rotating;
+
+        int timer = 12;
+
+        OBJ_ATTR* sprite;
+
+        PlaceEffect(){}
+        PlaceEffect(int _x, int _y, int _dx, int _dy, int _piece, int _rotation, int _rotating){
+            x = (_x + 10) * 8 - 16 - 32;
+            y = _y * 8 - 16;
+            dx = _dx;
+            dy = _dy;
+            piece = _piece;
+            rotation = _rotation;
+            rotating = _rotating;
+        }
+};
+
 #define TRAINING_MESSAGE_MAX 300
 #define MAX_SKINS 7
 #define MAX_SHADOWS 5
@@ -157,7 +192,7 @@ public:
 
 #define SHOW_FINESSE 1
 #define DIAGNOSE 0
-#define SAVE_TAG 0x4d
+#define SAVE_TAG 0x4e
 #define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1
@@ -214,6 +249,7 @@ extern void setPalette();
 extern void loadSave();
 extern void startScreen();
 extern void showText();
+extern void showPlaceEffect();
 
 extern std::string timeToString(int);
 
@@ -237,6 +273,7 @@ extern bool restart;
 
 extern std::list<Effect> effectList;
 extern std::list<FloatText> floatingList;
+extern std::list<PlaceEffect> placeEffectList;
 
 extern int glow[20][10];
 

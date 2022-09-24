@@ -156,7 +156,7 @@ void startMultiplayerGame(int seed) {
 
 void drawEnemyBoard(int height) {
 
-    enemyBoardSprite = &obj_buffer[20];
+    enemyBoardSprite = &obj_buffer[25];
     obj_unhide(enemyBoardSprite, ATTR0_AFF_DBL);
     obj_set_attr(enemyBoardSprite, ATTR0_TALL | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(6), 0);
     enemyBoardSprite->attr2 = ATTR2_BUILD(768, 0, 1);

@@ -32,7 +32,7 @@ void graphicTest() {
     int endX = 24;
 
     int startY = 2;
-    int options = 13;
+    int options = 14;
     int selection = 0;
 
     int maxDas = 16;
@@ -54,6 +54,7 @@ void graphicTest() {
         drawGrid();
         drawFrame();
         screenShake();
+        showPlaceEffect();
 
         if(savefile->settings.floatText){
             showClearText();
@@ -260,6 +261,14 @@ void graphicTest() {
                 setClearEffect();
                 break;
             case 8:
+                savefile->settings.placeEffect = !savefile->settings.placeEffect;
+                if(savefile->settings.placeEffect && (int)placeEffectList.size() <= 3){
+                    placeEffectList.push_back(PlaceEffect(game->pawn.x, game->pawn.y-20, 0, 0, game->pawn.current, 0, false));
+                }
+
+                sfx(SFX_MENUMOVE);
+                break;
+            case 9:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.shakeAmount > 0) {
                         savefile->settings.shakeAmount--;
@@ -278,7 +287,7 @@ void graphicTest() {
                 }
                 shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
                 break;
-            case 9:
+            case 10:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.maxQueue > 1) {
                         savefile->settings.maxQueue--;
@@ -295,7 +304,7 @@ void graphicTest() {
                     }
                 }
                 break;
-            case 10:
+            case 11:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.colors > 0) {
                         savefile->settings.colors--;
@@ -313,7 +322,7 @@ void graphicTest() {
                 }
                 setPalette();
                 break;
-            case 11:
+            case 12:
                 savefile->settings.lightMode = !savefile->settings.lightMode;
                 memset16(&se_mem[27], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
                 setLightMode();
@@ -334,10 +343,11 @@ void graphicTest() {
             aprint("Frame Color", startX, startY + 5);
             aprint("Ghost Piece", startX, startY + 6);
             aprint("Clear Effect", startX, startY + 7);
-            aprint("Screen Shake", startX, startY + 8);
-            aprint("Previews", startX, startY + 9);
-            aprint("Palette", startX, startY + 10);
-            aprint("Light Mode", startX, startY + 11);
+            aprint("Place Effect", startX, startY + 8);
+            aprint("Screen Shake", startX, startY + 9);
+            aprint("Previews", startX, startY + 10);
+            aprint("Palette", startX, startY + 11);
+            aprint("Light Mode", startX, startY + 12);
 
             for (int i = 0; i < options; i++)
                 aprint("      ", endX - 1, startY + i);
@@ -367,18 +377,23 @@ void graphicTest() {
 
             aprintf(savefile->settings.clearEffect + 1, endX, startY + 7);
 
+            if (savefile->settings.placeEffect)
+                aprint("ON", endX, startY + 8);
+            else
+                aprint("OFF", endX, startY + 8);
+
             std::string shakeString = std::to_string(savefile->settings.shakeAmount * 25) + "%";
 
-            aprint(shakeString, endX, startY + 8);
+            aprint(shakeString, endX, startY + 9);
 
-            aprintf(savefile->settings.maxQueue, endX, startY + 9);
+            aprintf(savefile->settings.maxQueue, endX, startY + 10);
 
-            aprintf(savefile->settings.colors+1, endX, startY + 10);
+            aprintf(savefile->settings.colors+1, endX, startY + 11);
 
             if (savefile->settings.lightMode)
-                aprint("ON", endX, startY + 11);
+                aprint("ON", endX, startY + 12);
             else
-                aprint("OFF", endX, startY + 11);
+                aprint("OFF", endX, startY + 12);
 
             switch (selection) {
             case 0:
@@ -424,28 +439,32 @@ void graphicTest() {
                     aprint(">", endX + 1, startY + selection);
                 break;
             case 8:
+                aprint("[", endX - 1, startY + selection);
+                aprint("]", endX + 2 + !(savefile->settings.placeEffect), startY + selection);
+                break;
+            case 9:
                 if (savefile->settings.shakeAmount > 0)
                     aprint("<", endX - 1, startY + selection);
                 if (savefile->settings.shakeAmount < 4)
                     aprint(">", endX + shakeString.size(), startY + selection);
                 break;
-            case 9:
+            case 10:
                 if (savefile->settings.maxQueue > 1)
                     aprint("<", endX - 1, startY + selection);
                 if (savefile->settings.maxQueue < 5)
                     aprint(">", endX + 1, startY + selection);
                 break;
-            case 10:
+            case 11:
                 if (savefile->settings.colors > 1)
                     aprint("<", endX - 1, startY + selection);
                 if (savefile->settings.colors < MAX_COLORS)
                     aprint(">", endX + 1, startY + selection);
                 break;
-            case 11:
+            case 12:
                 aprint("[", endX - 1, startY + selection);
                 aprint("]", endX + 2 + !(savefile->settings.lightMode), startY + selection);
                 break;
-            case 12:
+            case 13:
                 aprint("[", 12, 16);
                 aprint("]", 17, 16);
                 break;

@@ -4,7 +4,6 @@
 #include <iostream>
 #include "tonc.h"
 
-
 using namespace Tetris;
 
 int Game::checkRotation(int dx, int dy, int r) {
@@ -60,6 +59,9 @@ void Game::rotateCW() {
             pawn.setBlock();
             sounds.rotate = 1;
 
+            lastMoveDx = dx;
+            lastMoveDy = dy;
+
             if(i == 4 && pawn.current == 5)
                 specialTspin = true;
             
@@ -76,7 +78,7 @@ void Game::rotateCCW() {
         return;
 
     moveCounter++;
-    lastMoveRotation = 1;
+    lastMoveRotation = -1;
     for (int i = 0; i < 5; i++) {
         int dx = GameInfo::kicks[(pawn.current == 0)][1][pawn.rotation][i][0];
         int dy = GameInfo::kicks[(pawn.current == 0)][1][pawn.rotation][i][1];
@@ -91,6 +93,9 @@ void Game::rotateCCW() {
 
             pawn.setBlock();
             sounds.rotate = 1;
+
+            lastMoveDx = dx;
+            lastMoveDy = dy;
             
             if(i == 4 && pawn.current == 5)
                 specialTspin = true;
@@ -127,6 +132,9 @@ void Game::rotateTwice() {
             sounds.rotate = 1;
 
             moveHistory.push_back(7);
+
+            lastMoveDx = dx;
+            lastMoveDy = dy;
 
             return;
         }else
@@ -501,7 +509,7 @@ int Game::clear(Drop drop) {
     int isBackToBack = 0;
     int isDifficult = 0;
 
-    if (pawn.current == 5 && lastMoveRotation) {
+    if (pawn.current == 5 && lastMoveRotation != 0) {
         int frontCount = 0;
         int backCount = 0;
         int x = pawn.x;
@@ -712,6 +720,9 @@ void Game::next() {
         if (!checkRotation(0, 0, pawn.rotation))
             lost = 1;
     }
+
+    lastMoveDx = 0;
+    lastMoveDy = 0;
 
     softDrop = false;
 }
@@ -941,6 +952,17 @@ Drop Game::calculateDrop(){
     Drop result;
 
     result.on = true;
+
+    result.x = pawn.x;
+    result.y = pawn.y - 20;
+
+    result.dx = lastMoveDx;
+    result.dy = lastMoveDy;
+
+    result.piece = pawn.current;
+    result.rotation = pawn.rotation;
+    result.rotating = lastMoveRotation;
+
     result.startX = pawn.x;
 
     int start = -1;

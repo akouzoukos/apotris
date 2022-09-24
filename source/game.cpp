@@ -4,19 +4,18 @@
 #include "tetrisEngine.h"
 #include "tetromino.hpp"
 #include "tonc.h"
-#include "tonc_core.h"
-#include "tonc_input.h"
-#include "tonc_math.h"
-#include "tonc_memdef.h"
-#include "tonc_oam.h"
+#include "logging.h"
 #include <string>
 #include "text.h"
+#include "tonc_memdef.h"
+#include "tonc_oam.h"
 
 using namespace Tetris;
 
 void diagnose();
 void clearGlow();
 void addGlow(Drop);
+void addPlaceEffect(Drop);
 void countdown();
 void drawFrame();
 void drawGrid();
@@ -63,6 +62,8 @@ std::list<FloatText> floatingList;
 
 std::list<Effect> effectList;
 
+std::list<PlaceEffect> placeEffectList;
+
 Bot *testBot;
 
 void checkSounds() {
@@ -97,7 +98,7 @@ void checkSounds() {
 {SFX_LEVELUP},
             (mm_hword)((1.0 + (float)speed / 10) * (1 << 10)),
             0,
-            255,
+            (u8)(255 * (float) savefile->settings.sfxVolume / 10),
             128,
         };
 
@@ -722,8 +723,10 @@ void gameLoop(){
 
         Tetris::Drop latestDrop = game->getDrop();
 
-        if (latestDrop.on)
+        if (latestDrop.on){
             addGlow(latestDrop);
+            addPlaceEffect(latestDrop);
+        }
 
         canDraw = true;
         VBlankIntrWait();
@@ -1145,4 +1148,116 @@ bool checkDiagonal(int key){
     if(!savefile->settings.noDiagonals)
         return false;
     return ((key == KEY_DOWN || key == KEY_UP) && (key_is_down(KEY_LEFT) || key_is_down(KEY_RIGHT)));
+}
+
+void showPlaceEffect(){
+
+    int size = 384;
+
+    for(int i = 0; i < 3; i++)
+        obj_hide(&obj_buffer[19+i]);
+
+    auto it = placeEffectList.begin();
+    for(int i = 0; it != placeEffectList.end(); i++){
+        if(it->timer == 0){
+            obj_hide(it->sprite);
+            placeEffectList.erase(it++);
+            i--;
+            continue;
+        }
+
+        bool flip = false;
+        int xoffset = 0;
+        int yoffset = 0;
+
+        int n = 2 - ((it->timer-1)/4);
+
+        switch(it->piece){
+        case 0:
+            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n],size);
+            break;
+        case 1:
+            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
+            xoffset = yoffset = -4;
+            break;
+        case 2:
+            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
+            xoffset = -5;
+            yoffset = -4;
+            flip = true;
+            break;
+        case 3:
+            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+6],size);
+            yoffset = -4;
+            it->rotation = 0;
+            break;
+        case 4:
+            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
+            xoffset = yoffset = -4;
+            break;
+        case 5:
+            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+12],size);
+            xoffset = yoffset = -4;
+            break;
+        case 6:
+            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
+            xoffset = -5;
+            yoffset = -4;
+            flip = true;
+            break;
+        default:
+            break;
+        }
+
+        if(it->rotation == 1 || it->rotation == 2)
+            xoffset += -1;
+        if(it->rotation > 1)
+            yoffset += -1;
+
+        FIXED spin = 0;
+        int x,y;
+
+        if(it->timer > 5 && it->piece != 3){
+            spin = 0x4000 * (it->rotating) * ((it->timer-6));
+            spin /= 12;
+
+            if(it->dx || it->dy){
+                int mix = 255 * (6-(it->timer/2));
+
+                x = fx2int(lerp(int2fx(it->x - (it->dx*2)), int2fx(it->x), mix/6));
+                y = fx2int(lerp(int2fx(it->y - (it->dy*2)), int2fx(it->y), mix/6));
+            }else{
+                x = it->x;
+                y = it->y;
+            }
+        }else{
+            x = it->x;
+            y = it->y;
+        }
+
+
+        x += xoffset + push * savefile->settings.shake;
+        y += yoffset - shake * savefile->settings.shake;
+
+
+        it->sprite = &obj_buffer[19+i];
+        obj_unhide(it->sprite,ATTR0_AFF_DBL);
+        obj_set_attr(it->sprite, ATTR0_WIDE | ATTR0_AFF_DBL, ATTR1_SIZE(3) | ATTR1_AFF_ID(7+i), ATTR2_BUILD(650 + 32 * i, it->piece, 3 - (it->rotating != 0)));
+        obj_set_pos(it->sprite, x, y);
+        obj_aff_identity(&obj_aff_buffer[7+i]);
+        obj_aff_rotscale(&obj_aff_buffer[7+i], ((flip)?-1:1) << 8, 1<<8, - 0x4000 * it->rotation + spin);
+
+        it->timer--;
+        it++;
+    }
+}
+
+void addPlaceEffect(Tetris::Drop drop){
+    if((int)placeEffectList.size() >= 3 || !savefile->settings.placeEffect)
+        return;
+
+    // int x = (drop.x + 10) * 8 - 16 - 32;
+    // int y = drop.y * 8 - 16;
+
+    placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating));
 }

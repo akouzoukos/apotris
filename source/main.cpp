@@ -85,18 +85,16 @@ void onVBlank(void) {
         drawGrid();
         screenShake();
         showClearText();
+        showPlaceEffect();
 
+        oam_copy(oam_mem, obj_buffer, 32);
+        obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
         if (game->refresh) {
-            oam_copy(oam_mem, obj_buffer, 21);
-            obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
             update();
             showBackground();
             game->resetRefresh();
         }else if (game->clearLock){
             showBackground();
-        }else{
-            oam_copy(oam_mem, obj_buffer, 21);
-            obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
         }
         showTimer();
     }
@@ -262,6 +260,7 @@ void reset() {
     push = 0;
 
     floatingList.clear();
+    placeEffectList.clear();
 
     // REG_DISPCNT &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3);
 
