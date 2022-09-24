@@ -475,7 +475,7 @@ namespace GameInfo{
         }
     };
 
-    static constexpr float speed[19] = {
+    static constexpr float gravity[19] = {
         0.01667,
         0.021017,
         0.026977,
@@ -827,4 +827,5 @@ namespace GameInfo{
             }
         }
     };
+
 }

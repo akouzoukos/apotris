@@ -1,13 +1,10 @@
 #include <tonc.h>
-#include <tonc_video.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <string.h>
-#include <sstream>
 #include <maxmod.h>
 
-#include "classic1tiles_bin.h"
 #include "def.h"
 #include "tetrisEngine.h"
 #include "sprites.h"
@@ -18,7 +15,6 @@
 #include "LinkConnection.h"
 
 #include "logging.h"
-#include "tonc_core.h"
 
 #include "text.h"
 
@@ -26,8 +22,8 @@
 
 #include "posprintf.h"
 
+#include "classic1tiles_bin.h"
 #include "classic_pal_bin.h"
-#include "tonc_memmap.h"
 
 using namespace Tetris;
 
@@ -306,7 +302,7 @@ std::string nameInput(int place) {
     while (1) {
         VBlankIntrWait();
 
-        if (place == 0 && game->gameMode != 4 && (game->won || game->gameMode == 0 || game->gameMode == 2 || game->gameMode >= 5))
+        if (place == 0 && game->gameMode != BATTLE && (game->won || game->gameMode == MARATHON || game->gameMode >= BLITZ))
             aprint("New Record", 10, 5);
 
         aprint("Name: ", 11, nameHeight - 2);

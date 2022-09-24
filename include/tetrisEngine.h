@@ -6,6 +6,18 @@
 
 namespace Tetris
 {
+    enum Modes{
+        NO_MODE,
+        MARATHON,
+        SPRINT,
+        DIG,
+        BATTLE,
+        ULTRA,
+        BLITZ,
+        COMBO,
+        SURVIVAL,
+        CLASSIC,
+    };
 
     class Color {
     public:
@@ -240,7 +252,7 @@ namespace Tetris
         int refresh = 0;
         int won = 0;
         int goal = 40;
-        int finesse = 0;
+        int finesseFaults = 0;
         int garbageCleared = 0;
         int garbageHeight = 0;
         int pushDir = 0;
@@ -309,7 +321,7 @@ namespace Tetris
 
             fillBag();
 
-            if(gameMode == 9){
+            if(gameMode == CLASSIC){
                 maxLockTimer = 1;
                 fillQueue(1);
 
@@ -322,11 +334,11 @@ namespace Tetris
 
             pawn = Pawn(0,0);
 
-            if(gameMode == 1)
+            if(gameMode == SPRINT)
                 goal = 40;
-            else if(gameMode == 2)
+            else if(gameMode == MARATHON)
                 goal = 150;
-            else if(gameMode == 3){
+            else if(gameMode == DIG){
                 goal = 100;
                 generateGarbage(9,0);
             }
@@ -368,7 +380,7 @@ namespace Tetris
             refresh = oldGame.refresh;
             won = oldGame.won;
             goal = oldGame.goal;
-            finesse = oldGame.finesse;
+            finesseFaults = oldGame.finesseFaults;
             garbageCleared = oldGame.garbageCleared;
             garbageHeight = oldGame.garbageHeight;
             pushDir = oldGame.pushDir;
@@ -618,4 +630,5 @@ namespace Tetris
             delete[] testBoard;
         }
     };
+
 }

@@ -286,31 +286,31 @@ void startScreen() {
 
                 } else {
                     if (selection == 0) {//marathon
-                        n = 2;
+                        n = MARATHON;
                         options = 3;
                     } else if (selection == 1) {//sprint
-                        n = 1;
+                        n = SPRINT;
                         options = 2;
                         goalSelection = 1;// set default goal to 40 lines for sprint
                         // maxClearTimer = 1;
                     } else if (selection == 2) {//Dig
-                        n = 3;
+                        n = DIG;
                         options = 2;
                     } else if (selection == 3) {//Ultra
                         options = 2;
-                        n = 5;
+                        n = ULTRA;
                     } else if (selection == 4) {//Blitz
                         options = 1;
-                        n = 6;
+                        n = BLITZ;
                     } else if (selection == 5) {//Combo
                         options = 1;
-                        n = 7;
+                        n = COMBO;
                     } else if (selection == 6) {//Survival
                         options = 2;
-                        n = 8;
+                        n = SURVIVAL;
                     } else if (selection == 7) {//Classic
                         options = 2;
-                        n = 9;
+                        n = CLASSIC;
                     } else if (selection == 8) {//2p Battle
                         n = -3;
                         linkConnection->activate();
@@ -401,7 +401,7 @@ void startScreen() {
             for (int i = 0; i < 2; i++)
                 obj_hide(titleSprites[i]);
 
-            if (toStart == 2) {
+            if (toStart == MARATHON) {
                 if (selection == 0) {
                     if (key == KEY_RIGHT && level < 20) {
                         level++;
@@ -453,7 +453,7 @@ void startScreen() {
                         refreshText = true;
                     }
                 }
-            } else if (toStart == 1 || toStart == 3 || toStart == 5 || toStart == 8) {
+            } else if (toStart == SPRINT || toStart == DIG || toStart == ULTRA || toStart == SURVIVAL) {
                 if (selection == 0) {
                     if (key == KEY_RIGHT && goalSelection < 2) {
                         goalSelection++;
@@ -621,10 +621,8 @@ void startScreen() {
                 } else {
                     if (toStart != -1 && toStart != -2) {
                         bool training = false;
-                        if (toStart == 2 && goalSelection == 3)
-                            toStart = 0;
-                        else if(toStart == -4){
-                            toStart = 1;
+                        if(toStart == -4){
+                            toStart = SPRINT;
                             training = true;
                         }
 
@@ -646,7 +644,17 @@ void startScreen() {
                         int goal = 0;
 
                         switch (toStart) {
-                        case 1:
+                        case MARATHON:
+                            if (goalSelection == 0)
+                                goal = 150;
+                            else if (goalSelection == 1)
+                                goal = 200;
+                            else if (goalSelection == 2)
+                                goal = 300;
+                            else if (goalSelection == 3)
+                                goal = 0x7fffffff;
+                            break;
+                        case SPRINT:
                             if(training)
                                 break;
                             if (goalSelection == 0)
@@ -656,15 +664,7 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 100;
                             break;
-                        case 2:
-                            if (goalSelection == 0)
-                                goal = 150;
-                            else if (goalSelection == 1)
-                                goal = 200;
-                            else if (goalSelection == 2)
-                                goal = 300;
-                            break;
-                        case 3:
+                        case DIG:
                             if (goalSelection == 0)
                                 goal = 10;
                             else if (goalSelection == 1)
@@ -672,7 +672,7 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 100;
                             break;
-                        case 5:
+                        case ULTRA:
                             if (goalSelection == 0)
                                 goal = 3 * 3600;
                             else if (goalSelection == 1)
@@ -680,13 +680,13 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 10 * 3600;
                             break;
-                        case 6:
+                        case BLITZ:
                             if (goalSelection == 0)
                                 goal = 2 * 3600;
                             else if (goalSelection == 1)
                                 goal = 5 * 3600;
                             break;
-                        case 8:
+                        case SURVIVAL:
                             goal = goalSelection+1;
                             break;
                         }
@@ -831,7 +831,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
         aprint("akouzoukos", 20, 19);
 
     } else {
-        if (toStart == 2) {//Marathon Options
+        if (toStart == MARATHON) {//Marathon Options
             aprintColor("Marathon",titleX,titleY,1);
             int levelHeight = 3;
             int goalHeight = 7;
@@ -908,7 +908,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
             *dest = 0x5061;
 
-        } else if (toStart == 1) {//Sprint Options
+        } else if (toStart == SPRINT) {//Sprint Options
             aprintColor("Sprint",titleX,titleY,1);
             int goalHeight = 4;
             aprint("START", 12, 17);
@@ -959,7 +959,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 aprint("100", 19, goalHeight + 2);
                 break;
             }
-        } else if (toStart == 3) {//Dig Options
+        } else if (toStart == DIG) {//Dig Options
             aprintColor("Dig",titleX,titleY,1);
 
             int goalHeight = 4;
@@ -1012,7 +1012,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 aprint("100", 19, goalHeight + 2);
                 break;
             }
-        } else if (toStart == 5) {//Ultra Options
+        } else if (toStart == ULTRA) {//Ultra Options
             aprintColor("Ultra",titleX,titleY,1);
 
             int goalHeight = 4;
@@ -1065,7 +1065,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 aprint("10", 19, goalHeight + 2);
                 break;
             }
-        } else if (toStart == 6) {//Blitz Options
+        } else if (toStart == BLITZ) {//Blitz Options
             aprintColor("Blitz",titleX,titleY,1);
 
             aprint("START", 12, 17);
@@ -1086,7 +1086,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
                 aprint(score, 25 - (int)score.length(), leaderboardHeight + i);
             }
-        } else if (toStart == 7) {//Combo Options
+        } else if (toStart == COMBO) {//Combo Options
             aprintColor("Combo",titleX,titleY,1);
 
             aprint("START", 12, 17);
@@ -1107,7 +1107,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
                 aprint(score, 25 - (int)score.length(), leaderboardHeight + i);
             }
-        } else if (toStart == 8) {//Survival Options
+        } else if (toStart == SURVIVAL) {//Survival Options
             aprintColor("Survival",titleX,titleY,1);
 
             int goalHeight = 4;
@@ -1161,7 +1161,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 break;
             }
 
-        } else if (toStart == 9) {//Classic Options
+        } else if (toStart == CLASSIC) {//Classic Options
             aprintColor("Classic",titleX,titleY,1);
             aprint("START", 12, 17);
             if(selection == 0){

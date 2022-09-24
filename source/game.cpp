@@ -1,17 +1,13 @@
-#include "classic_pal_bin.h"
 #include "def.h"
 #include "soundbank.h"
 #include "sprites.h"
 #include "tetrisEngine.h"
 #include "tetromino.hpp"
 #include "tonc.h"
-#include "tonc_core.h"
-#include "tonc_input.h"
-#include "tonc_math.h"
-#include "tonc_memdef.h"
-#include "tonc_oam.h"
 #include <string>
 #include "text.h"
+
+#include "classic_pal_bin.h"
 
 using namespace Tetris;
 
@@ -298,7 +294,7 @@ void showPawn() {
 
 void showShadow() {
     pawnShadow = &obj_buffer[1];
-    if (game->clearLock || game->gameMode == 9) {
+    if (game->clearLock || game->gameMode == CLASSIC) {
         obj_hide(pawnShadow);
         return;
     }
@@ -367,7 +363,7 @@ void showHold() {
     holdFrameSprite = &obj_buffer[10];
     int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6));
 
-    if(game->gameMode != 9){
+    if(game->gameMode != CLASSIC){
         obj_unhide(holdFrameSprite, 0);
         obj_set_attr(holdFrameSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_PALBANK(color));
         holdFrameSprite->attr2 = ATTR2_BUILD(512, color, 3);
@@ -402,7 +398,7 @@ void showHold() {
 void showQueue() {
     int maxQueue = savefile->settings.maxQueue;
 
-    if(game->gameMode == 9)
+    if(game->gameMode == CLASSIC)
         maxQueue = 1;
 
     for (int i = 0; i < maxQueue; i++)
@@ -430,7 +426,7 @@ void showQueue() {
     }
 
     int startX = 22 * 8 + 1;
-    int yoffset = 3 * (maxQueue == 1) - (5 * (game->gameMode == 9));
+    int yoffset = 3 * (maxQueue == 1) - (5 * (game->gameMode == CLASSIC));
 
     std::list<int>::iterator q = game->queue.begin();
     for (int k = 0; k < 5; k++){
@@ -443,7 +439,7 @@ void showQueue() {
         int n = *q;
 
         int add = !(n == 0 || n == 3);
-        if ((savefile->settings.skin == 0 || savefile->settings.skin == 5) && game->gameMode != 9) {
+        if ((savefile->settings.skin == 0 || savefile->settings.skin == 5) && game->gameMode != CLASSIC) {
             obj_unhide(queueSprites[k], 0);
             obj_set_attr(queueSprites[k], ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(n));
             queueSprites[k]->attr2 = ATTR2_BUILD(16 * 9 + 8 * n, n, 3);
@@ -508,7 +504,7 @@ void control() {
         game->rotateTwice();
     }
 
-    if (key_hit(KEY_SELECT) && game->goal == 0 && game->gameMode == 1) {
+    if (key_hit(KEY_SELECT) && game->goal == 0 && game->gameMode == SPRINT) {
         sfx(SFX_MENUCONFIRM);
         pause = true;
         mmPause();
@@ -526,7 +522,7 @@ void control() {
     if (key_released(k.moveRight))
         game->keyRight(0);
 
-    if (key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != 4)) {
+    if (key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != BATTLE)) {
         if(restartTimer++ > maxRestartTimer || !savefile->settings.resetHold)
             playAgain = true;
     }else{
@@ -535,7 +531,7 @@ void control() {
 }
 
 void showTimer() {
-    if (!(game->gameMode == 1 && game->goal == 0)) {
+    if (!(game->gameMode == SPRINT && game->goal == 0)) {
         std::string timer = timeToString(gameSeconds);
         aprint(timer, 1, 1);
     }
@@ -547,10 +543,10 @@ void showTimer() {
         // aprints("Finesse:",0,7,2);
         // showFinesse();
         aprint("Finesse", 1, 14);
-        aprintf(game->finesse, 4, 15);
+        aprintf(game->finesseFaults, 4, 15);
     }
 
-    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != 9) {
+    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != CLASSIC) {
         if (++trainingMessageTimer == TRAINING_MESSAGE_MAX) {
             aprint("     ", 1, 3);
             aprint("      ", 1, 5);
@@ -560,20 +556,20 @@ void showTimer() {
 }
 
 void showText() {
-    if (game->gameMode == 0 || game->gameMode == 2 || game->gameMode == 5 || game->gameMode == 6 || game->gameMode == 9) {
+    if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == CLASSIC) {
 
         aprint("Score", 3, 3);
 
         std::string score = std::to_string(game->score);
         aprint(score, 8 - score.size(), 5);
 
-        if (game->gameMode != 5) {
+        if (game->gameMode != ULTRA) {
             aprint("Level", 2, 14);
 
             aprintf(game->level, 4, 15);
         }
 
-    } else if (game->gameMode == 1) {
+    } else if (game->gameMode == SPRINT) {
         // if (savefile->settings.finesse) {
         //     aprint("Finesse", 1, 14);
         //     aprintf(game->finesse, 4, 15);
@@ -583,14 +579,14 @@ void showText() {
         }
     }
 
-    if (game->gameMode != 4 && game->gameMode != 6){
+    if (game->gameMode != BATTLE && game->gameMode != BLITZ){
         aprint("Lines", 2, 17);
-        if (game->gameMode == 3)
+        if (game->gameMode == DIG)
             aprintf(game->garbageCleared, 4, 18);
         else
             aprintf(game->linesCleared, 4, 18);
 
-    } else if(game->gameMode == 6){
+    } else if(game->gameMode == BLITZ){
         aprint("Lines", 2, 17);
         std::string str;
 
@@ -613,7 +609,7 @@ void showText() {
         aprintf(game->linesSent, 4, 18);
     }
 
-    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != 7 && game->gameMode != 9) {
+    if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != COMBO && game->gameMode != CLASSIC) {
         aprint("Press", 1, 3);
         aprint("SELECT", 1, 5);
         aprint("for Saves", 1, 7);
@@ -646,12 +642,12 @@ void showPPS(){
 void showFinesse(){
     if(gameSeconds == 0)
         return;
-    aprints(std::to_string(game->finesse),4*9,7,2);
+    aprints(std::to_string(game->finesseFaults),4*9,7,2);
 }
 
 void showClearText() {
 
-    if(game->gameMode != 9){
+    if(game->gameMode != CLASSIC){
         if (game->comboCounter > 1) {
             aprint("Combo x", 21, clearTextHeight - 1);
 
@@ -722,7 +718,7 @@ void gameLoop(){
 
     countdown();
 
-    if (!(game->gameMode == 1 && game->goal == 0)) {
+    if (!(game->gameMode == SPRINT && game->goal == 0)) {
         playSongRandom(1);
     }
 
@@ -760,7 +756,7 @@ void gameLoop(){
         canDraw = true;
         VBlankIntrWait();
 
-        if (clearTimer == maxClearTimer || (game->gameMode == 8 && clearTimer)) {
+        if (clearTimer == maxClearTimer || (game->gameMode == SURVIVAL && clearTimer)) {
             game->removeClearLock();
             shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
             clearTimer = 0;
@@ -1028,11 +1024,11 @@ void progressBar() {
     int current;
     int max = game->goal;
 
-    if (game->gameMode == 3)
+    if (game->gameMode == DIG)
         current = game->garbageCleared;
-    else if (game->gameMode == 5 || game->gameMode == 6)
+    else if (game->gameMode == ULTRA || game->gameMode == BLITZ)
         current = game->timer;
-    else if (game->gameMode != 8)
+    else if (game->gameMode != SURVIVAL)
         current = game->linesCleared;
     else
         return;
@@ -1041,7 +1037,7 @@ void progressBar() {
 
     showBar(current, max, 20, color);
 
-    if (game->gameMode == 4) {
+    if (game->gameMode == BATTLE) {
         if (++attackFlashTimer > attackFlashMax)
             attackFlashTimer = 0;
 
