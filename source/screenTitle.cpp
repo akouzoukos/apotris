@@ -9,11 +9,14 @@
 #include "tonc_bios.h"
 
 #include "posprintf.h"
+#include "tonc_input.h"
+#include "logging.h"
 
 void drawUIFrame(int, int, int, int);
 void fallingBlocks();
 void startText(bool onSettings, int selection, int goalSelection, int level, int toStart);
 void settingsText();
+void toggleBigMode();
 
 using namespace Tetris;
 
@@ -80,7 +83,7 @@ public:
 WordSprite* wordSprites[MAX_WORD_SPRITES];
 int titleFloat = 0;
 OBJ_ATTR* titleSprites[2];
-int backgroundArray[24][30];
+int backgroundArray[30][30];
 int bgSpawnBlock = 0;
 int bgSpawnBlockMax = 20;
 int gravity = 0;
@@ -90,9 +93,19 @@ bool goToOptions = false;
 int previousSelection = 0;
 int previousOptionMax = 0;
 
+std::list<int> keyHistory;
+
 Settings previousSettings;
+
+bool bigMode = false;
+
+int bigModeMessageTimer = 0;
+int bigModeMessageMax = 180;
+
 std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","Big","2P Battle","Training"};
+std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
+
+int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
 void startScreen() {
     int selection = 0;
@@ -141,7 +154,7 @@ void startScreen() {
         wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);
 
     //initialise background array
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 30; i++)
         for (int j = 0; j < 30; j++)
             backgroundArray[i][j] = 0;
 
@@ -268,7 +281,34 @@ void startScreen() {
                 aprint(">", 15, startY);
             }
 
+            bool correct = false;
+            if(key_hit(KEY_FULL)){
+
+                if((int)keyHistory.size() == 11)
+                    keyHistory.pop_front();
+
+                keyHistory.push_back(key_hit(KEY_FULL));
+                if((int)keyHistory.size() == 11){
+
+                    correct = true;
+                    int counter = 0;
+                    auto index = keyHistory.begin();
+                    while(index != keyHistory.end()){
+                        if(*index != secretCombo[counter++]){
+                            correct = false;
+                            break;
+                        }
+                        ++index;
+                    }
+                }
+            }
+
             if (key == KEY_A || key == KEY_START || key == KEY_RIGHT) {
+                if(correct){
+                    toggleBigMode();
+                    continue;
+                }
+
                 int n = 0;
                 if (!onPlay) {
                     if (selection == 0) {
@@ -311,14 +351,14 @@ void startScreen() {
                     } else if (selection == 7) {//Classic
                         options = 2;
                         n = CLASSIC;
-                    } else if (selection == 8) {//Classic
-                        options = 2;
-                        n = BIG;
-                    } else if (selection == 9) {//2p Battle
+                    // } else if (selection == 8) {//Big
+                    //     options = 2;
+                    //     n = BIG;
+                    } else if (selection == 8) {//2p Battle
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 10) {//Training
+                    } else if (selection == 9) {//Training
                         options = 2;
                         n = -4;
 
@@ -636,10 +676,12 @@ void startScreen() {
                         previousOptionMax = options;
 
                         delete game;
-                        game = new Game(toStart);
+                        game = new Game(toStart,bigMode);
                         game->setLevel(level);
                         game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
                         mode = goalSelection;
+
+                        game->pawn.big = bigMode;
 
                         if(training && goalSelection)
                             game->setTrainingMode(true);
@@ -1317,7 +1359,7 @@ void fallingBlocks() {
     if (gravity > gravityMax) {
         gravity = 0;
 
-        for (i = 23; i >= 0; i--) {
+        for (i = 29; i >= 0; i--) {
             for (j = 0; j < 30; j++) {
                 if (i == 0)
                     backgroundArray[i][j] = 0;
@@ -1328,13 +1370,12 @@ void fallingBlocks() {
     }
 
     u16* dest = (u16*)se_mem[25];
-
-    for (i = 4; i < 24; i++) {
+    for (i = 4+6*bigMode; i < 24+6*bigMode; i++) {
         for (j = 0; j < 30; j++) {
             if (!backgroundArray[i][j])
                 *dest++ = 2 * (!savefile->settings.lightMode);
             else{
-                if(savefile->settings.skin != 7)
+                if(savefile->settings.skin < 7)
                     *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
                 else
                     *dest++ = (48 + backgroundArray[i][j] - 1);
@@ -1344,24 +1385,63 @@ void fallingBlocks() {
     }
 
     if (bgSpawnBlock > bgSpawnBlockMax) {
-        bgSpawnBlock = 0;
-        int x = qran() % 27;
+
         int n = qran() % 7;
         int** p = game->getShape(n, qran() % 4);
 
-        for (i = 0; i < 4; i++)
-            for (j = 0; j < 4; j++)
-                if (backgroundArray[i][j + x])
-                    return;
+        bool found = false;
 
-        for (i = 0; i < 4; i++)
-            for (j = 0; j < 4; j++)
-                if (p[i][j])
-                    backgroundArray[i][j + x] = n + 1;
+        if(!bigMode){
+            int x = qran() % 27;
+
+            for (i = 0; i < 4; i++)
+                for (j = 0; j < 4; j++)
+                    if (backgroundArray[i][j + x])
+                        found = true;
+
+            if(!found)
+                for (i = 0; i < 4; i++)
+                    for (j = 0; j < 4; j++)
+                        if (p[i][j])
+                            backgroundArray[i][j + x] = n + 1;
+        }else{
+            int x = (qran() % 13) * 2;
+
+            for (i = 0; i < 8; i++)
+                for (j = 0; j < 8; j++)
+                    if (backgroundArray[i][j + x*2])
+                        found = true;
+
+            if(!found){
+                for (i = 0; i < 4; i++){
+                    for (j = 0; j < 4; j++){
+                        int xoffset = (j+x)*2;
+                        int yoffset = i*2;
+
+                        if (!p[i][j] || yoffset < 0 || yoffset > 23 || xoffset < 0 || xoffset > 29)
+                            continue;
+
+                        backgroundArray[yoffset][xoffset] = n + 1;
+                        backgroundArray[yoffset][xoffset+1] = n + 1;
+                        backgroundArray[yoffset+1][xoffset] = n + 1;
+                        backgroundArray[yoffset+1][xoffset+1] = n + 1;
+                    }
+                }
+            }
+        }
 
         for(i = 0; i < 4; i++)
             delete p[i];
         delete p;
+
+        bgSpawnBlock = 0;
+    }
+
+    if(bigModeMessageTimer > 0){
+        if(--bigModeMessageTimer == 0){
+            aprint("                  ",0,0);
+            aprint("                    ",0,1);
+        }
     }
 }
 
@@ -1383,4 +1463,21 @@ void settingsText() {
         aprint(*option,startX,startY+space*i);
         option++;
     }
+}
+
+void toggleBigMode(){
+    bigMode = !bigMode;
+
+    //empty background array
+    for (int i = 0; i < 30; i++)
+        for (int j = 0; j < 30; j++)
+            backgroundArray[i][j] = 0;
+
+    bigModeMessageTimer = bigModeMessageMax;
+
+    if(bigMode){
+        aprint("Big Mode enabled!",0,0);
+        aprint("Highscores disabled!",0,1);
+    }else
+        aprint("Big Mode disabled!",0,0);
 }

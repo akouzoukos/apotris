@@ -37,4 +37,6 @@ extern const uint8_t * mini[2][7];
 
 extern const uint8_t * moveSpriteTiles[8];
 
-extern const uint8_t * classicTiles[8];
+extern const uint8_t * classicTiles[2][8];
+
+extern const uint16_t * nesPalette[10][2];

@@ -92,7 +92,7 @@ void checkSounds() {
             speed = 10;
 
         mm_sound_effect clear = {
-{SFX_LEVELUP},
+            {SFX_LEVELUP},
             (mm_hword)((1.0 + (float)speed / 10) * (1 << 10)),
             0,
             255,
@@ -147,6 +147,10 @@ void checkSounds() {
 
     if (game->sounds.levelUp) {
         sfx(SFX_LEVELUPSOUND);
+
+        if(savefile->settings.skin == 8){
+            setPalette();
+        }
     }
     game->resetSounds();
 }
@@ -241,7 +245,7 @@ void showBackground() {
             } else{
                 int offset = 1;
 
-                if(savefile->settings.skin == 7)
+                if(savefile->settings.skin >= 7)
                     offset = 48 + (game->board[i][j]-1);
 
                 *dest++ = (offset + (((u32)(game->board[i][j] - 1)) << 12));
@@ -278,10 +282,10 @@ void showPawn() {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (game->pawn.board[game->pawn.rotation][i][j] > 0){
-                if(savefile->settings.skin != 7)
+                if(savefile->settings.skin < 7)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
                 else
-                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], classicTiles[game->pawn.current], sprite1tiles_bin_size / 2);
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], classicTiles[savefile->settings.skin-7][game->pawn.current], sprite1tiles_bin_size / 2);
             }else
                 memset16(&tile_mem[4][16 * 7 + i * 4 + j], 0, sprite1tiles_bin_size / 2);
         }
@@ -321,10 +325,10 @@ void showShadow() {
         shadowTexture = (u8*)sprite16tiles_bin;
         break;
     case 3:
-        if(savefile->settings.skin != 7)
+        if(savefile->settings.skin < 7)
             shadowTexture = blockSprite;
         else
-            shadowTexture = (u8*)classicTiles[game->pawn.current];
+            shadowTexture = (u8*)classicTiles[savefile->settings.skin-7][game->pawn.current];
         bld = true;
         break;
     case 4:
@@ -349,15 +353,33 @@ void showShadow() {
     int n = game->pawn.current;
 
     if (!savefile->settings.lightMode){
-        if(savefile->settings.skin != 7)
-            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
-        else
+        if(savefile->settings.skin == 7)
             clr_fade_fast((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
+        else if(savefile->settings.skin == 8){
+            int n = 0;
+            if(game->level >= 0 && game->level < 255){
+                n = game->level % 10;
+                if(game->gameMode != CLASSIC)
+                    n--;
+            }
+
+            clr_fade_fast((COLOR*)nesPalette[n], 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
+        } else
+            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
     }else{
-        if(savefile->settings.skin != 7)
-            clr_adj_brightness(&pal_obj_mem[8 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.15));
-        else
+        if(savefile->settings.skin == 7)
             clr_adj_brightness(&pal_obj_mem[8 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.15));
+        else if(savefile->settings.skin == 8){
+            int n = 0;
+            if(game->level >= 0 && game->level < 255){
+                n = game->level % 10;
+                if(game->gameMode != CLASSIC)
+                    n--;
+            }
+
+            clr_fade_fast((COLOR*)nesPalette[n], 0x0000, &pal_obj_mem[8 * 16], 16, (14) * bld);
+        }else
+            clr_adj_brightness(&pal_obj_mem[8 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.15));
     }
 
     if(!game->pawn.big){
@@ -714,6 +736,7 @@ void showClearText() {
 
 void gameLoop(){
     setSkin();
+    setPalette();
     clearSmallText();
     setSmallTextArea(100, 2, 14, 8, 17);
     gameSeconds = 0;

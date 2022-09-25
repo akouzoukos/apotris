@@ -532,6 +532,7 @@ int pauseMenu(){
                         delete game;
                         game = new Game(*quickSave);
                         game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->pawn.big = bigMode;
                         update();
                         showBackground();
                         showPawn();
@@ -606,6 +607,9 @@ int pauseMenu(){
 
 int onRecord() {
     int place = -1;
+
+    if(bigMode)
+        return place;
 
     for (int i = 0; i < 5; i++) {
         if (game->gameMode == MARATHON) {

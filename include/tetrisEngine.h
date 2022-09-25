@@ -310,7 +310,7 @@ namespace Tetris
 
         Game(){}
 
-        Game(int gm, int sd){
+        Game(int gm, int sd, bool big){
             gameMode = gm;
             seed = sd;
             board = new int* [lengthY];
@@ -335,6 +335,7 @@ namespace Tetris
                 fillQueue(5);
 
             pawn = Pawn(0,0);
+            pawn.big = big;
 
             if(gameMode == SPRINT)
                 goal = 40;
@@ -342,13 +343,29 @@ namespace Tetris
                 goal = 150;
             else if(gameMode == DIG){
                 goal = 100;
-                generateGarbage(9,0);
+                if(!big)
+                    generateGarbage(9,0);
+                else
+                    generateGarbage(4,0);
             }else if(gameMode == COMBO){
-                for(int i = lengthY/2-1; i < lengthY; i++){
-                    for(int j = 0; j < 10; j++){
-                       if(j > 2 && j < 7 && !(i == lengthY-2 && j < 5) && !(i == lengthY-1 && j < 4))
-                           continue;
-                       board[i][j] = i % 7 + 1;
+                if(!big){
+                    for(int i = lengthY/2-1; i < lengthY; i++){
+                        for(int j = 0; j < 10; j++){
+                            if(j > 2 && j < 7 && !(i == lengthY-2 && j < 5) && !(i == lengthY-1 && j < 4))
+                                continue;
+                            board[i][j] = i % 7 + 1;
+                        }
+                    }
+                }else{
+                    for(int i = (lengthY/4-1); i < lengthY/2; i++){
+                        for(int j = 0; j < 5; j++){
+                            if(j != 0 && !(i == (lengthY/2)-2 && j < 3) && !(i == (lengthY/2)-1 && j < 2))
+                                continue;
+                            board[i*2][j*2] = i % 7 + 1;
+                            board[i*2][j*2+1] = i % 7 + 1;
+                            board[i*2+1][j*2] = i % 7 + 1;
+                            board[i*2+1][j*2+1] = i % 7 + 1;
+                        }
                     }
                 }
             }else if(gameMode == BIG){
@@ -359,7 +376,7 @@ namespace Tetris
                 statTracker[i] = 0;
         }
 
-        Game(int gm) : Game(gm,0){}
+        Game(int gm,bool big) : Game(gm,0,big){}
 
         Game(const Game& oldGame){
             canHold = oldGame.canHold;

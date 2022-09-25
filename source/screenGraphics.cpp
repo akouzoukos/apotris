@@ -19,7 +19,7 @@ void graphicTest() {
     memset16(&se_mem[26], 0x0000, 32 * 20);
 
     delete game;
-    game = new Game(3);
+    game = new Game(3,bigMode);
     game->setGoal(0);
 
     game->update();

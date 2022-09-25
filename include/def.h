@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <tonc_types.h>
 #include <maxmod.h>
@@ -144,7 +146,7 @@ public:
 };
 
 #define TRAINING_MESSAGE_MAX 300
-#define MAX_SKINS 8
+#define MAX_SKINS 9
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
 #define MAX_COLORS 2
@@ -271,3 +273,5 @@ extern int currentMenu;
 
 extern int previousOptionScreen;
 extern bool goToOptions;
+
+extern bool bigMode;

@@ -493,13 +493,24 @@ void Game::place() {
             comboCounter = 1;
 
         if(gameMode == COMBO){
-            for(int i = lengthY/2-1; i < lengthY; i++){
-                if(board[i][0] != 0)
-                    break;
-                for(int j = 0; j < 10; j++){
-                    if(j > 2 && j < 7)
-                        continue;
-                    board[i][j] = (i+comboCounter) % 7 + 1;
+            if(!pawn.big){
+                for(int i = lengthY/2-1; i < lengthY; i++){
+                    if(board[i][0] != 0)
+                        break;
+                    for(int j = 0; j < 10; j++){
+                        if(j > 2 && j < 7)
+                            continue;
+                        board[i][j] = (i+comboCounter) % 7 + 1;
+                    }
+                }
+            }else{
+                for(int i = (lengthY/2-1)/2; i < lengthY/2; i++){
+                    if(board[i*2][0] != 0)
+                        break;
+                    board[i*2][0] = (i*2+comboCounter) % 7 + 1;
+                    board[i*2][1] = (i*2+comboCounter) % 7 + 1;
+                    board[i*2+1][0] = (i*2+comboCounter) % 7 + 1;
+                    board[i*2+1][1] = (i*2+comboCounter) % 7 + 1;
                 }
             }
         }
@@ -509,13 +520,18 @@ void Game::place() {
             lost = 1;
         comboCounter = 0;
 
-        if(gameMode == DIG && garbageHeight < 9){
-            int toAdd = 9-garbageHeight;
+
+        int targetHeight = 9;
+        if(pawn.big)
+            targetHeight = 4;
+
+        if(gameMode == DIG && garbageHeight < targetHeight){
+            int toAdd = targetHeight-garbageHeight;
             if(garbageCleared+toAdd+garbageHeight <= goal)
-                generateGarbage(9-garbageHeight,0);
+                generateGarbage(toAdd,0);
             else if(garbageCleared+toAdd+garbageHeight > goal && garbageCleared+garbageHeight < goal)
                 generateGarbage(goal-(garbageCleared+garbageHeight),0);
-        }else if(gameMode == ULTRA){
+        }else if(gameMode == BATTLE){
             int sum = 0;
             std::list<Garbage>::iterator index = garbageQueue.begin();
             while(index != garbageQueue.end()){
@@ -629,10 +645,13 @@ int Game::clear(Drop drop) {
         if (toClear) {
             linesToClear.push_back(i);
             clearCount++;
-            if(gameMode == DIG && i >= lengthY-garbageHeight)
+            if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
                 garbageToRemove++;
         }
     }
+
+    if(pawn.big)
+        garbageToRemove/=2;
 
     garbageHeight-=garbageToRemove;
     garbageCleared+=garbageToRemove;
@@ -1038,32 +1057,64 @@ void Game::setGoal(int newGoal){
 }
 
 void Game::generateGarbage(int height,int mode){
-    int hole = qran() % lengthX;
-    // shift up
-    for(int i = 0; i < lengthY; i++){
-        for(int j = 0; j < lengthX; j++){
-            if(i < lengthY-height)
-                board[i][j] = board[i+height][j];
-            else
-                board[i][j] = 0;
+    if(!pawn.big){
+        int hole = qran() % lengthX;
+        // shift up
+        for(int i = 0; i < lengthY; i++){
+            for(int j = 0; j < lengthX; j++){
+                if(i < lengthY-height)
+                    board[i][j] = board[i+height][j];
+                else
+                    board[i][j] = 0;
+            }
         }
-    }
 
-    for(int i = lengthY-height; i < lengthY; i++){
-        int prevHole = hole;
-        if(!mode || qran() % 10 < 3){
-            do{
-                hole = qran() % lengthX;
-            }while((!board[i-1][hole] && height < garbageHeight) || hole == prevHole);
+        for(int i = lengthY-height; i < lengthY; i++){
+            int prevHole = hole;
+            if(!mode || qran() % 10 < 3){
+                do{
+                    hole = qran() % lengthX;
+                }while((!board[i-1][hole] && height < garbageHeight) || hole == prevHole);
+            }
+            for(int j = 0; j < lengthX; j++){
+                if(j == hole)
+                    continue;
+                board[i][j]=8;
+            }
         }
-        for(int j = 0; j < lengthX; j++){
-            if(j == hole)
-                continue;
-            board[i][j]=8;
-        }
-    }
 
-    garbageHeight+=height;
+        garbageHeight+=height;
+    }else{
+        int hole = qran() % lengthX/2;
+        // shift up
+        for(int i = 0; i < lengthY; i++){
+            for(int j = 0; j < lengthX; j++){
+                if(i < lengthY-height*2)
+                    board[i][j] = board[i+height*2][j];
+                else
+                    board[i][j] = 0;
+            }
+        }
+
+        for(int i = lengthY/2-height; i < lengthY/2; i++){
+            int prevHole = hole;
+            if(!mode || qran() % 10 < 3){
+                do{
+                    hole = qran() % (lengthX/2);
+                }while((!board[(i-1)*2][hole*2] && height < garbageHeight) || hole == prevHole);
+            }
+            for(int j = 0; j < lengthX/2; j++){
+                if(j == hole)
+                    continue;
+                board[i*2][j*2]=8;
+                board[i*2][j*2+1]=8;
+                board[i*2+1][j*2]=8;
+                board[i*2+1][j*2+1]=8;
+            }
+        }
+
+        garbageHeight+=height;
+    }
 }
 
 void Game::keyDrop(){

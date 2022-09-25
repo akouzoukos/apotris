@@ -31,15 +31,49 @@
 #include "classic7tiles_bin.h"
 #include "classic8tiles_bin.h"
 
-const uint8_t * classicTiles[8] = {
-        classic1tiles_bin,
-        classic2tiles_bin,
-        classic3tiles_bin,
-        classic4tiles_bin,
-        classic5tiles_bin,
-        classic6tiles_bin,
-        classic7tiles_bin,
-        classic8tiles_bin,
+#include "classic9tiles_bin.h"
+#include "classic10tiles_bin.h"
+#include "classic11tiles_bin.h"
+#include "classic12tiles_bin.h"
+#include "classic13tiles_bin.h"
+#include "classic14tiles_bin.h"
+#include "classic15tiles_bin.h"
+#include "classic16tiles_bin.h"
+
+
+const uint8_t * classicTiles[2][8] = {
+        {
+                classic1tiles_bin,
+                classic2tiles_bin,
+                classic3tiles_bin,
+                classic4tiles_bin,
+                classic5tiles_bin,
+                classic6tiles_bin,
+                classic7tiles_bin,
+                classic8tiles_bin,
+        },{
+                classic9tiles_bin,
+                classic10tiles_bin,
+                classic11tiles_bin,
+                classic12tiles_bin,
+                classic13tiles_bin,
+                classic14tiles_bin,
+                classic15tiles_bin,
+                classic16tiles_bin,
+        }
+};
+
+const uint16_t nesPalette[10][4] __attribute__((aligned(4)))= {
+        {0x0421,0x7d60,0x7ee7,0x7fff},
+        {0x0421,0x02a0,0x0ff7,0x7fff},
+        {0x0421,0x641c,0x7dff,0x7fff},
+        {0x0421,0x7d60,0x2b6b,0x7fff},
+        {0x0421,0x2c1c,0x4feb,0x7fff},
+        {0x0421,0x4feb,0x7e2d,0x7fff},
+        {0x0421,0x00ff,0x3def,0x7fff},
+        {0x0421,0x7d0d,0x1015,0x7fff},
+        {0x0421,0x7d60,0x00ff,0x7fff},
+        {0x0421,0x00ff,0x229f,0x7fff},
 };
 
 const uint8_t * mini[2][7] = {
