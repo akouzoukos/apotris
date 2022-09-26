@@ -3,9 +3,23 @@
 #include <cstring>
 #include <list>
 #include <string>
+#include "tonc.h"
 
 namespace Tetris
 {
+    enum Modes{
+        NO_MODE,
+        MARATHON,
+        SPRINT,
+        DIG,
+        BATTLE,
+        ULTRA,
+        BLITZ,
+        COMBO,
+        SURVIVAL,
+        CLASSIC,
+        BIG,
+    };
 
     class Color {
     public:
@@ -152,7 +166,8 @@ namespace Tetris
         int rotation = 0;
         int board[4][4][4];
         int lowest;
-        void setBlock();
+        bool big = false;
+        void setBlock(bool alt);
 
         Pawn(int newX, int newY) {
             x = newX;
@@ -195,8 +210,6 @@ namespace Tetris
         float speed;
         float speedCounter = 0;
 
-        int seed = 0;
-
         //7  117
         //8  133
         //9  150 
@@ -238,6 +251,8 @@ namespace Tetris
 
         bool specialTspin = false;
 
+        int pieceHistory = -1;
+
     public:
         int lengthX = 10;
         int lengthY = 40;
@@ -246,7 +261,7 @@ namespace Tetris
         Pawn pawn = Pawn(0, 0);
         int held = -1;
         int linesCleared = 0;
-        int level = 1;
+        int level = 0;
         int score = 0;
         int comboCounter = 0;
         std::list<int> linesToClear;
@@ -259,7 +274,7 @@ namespace Tetris
         int refresh = 0;
         int won = 0;
         int goal = 40;
-        int finesse = 0;
+        int finesseFaults = 0;
         int garbageCleared = 0;
         int garbageHeight = 0;
         int pushDir = 0;
@@ -277,6 +292,10 @@ namespace Tetris
         bool canHold = true;
         int holdCounter = 0;
         bool trainingMode = false;
+        int seed = 0;
+        int initSeed = 0;
+
+        int entryDelay = 0;
 
         int statTracker[8];
 
@@ -311,11 +330,13 @@ namespace Tetris
         void demoClear();
         void demoFill();
 
-        Game(){}
+        Game(){
+            seed = initSeed = qran();
+        }
 
-        Game(int gm, int sd){
+        Game(int gm, int sd, bool big){
             gameMode = gm;
-            seed = sd;
+            seed = initSeed = sd;
             board = new int* [lengthY];
 
             for (int i = 0; i < lengthY; i++) {
@@ -325,24 +346,61 @@ namespace Tetris
             }
 
             fillBag();
-            fillQueue(5);
+
+            if(gameMode == CLASSIC){
+                maxLockTimer = 1;
+                fillQueue(1);
+
+                maxDas = 16;
+                arr = 6;
+                softDropSpeed = 2;
+
+            }else
+                fillQueue(5);
 
             pawn = Pawn(0,0);
+            pawn.big = big;
 
-            if(gameMode == 1)
+            if(gameMode == SPRINT)
                 goal = 40;
-            else if(gameMode == 2)
+            else if(gameMode == MARATHON)
                 goal = 150;
-            else if(gameMode == 3){
+            else if(gameMode == DIG){
                 goal = 100;
-                generateGarbage(9,0);
+                if(!big)
+                    generateGarbage(9,0);
+                else
+                    generateGarbage(4,0);
+            }else if(gameMode == COMBO){
+                if(!big){
+                    for(int i = lengthY/2-1; i < lengthY; i++){
+                        for(int j = 0; j < 10; j++){
+                            if(j > 2 && j < 7 && !(i == lengthY-2 && j < 5) && !(i == lengthY-1 && j < 4))
+                                continue;
+                            board[i][j] = i % 7 + 1;
+                        }
+                    }
+                }else{
+                    for(int i = (lengthY/4-1); i < lengthY/2; i++){
+                        for(int j = 0; j < 5; j++){
+                            if(j != 0 && !(i == (lengthY/2)-2 && j < 3) && !(i == (lengthY/2)-1 && j < 2))
+                                continue;
+                            board[i*2][j*2] = i % 7 + 1;
+                            board[i*2][j*2+1] = i % 7 + 1;
+                            board[i*2+1][j*2] = i % 7 + 1;
+                            board[i*2+1][j*2+1] = i % 7 + 1;
+                        }
+                    }
+                }
+            }else if(gameMode == BIG){
+                pawn.big = true;
             }
 
             for(int i = 0; i < 8; i ++)
                 statTracker[i] = 0;
         }
 
-        Game(int gm) : Game(gm,0){}
+        Game(int gm,bool big) : Game(gm,qran(),big){}
 
         Game(const Game& oldGame){
             canHold = oldGame.canHold;
@@ -375,12 +433,14 @@ namespace Tetris
             refresh = oldGame.refresh;
             won = oldGame.won;
             goal = oldGame.goal;
-            finesse = oldGame.finesse;
+            finesseFaults = oldGame.finesseFaults;
             garbageCleared = oldGame.garbageCleared;
             garbageHeight = oldGame.garbageHeight;
             pushDir = oldGame.pushDir;
             b2bCounter = oldGame.b2bCounter;
             bagCounter = oldGame.bagCounter;
+            seed = oldGame.seed;
+            initSeed = oldGame.initSeed;
         }
 
         ~Game(){
@@ -577,14 +637,14 @@ namespace Tetris
             for(int i = 0; i < 4; i++){
                 for(int j = 0; j < 4; j++){
                     if(game->pawn.board[jj][i][j] == 0)
-                    continue;
+                        continue;
                     int x = game->pawn.x+ii+j;
                     int y = lowest+i;
 
                     if(y > game->lengthY-1 || x > game->lengthX)
                         continue;
 
-                    testBoard[lowest+i-20][game->pawn.x+ii+j] = 1;
+                    testBoard[lowest+i-20][x] = 1;
                 }
             }
 
@@ -625,4 +685,5 @@ namespace Tetris
             delete[] testBoard;
         }
     };
+
 }

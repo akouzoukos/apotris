@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <tonc_types.h>
 #include <maxmod.h>
@@ -180,11 +182,11 @@ public:
 };
 
 #define TRAINING_MESSAGE_MAX 300
-#define MAX_SKINS 7
+#define MAX_SKINS 9
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
 #define MAX_COLORS 2
-#define MAX_CLEAR_EFFECTS 2
+#define MAX_CLEAR_EFFECTS 3
 
 #define MAX_MENU_SONGS 2
 #define MAX_GAME_SONGS 4
@@ -250,6 +252,8 @@ extern void loadSave();
 extern void startScreen();
 extern void showText();
 extern void showPlaceEffect();
+extern void checkSounds();
+extern int getClassicPalette();
 
 extern std::string timeToString(int);
 
@@ -313,3 +317,4 @@ extern int rumbleTimer;
 extern int rumbleMax;
 
 extern bool rumbleInitialized;
+extern bool bigMode;

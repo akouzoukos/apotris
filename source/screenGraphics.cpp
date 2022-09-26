@@ -9,6 +9,7 @@ using namespace Tetris;
 
 void graphicTest() {
     irq_disable(II_HBLANK);
+    setPalette();
 
     if (savefile->settings.lightMode)
         memset16(pal_bg_mem, 0x5ad6, 1);//background gray
@@ -18,7 +19,7 @@ void graphicTest() {
     memset16(&se_mem[26], 0x0000, 32 * 20);
 
     delete game;
-    game = new Game(3);
+    game = new Game(3,bigMode);
     game->setGoal(0);
 
     game->update();
@@ -500,6 +501,9 @@ void setClearEffect(){
         break;
     case 1:
         memcpy16(&tile_mem[0][3], sprite25tiles_bin, sprite25tiles_bin_size / 2);
+        break;
+    case 2:
+        memcpy16(&tile_mem[0][3], sprite26tiles_bin, sprite25tiles_bin_size / 2);
         break;
     }
 }

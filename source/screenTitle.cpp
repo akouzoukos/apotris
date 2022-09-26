@@ -9,11 +9,14 @@
 
 #include "posprintf.h"
 #include "logging.h"
+#include "sprites.h"
+#include "classic_pal_bin.h"
 
 void drawUIFrame(int, int, int, int);
 void fallingBlocks();
 void startText(bool onSettings, int selection, int goalSelection, int level, int toStart);
 void settingsText();
+void toggleBigMode();
 
 using namespace Tetris;
 
@@ -80,7 +83,7 @@ public:
 WordSprite* wordSprites[MAX_WORD_SPRITES];
 int titleFloat = 0;
 OBJ_ATTR* titleSprites[2];
-int backgroundArray[24][30];
+int backgroundArray[30][30];
 int bgSpawnBlock = 0;
 int bgSpawnBlockMax = 20;
 int gravity = 0;
@@ -90,9 +93,19 @@ bool goToOptions = false;
 int previousSelection = 0;
 int previousOptionMax = 0;
 
+std::list<int> keyHistory;
+
 Settings previousSettings;
+
+bool bigMode = false;
+
+int bigModeMessageTimer = 0;
+int bigModeMessageMax = 180;
+
 std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","2P Battle","Training"};
+std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
+
+int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
 void startScreen() {
     int selection = 0;
@@ -141,7 +154,7 @@ void startScreen() {
         wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);
 
     //initialise background array
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 30; i++)
         for (int j = 0; j < 30; j++)
             backgroundArray[i][j] = 0;
 
@@ -165,7 +178,7 @@ void startScreen() {
     }
 
     while (1) {
-        VBlankIntrWait();
+        VBlankIntrWait() ;
         if (!onSettings) {
             irq_disable(II_HBLANK);
         } else {
@@ -183,6 +196,21 @@ void startScreen() {
             }
 
             startText(onSettings, selection, goalSelection, level, toStart);
+
+            if(savefile->settings.skin == 7){
+                for(int i = 0; i < 8; i++){
+                    memcpy16(&pal_bg_mem[i*16], classic_pal_bin,4);
+                    memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
+                }
+            }else if(savefile->settings.skin == 8){
+                int n = getClassicPalette();
+
+                for(int i = 0; i < 8; i++){
+                    memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
+
+                    memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
+                }
+            }
         }
 
         key_poll();
@@ -267,7 +295,34 @@ void startScreen() {
                 aprint(">", 15, startY);
             }
 
+            bool correct = false;
+            if(key_hit(KEY_FULL)){
+
+                if((int)keyHistory.size() == 11)
+                    keyHistory.pop_front();
+
+                keyHistory.push_back(key_hit(KEY_FULL));
+                if((int)keyHistory.size() == 11){
+
+                    correct = true;
+                    int counter = 0;
+                    auto index = keyHistory.begin();
+                    while(index != keyHistory.end()){
+                        if(*index != secretCombo[counter++]){
+                            correct = false;
+                            break;
+                        }
+                        ++index;
+                    }
+                }
+            }
+
             if (key == KEY_A || key == KEY_START || key == KEY_RIGHT) {
+                if(correct){
+                    toggleBigMode();
+                    continue;
+                }
+
                 int n = 0;
                 if (!onPlay) {
                     if (selection == 0) {
@@ -285,33 +340,39 @@ void startScreen() {
 
                 } else {
                     if (selection == 0) {//marathon
-                        n = 2;
+                        n = MARATHON;
                         options = 3;
                     } else if (selection == 1) {//sprint
-                        n = 1;
+                        n = SPRINT;
                         options = 2;
                         goalSelection = 1;// set default goal to 40 lines for sprint
                         // maxClearTimer = 1;
                     } else if (selection == 2) {//Dig
-                        n = 3;
+                        n = DIG;
                         options = 2;
                     } else if (selection == 3) {//Ultra
                         options = 2;
-                        n = 5;
+                        n = ULTRA;
                     } else if (selection == 4) {//Blitz
                         options = 1;
-                        n = 6;
+                        n = BLITZ;
                     } else if (selection == 5) {//Combo
                         options = 1;
-                        n = 7;
+                        n = COMBO;
                     } else if (selection == 6) {//Survival
                         options = 2;
-                        n = 8;
-                    } else if (selection == 7) {//2p Battle
+                        n = SURVIVAL;
+                    } else if (selection == 7) {//Classic
+                        options = 2;
+                        n = CLASSIC;
+                    // } else if (selection == 8) {//Big
+                    //     options = 2;
+                    //     n = BIG;
+                    } else if (selection == 8) {//2p Battle
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 8) {//Training
+                    } else if (selection == 9) {//Training
                         options = 2;
                         n = -4;
 
@@ -397,7 +458,7 @@ void startScreen() {
             for (int i = 0; i < 2; i++)
                 obj_hide(titleSprites[i]);
 
-            if (toStart == 2) {
+            if (toStart == MARATHON) {
                 if (selection == 0) {
                     if (key == KEY_RIGHT && level < 20) {
                         level++;
@@ -449,7 +510,7 @@ void startScreen() {
                         refreshText = true;
                     }
                 }
-            } else if (toStart == 1 || toStart == 3 || toStart == 5 || toStart == 8) {
+            } else if (toStart == SPRINT || toStart == DIG || toStart == ULTRA || toStart == SURVIVAL) {
                 if (selection == 0) {
                     if (key == KEY_RIGHT && goalSelection < 2) {
                         goalSelection++;
@@ -617,21 +678,24 @@ void startScreen() {
                 } else {
                     if (toStart != -1 && toStart != -2) {
                         bool training = false;
-                        if (toStart == 2 && goalSelection == 3)
-                            toStart = 0;
-                        else if(toStart == -4){
-                            toStart = 1;
+                        if(toStart == -4){
+                            toStart = SPRINT;
                             training = true;
                         }
+
+                        if(toStart == 9)
+                            level = 0;
 
                         initialLevel = level;
                         previousOptionMax = options;
 
                         delete game;
-                        game = new Game(toStart);
+                        game = new Game(toStart,bigMode);
                         game->setLevel(level);
                         game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
                         mode = goalSelection;
+
+                        game->pawn.big = bigMode;
 
                         if(training && goalSelection)
                             game->setTrainingMode(true);
@@ -639,7 +703,17 @@ void startScreen() {
                         int goal = 0;
 
                         switch (toStart) {
-                        case 1:
+                        case MARATHON:
+                            if (goalSelection == 0)
+                                goal = 150;
+                            else if (goalSelection == 1)
+                                goal = 200;
+                            else if (goalSelection == 2)
+                                goal = 300;
+                            else if (goalSelection == 3)
+                                goal = 0x7fffffff;
+                            break;
+                        case SPRINT:
                             if(training)
                                 break;
                             if (goalSelection == 0)
@@ -649,15 +723,7 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 100;
                             break;
-                        case 2:
-                            if (goalSelection == 0)
-                                goal = 150;
-                            else if (goalSelection == 1)
-                                goal = 200;
-                            else if (goalSelection == 2)
-                                goal = 300;
-                            break;
-                        case 3:
+                        case DIG:
                             if (goalSelection == 0)
                                 goal = 10;
                             else if (goalSelection == 1)
@@ -665,7 +731,7 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 100;
                             break;
-                        case 5:
+                        case ULTRA:
                             if (goalSelection == 0)
                                 goal = 3 * 3600;
                             else if (goalSelection == 1)
@@ -673,13 +739,13 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 10 * 3600;
                             break;
-                        case 6:
+                        case BLITZ:
                             if (goalSelection == 0)
                                 goal = 2 * 3600;
                             else if (goalSelection == 1)
                                 goal = 5 * 3600;
                             break;
-                        case 8:
+                        case SURVIVAL:
                             goal = goalSelection+1;
                             break;
                         }
@@ -799,6 +865,7 @@ void startScreen() {
     clearText();
     onSettings = false;
     irq_disable(II_HBLANK);
+    setPalette();
     memset16(pal_bg_mem, 0x0000, 1);
 
     memset16(&se_mem[26], 0x0000, 32 * 20);
@@ -827,7 +894,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
         }
 
     } else {
-        if (toStart == 2) {//Marathon Options
+        if (toStart == MARATHON) {//Marathon Options
             aprintColor("Marathon",titleX,titleY,1);
             int levelHeight = 3;
             int goalHeight = 7;
@@ -904,7 +971,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
             *dest = 0x5061;
 
-        } else if (toStart == 1) {//Sprint Options
+        } else if (toStart == SPRINT) {//Sprint Options
             aprintColor("Sprint",titleX,titleY,1);
             int goalHeight = 4;
             aprint("START", 12, 17);
@@ -955,7 +1022,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 aprint("100", 19, goalHeight + 2);
                 break;
             }
-        } else if (toStart == 3) {//Dig Options
+        } else if (toStart == DIG) {//Dig Options
             aprintColor("Dig",titleX,titleY,1);
 
             int goalHeight = 4;
@@ -1008,7 +1075,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 aprint("100", 19, goalHeight + 2);
                 break;
             }
-        } else if (toStart == 5) {//Ultra Options
+        } else if (toStart == ULTRA) {//Ultra Options
             aprintColor("Ultra",titleX,titleY,1);
 
             int goalHeight = 4;
@@ -1061,7 +1128,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 aprint("10", 19, goalHeight + 2);
                 break;
             }
-        } else if (toStart == 6) {//Blitz Options
+        } else if (toStart == BLITZ) {//Blitz Options
             aprintColor("Blitz",titleX,titleY,1);
 
             aprint("START", 12, 17);
@@ -1082,7 +1149,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
                 aprint(score, 25 - (int)score.length(), leaderboardHeight + i);
             }
-        } else if (toStart == 7) {//Combo Options
+        } else if (toStart == COMBO) {//Combo Options
             aprintColor("Combo",titleX,titleY,1);
 
             aprint("START", 12, 17);
@@ -1103,7 +1170,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
                 aprint(score, 25 - (int)score.length(), leaderboardHeight + i);
             }
-        } else if (toStart == 8) {//Survival Options
+        } else if (toStart == SURVIVAL) {//Survival Options
             aprintColor("Survival",titleX,titleY,1);
 
             int goalHeight = 4;
@@ -1157,6 +1224,14 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
                 break;
             }
 
+        } else if (toStart == CLASSIC) {//Classic Options
+            aprintColor("Classic",titleX,titleY,1);
+            aprint("START", 12, 17);
+            if(selection == 0){
+                aprint(" ", 10, 17);
+            } else if (selection == 1){
+                aprint(">", 10, 17);
+            }
         } else if (toStart == -1) {
             int startY = 5;
             int space = 2;
@@ -1302,7 +1377,7 @@ void fallingBlocks() {
     if (gravity > gravityMax) {
         gravity = 0;
 
-        for (i = 23; i >= 0; i--) {
+        for (i = 29; i >= 0; i--) {
             for (j = 0; j < 30; j++) {
                 if (i == 0)
                     backgroundArray[i][j] = 0;
@@ -1313,36 +1388,78 @@ void fallingBlocks() {
     }
 
     u16* dest = (u16*)se_mem[25];
-
-    for (i = 4; i < 24; i++) {
+    for (i = 4+6*bigMode; i < 24+6*bigMode; i++) {
         for (j = 0; j < 30; j++) {
             if (!backgroundArray[i][j])
                 *dest++ = 2 * (!savefile->settings.lightMode);
-            else
-                *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+            else{
+                if(savefile->settings.skin < 7)
+                    *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+                else
+                    *dest++ = (48 + backgroundArray[i][j] - 1);
+            }
         }
         dest += 2;
     }
 
     if (bgSpawnBlock > bgSpawnBlockMax) {
-        bgSpawnBlock = 0;
-        int x = qran() % 27;
+
         int n = qran() % 7;
         int** p = game->getShape(n, qran() % 4);
 
-        for (i = 0; i < 4; i++)
-            for (j = 0; j < 4; j++)
-                if (backgroundArray[i][j + x])
-                    return;
+        bool found = false;
 
-        for (i = 0; i < 4; i++)
-            for (j = 0; j < 4; j++)
-                if (p[i][j])
-                    backgroundArray[i][j + x] = n + 1;
+        if(!bigMode){
+            int x = qran() % 27;
+
+            for (i = 0; i < 4; i++)
+                for (j = 0; j < 4; j++)
+                    if (backgroundArray[i][j + x])
+                        found = true;
+
+            if(!found)
+                for (i = 0; i < 4; i++)
+                    for (j = 0; j < 4; j++)
+                        if (p[i][j])
+                            backgroundArray[i][j + x] = n + 1;
+        }else{
+            int x = (qran() % 13) * 2;
+
+            for (i = 0; i < 8; i++)
+                for (j = 0; j < 8; j++)
+                    if (backgroundArray[i][j + x*2])
+                        found = true;
+
+            if(!found){
+                for (i = 0; i < 4; i++){
+                    for (j = 0; j < 4; j++){
+                        int xoffset = (j+x)*2;
+                        int yoffset = i*2;
+
+                        if (!p[i][j] || yoffset < 0 || yoffset > 23 || xoffset < 0 || xoffset > 29)
+                            continue;
+
+                        backgroundArray[yoffset][xoffset] = n + 1;
+                        backgroundArray[yoffset][xoffset+1] = n + 1;
+                        backgroundArray[yoffset+1][xoffset] = n + 1;
+                        backgroundArray[yoffset+1][xoffset+1] = n + 1;
+                    }
+                }
+            }
+        }
 
         for(i = 0; i < 4; i++)
             delete p[i];
         delete p;
+
+        bgSpawnBlock = 0;
+    }
+
+    if(bigModeMessageTimer > 0){
+        if(--bigModeMessageTimer == 0){
+            aprint("                  ",0,0);
+            aprint("                    ",0,1);
+        }
     }
 }
 
@@ -1364,4 +1481,21 @@ void settingsText() {
         aprint(*option,startX,startY+space*i);
         option++;
     }
+}
+
+void toggleBigMode(){
+    bigMode = !bigMode;
+
+    //empty background array
+    for (int i = 0; i < 30; i++)
+        for (int j = 0; j < 30; j++)
+            backgroundArray[i][j] = 0;
+
+    bigModeMessageTimer = bigModeMessageMax;
+
+    if(bigMode){
+        aprint("Big Mode enabled!",0,0);
+        aprint("Highscores disabled!",0,1);
+    }else
+        aprint("Big Mode disabled!",0,0);
 }

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string>
 #include <string.h>
-#include <sstream>
 #include <maxmod.h>
 
 #include "def.h"
@@ -25,6 +24,8 @@
 
 #include "rumble.h"
 #include "gbp_logo.hpp"
+#include "classic1tiles_bin.h"
+#include "classic_pal_bin.h"
 
 using namespace Tetris;
 
@@ -33,6 +34,7 @@ void showTimer();
 mm_word myEventHandler();
 bool unlock_gbp();
 void initRumble();
+int getClassicPalette();
 
 LinkConnection* linkConnection = new LinkConnection();
 
@@ -93,6 +95,7 @@ void onVBlank(void) {
         screenShake();
         showClearText();
         showPlaceEffect();
+        checkSounds();
 
         oam_copy(oam_mem, obj_buffer, 32);
         obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
@@ -218,11 +221,12 @@ int main(void) {
             int goal = game->goal;
             int training = game->trainingMode;
             delete game;
-            game = new Game(game->gameMode);
+            game = new Game(game->gameMode,bigMode);
             game->setGoal(goal);
             game->setLevel(initialLevel);
             game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
             game->setTrainingMode(training);
+            game->pawn.big = bigMode;
         }
 
         gameLoop();
@@ -312,7 +316,7 @@ std::string nameInput(int place) {
     while (1) {
         VBlankIntrWait();
 
-        if (place == 0 && game->gameMode != 4 && (game->won || game->gameMode == 0 || game->gameMode == 2 || game->gameMode >= 5))
+        if (place == 0 && game->gameMode != BATTLE && (game->won || game->gameMode == MARATHON || game->gameMode >= BLITZ))
             aprint("New Record", 10, 5);
 
         aprint("Name: ", 11, nameHeight - 2);
@@ -463,8 +467,21 @@ void setSkin() {
     case 6:
         blockSprite = (u8*)sprite21tiles_bin;
         break;
+    case 7:
+        for(int i = 0; i < 8; i++)
+            memcpy16(&tile_mem[0][48+i],classicTiles[0][i],classic1tiles_bin_size/2);
+
+        blockSprite = (u8*)sprite21tiles_bin;
+        break;
+    case 8:
+        for(int i = 0; i < 8; i++)
+            memcpy16(&tile_mem[0][48+i],classicTiles[1][i],classic1tiles_bin_size/2);
+
+        blockSprite = (u8*)sprite21tiles_bin;
+        break;
     }
 
+    setPalette();
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
@@ -475,11 +492,17 @@ void setSkin() {
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
-                    memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
+                    if(savefile->settings.skin < 7)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
+                    else
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], classicTiles[savefile->settings.skin-7][i], sprite1tiles_bin_size / 2);
+                }else{
+                    memcpy16(&tile_mem[4][16 * i + j * 4 + k], &tile_mem[4][0], sprite1tiles_bin_size / 2);
                 }
             }
         }
     }
+
     for (int i = 0; i < 4; i++)
         delete[] board[i];
     delete[] board;
@@ -602,9 +625,11 @@ void diagnose() {
 
     std::string str = "";
 
-    for(int i = 0; i < 5; i++){
-        str += std::to_string(profileResults[i]) + " ";
-    }
+    // for(int i = 0; i < 5; i++){
+    //     // str += std::to_string(profileResults[i]) + " ";
+
+    // }
+    // str+= "Garbage Height: " + std::to_string(game->garbageHeight);
 
     // str += std::to_string(game->previousBest.size()) + " " + std::to_string(game->moveHistory.size());
 
@@ -614,6 +639,22 @@ void diagnose() {
 void setPalette(){
     memcpy16(pal_bg_mem, palette[savefile->settings.colors], paletteLen / 2);
     memcpy16(pal_obj_mem, palette[savefile->settings.colors], paletteLen / 2);
+
+    if(savefile->settings.skin == 7){
+        for(int i = 0; i < 8; i++){
+            memcpy16(&pal_bg_mem[i*16], classic_pal_bin,4);
+            memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
+        }
+    }else if(savefile->settings.skin == 8){
+        int n = getClassicPalette();
+
+        for(int i = 0; i < 8; i++){
+            memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
+
+            memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
+        }
+    }
+
     memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
     setLightMode();
 }
@@ -660,4 +701,15 @@ bool unlock_gbp(){
     RegisterRamReset(RESET_VRAM);
 
     return gbp_detected;
+}
+
+int getClassicPalette(){
+    int n = 0;
+    int mode = game->gameMode;
+    if((mode == MARATHON || mode == BLITZ || mode == CLASSIC ) && game->level >= 0 && game->level < 255)
+        n = (game->level-(game->gameMode != CLASSIC)) % 10;
+    else
+        n = abs(game->initSeed) % 10;
+
+    return n;
 }

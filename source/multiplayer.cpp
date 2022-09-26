@@ -25,7 +25,7 @@ int currentScanHeight = 0;
 
 int enemyHeight = 0;
 
-Game *botGame = new Game(0);
+Game *botGame = new Game(0,bigMode);
 int botIncomingHeight = 0;
 
 void handleMultiplayer() {

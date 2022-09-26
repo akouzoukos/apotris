@@ -10,6 +10,7 @@
 #include "tonc_oam.h"
 #include "text.h"
 #include <string>
+#include <map>
 
 using namespace Tetris;
 
@@ -24,6 +25,18 @@ bool showingStats = false;
 
 bool saveExists = false;
 Tetris::Game* quickSave;
+
+std::string modeStrings[9] = {
+    "Marathon",
+    "Sprint",
+    "Dig",
+    "Battle",
+    "Ultra",
+    "Blitz",
+    "Combo",
+    "Survival",
+    "Classic",
+};
 
 void songListMenu() {
     int startX = 3;
@@ -171,12 +184,12 @@ int endScreen() {
     memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
     if(savefile->settings.announcer){
-        if (game->gameMode == 5 || game->gameMode == 6) {
+        if (game->gameMode == ULTRA || game->gameMode == BLITZ) {
             if (game->won == 1)
                 sfx(SFX_TIME);
             else if (game->lost == 1)
                 sfx(SFX_GAMEOVER);
-        }else if (game->gameMode != 4 && game->gameMode != 5) {
+        }else if (game->gameMode != BATTLE) {
             if (game->won == 1)
                 sfx(SFX_CLEAR);
             else if (game->lost == 1)
@@ -207,7 +220,7 @@ int endScreen() {
         showScore();
         showStats(showingStats, totalTime, ppsStr);
 
-        if (record != -1 && game->gameMode != 4 && (game->won || game->gameMode == 0 || game->gameMode == 2 || game->gameMode >= 5)){
+        if (record != -1 && game->gameMode != BATTLE && (game->won || game->gameMode == MARATHON || game->gameMode >= ULTRA)){
             std::string str;
             switch(record){
             case 0:
@@ -227,6 +240,12 @@ int endScreen() {
                 break;
             }
             aprint(str+" Place", 11, 5);
+        }
+
+        if(game->gameMode > 0 && game->gameMode <= 9){
+            std::string str = modeStrings[game->gameMode-1];
+            aprintColor(str,30-str.size(),0,1);
+            // aprintColor(str,0,19,1);
         }
 
         aprint("Play", 12, 11);
@@ -400,7 +419,7 @@ void endAnimation() {
 }
 
 void showScore(){
-    if (game->gameMode == 4) {
+    if (game->gameMode == BATTLE) {
         if (game->lost)
             aprint("YOU LOSE", 11, 3);
         else
@@ -409,7 +428,7 @@ void showScore(){
         aprint("Lines Sent", 10, 5);
         aprintf(game->linesSent, 14, 7);
 
-    } else if (game->gameMode == 0 || game->gameMode == 2 || game->lost || game->gameMode == 5 || game->gameMode == 6 || game->gameMode == 7 || game->gameMode == 8) {
+    } else if (game->gameMode == MARATHON || game->lost || game->gameMode >= ULTRA) {
         std::string score;
 
         if (game->gameMode != 7)
@@ -420,15 +439,15 @@ void showScore(){
         if (game->lost)
             aprint("GAME OVER", 11, 3);
         else {
-            if (game->gameMode != 5 && game->gameMode != 6)
+            if (game->gameMode != ULTRA && game->gameMode != BLITZ)
                 aprint("CLEAR!", 12, 3);
             else
                 aprint("TIME!", 13, 3);
         }
 
-        if (game->gameMode == 0 || game->gameMode == 2 || game->gameMode == 5 || game->gameMode == 6 || game->gameMode == 7)
+        if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == COMBO)
             aprint(score, 15 - ((int)score.size() / 2), 7);
-        else if (game->gameMode == 8)
+        else if (game->gameMode == SURVIVAL)
             aprint(timeToString(gameSeconds), 11, 7);
     } else {
         aprint("CLEAR!", 12, 3);
@@ -452,7 +471,7 @@ void showStats(bool moreStats, std::string time, std::string pps) {
 
     aprints("PPS: " + pps, 0, 7*counter++, 2);
 
-    aprints("Finesse: " + std::to_string(game->finesse), 0, 7*counter++, 2);
+    aprints("Finesse: " + std::to_string(game->finesseFaults), 0, 7*counter++, 2);
 
     aprints("Singles: " + std::to_string(game->statTracker[0]), 0, 7*counter++, 2);
     aprints("Doubles: " + std::to_string(game->statTracker[1]), 0, 7*counter++, 2);
@@ -536,6 +555,7 @@ int pauseMenu(){
                         delete game;
                         game = new Game(*quickSave);
                         game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->pawn.big = bigMode;
                         update();
                         showBackground();
                         showPawn();
@@ -612,8 +632,11 @@ int pauseMenu(){
 int onRecord() {
     int place = -1;
 
+    if(bigMode)
+        return place;
+
     for (int i = 0; i < 5; i++) {
-        if (game->gameMode == 0 || game->gameMode == 2) {
+        if (game->gameMode == MARATHON) {
             if (game->score < savefile->marathon[mode].highscores[i].score)
                 continue;
 
@@ -625,7 +648,7 @@ int onRecord() {
             savefile->marathon[mode].highscores[i].score = game->score;
             strncpy(savefile->marathon[mode].highscores[i].name, name.c_str(), 9);
 
-        } else if (game->gameMode == 1 && game->won == 1) {
+        } else if (game->gameMode == SPRINT && game->won == 1) {
             if (gameSeconds > savefile->sprint[mode].times[i].frames && savefile->sprint[mode].times[i].frames)
                 continue;
 
@@ -637,7 +660,7 @@ int onRecord() {
             savefile->sprint[mode].times[i].frames = gameSeconds;
             strncpy(savefile->sprint[mode].times[i].name, name.c_str(), 9);
 
-        } else if (game->gameMode == 3 && game->won == 1) {
+        } else if (game->gameMode == DIG && game->won == 1) {
             if (gameSeconds > savefile->dig[mode].times[i].frames && savefile->dig[mode].times[i].frames)
                 continue;
 
@@ -648,7 +671,7 @@ int onRecord() {
 
             savefile->dig[mode].times[i].frames = gameSeconds;
             strncpy(savefile->dig[mode].times[i].name, name.c_str(), 9);
-        } else if (game->gameMode == 5) {
+        } else if (game->gameMode == ULTRA) {
             if (game->score < savefile->ultra[mode].highscores[i].score)
                 continue;
 
@@ -659,7 +682,7 @@ int onRecord() {
 
             savefile->ultra[mode].highscores[i].score = game->score;
             strncpy(savefile->ultra[mode].highscores[i].name, name.c_str(), 9);
-        } else if (game->gameMode == 6) {
+        } else if (game->gameMode == BLITZ) {
             if (game->score < savefile->blitz[mode].highscores[i].score)
                 continue;
 
@@ -670,7 +693,7 @@ int onRecord() {
 
             savefile->blitz[mode].highscores[i].score = game->score;
             strncpy(savefile->blitz[mode].highscores[i].name, name.c_str(), 9);
-        } else if (game->gameMode == 7) {
+        } else if (game->gameMode == COMBO) {
             if (game->linesCleared < savefile->combo.highscores[i].score)
                 continue;
 
@@ -681,7 +704,7 @@ int onRecord() {
 
             savefile->combo.highscores[i].score = game->linesCleared;
             strncpy(savefile->combo.highscores[i].name, name.c_str(), 9);
-        } else if (game->gameMode == 8) {
+        } else if (game->gameMode == SURVIVAL) {
             if (gameSeconds < savefile->survival[mode].times[i].frames && savefile->survival[mode].times[i].frames)
                 continue;
 
