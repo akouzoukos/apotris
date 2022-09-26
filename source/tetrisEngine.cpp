@@ -198,6 +198,7 @@ void Game::moveDown() {
     if (checkRotation(0, 1, pawn.rotation)){
         pawn.y++;
         sounds.shift = 1;
+        lastMoveRotation = 0;
         // lockTimer = maxLockTimer;
     }else if(gameMode == CLASSIC){
         place();
@@ -698,8 +699,6 @@ int Game::clear(Drop drop) {
     int prevLevel = level;
     if(gameMode == MARATHON){
         level = ((int)linesCleared / 10) + 1;
-        if(level < prevLevel)
-            level = prevLevel;
     }else if(gameMode == BLITZ){
         for(int i = 0; i < 15; i++){
             if(linesCleared < blitzLevels[i]){
@@ -707,13 +706,12 @@ int Game::clear(Drop drop) {
                 break;
             }
         }
-        if(level < prevLevel)
-            level = prevLevel;
     }else if(gameMode == CLASSIC){
         level = ((int)linesCleared / 10);
-        if(level < prevLevel)
-            level = prevLevel;
     }
+
+    if(level < prevLevel)
+        level = prevLevel;
 
     if (prevLevel != level && (gameMode == MARATHON || gameMode == BLITZ || gameMode == CLASSIC))
         sounds.levelUp = 1;
@@ -1150,7 +1148,7 @@ Drop Game::calculateDrop(){
     result.on = true;
 
     result.x = pawn.x;
-    result.y = pawn.y - 20;
+    result.y = pawn.y;
 
     result.dx = lastMoveDx;
     result.dy = lastMoveDy;
@@ -1218,6 +1216,7 @@ Drop Game::calculateDrop(){
 
     result.startY -= 20;
     result.endY -= 20;
+    result.y -= 20;
 
     return result;
 }

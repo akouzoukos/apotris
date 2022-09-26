@@ -1246,49 +1246,75 @@ void showPlaceEffect(){
         bool flip = false;
         int xoffset = 0;
         int yoffset = 0;
+        int r = it->rotation;
 
         int n = 2 - ((it->timer-1)/4);
 
         switch(it->piece){
         case 0:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n],size);
+            if(game->gameMode == CLASSIC){
+                if(r % 2 == 1)
+                    r = 1;
+                else
+                    r = 2;
+            }
             break;
         case 1:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
             xoffset = yoffset = -4;
+            if(game->gameMode == CLASSIC)
+                r = (r+2) % 4;
             break;
         case 2:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
             xoffset = -5;
             yoffset = -4;
             flip = true;
+            if(game->gameMode == CLASSIC)
+                r = (r+2) % 4;
             break;
         case 3:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+6],size);
-            yoffset = -4;
-            it->rotation = 0;
+            yoffset = -4 + (game->gameMode == CLASSIC) * 8;
+            r = 0;
             break;
         case 4:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
-            xoffset = yoffset = -4;
+            xoffset = -4;
+            yoffset = -4;
+            if(game->gameMode == CLASSIC){
+                if(r % 2 == 1)
+                    r = 1;
+                else
+                    r = 2;
+            }
             break;
         case 5:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+12],size);
             xoffset = yoffset = -4;
+            if(game->gameMode == CLASSIC)
+                r = (r+2) % 4;
             break;
         case 6:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
             xoffset = -5;
             yoffset = -4;
             flip = true;
+            if(game->gameMode == CLASSIC){
+                if(r % 2 == 1)
+                    r = 1;
+                else
+                    r = 2;
+            }
             break;
         default:
             break;
         }
 
-        if(it->rotation == 1 || it->rotation == 2)
+        if((r == 1 || r == 2))
             xoffset += -1;
-        if(it->rotation > 1)
+        if(r > 1)
             yoffset += -1;
 
         FIXED spin = 0;
@@ -1312,17 +1338,15 @@ void showPlaceEffect(){
             y = it->y;
         }
 
-
         x += xoffset + push * savefile->settings.shake;
         y += yoffset - shake * savefile->settings.shake;
-
 
         it->sprite = &obj_buffer[19+i];
         obj_unhide(it->sprite,ATTR0_AFF_DBL);
         obj_set_attr(it->sprite, ATTR0_WIDE | ATTR0_AFF_DBL, ATTR1_SIZE(3) | ATTR1_AFF_ID(7+i), ATTR2_BUILD(650 + 32 * i, it->piece, 3 - (it->rotating != 0)));
         obj_set_pos(it->sprite, x, y);
         obj_aff_identity(&obj_aff_buffer[7+i]);
-        obj_aff_rotscale(&obj_aff_buffer[7+i], ((flip)?-1:1) << 8, 1<<8, - 0x4000 * it->rotation + spin);
+        obj_aff_rotscale(&obj_aff_buffer[7+i], ((flip)?-1:1) << 8, 1<<8, - 0x4000 * (r) + spin);
 
         it->timer--;
         it++;
@@ -1330,7 +1354,7 @@ void showPlaceEffect(){
 }
 
 void addPlaceEffect(Tetris::Drop drop){
-    if((int)placeEffectList.size() >= 3 || !savefile->settings.placeEffect)
+    if((int)placeEffectList.size() >= 3 || !savefile->settings.placeEffect || game->pawn.big)
         return;
 
     // int x = (drop.x + 10) * 8 - 16 - 32;
