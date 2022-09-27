@@ -374,16 +374,16 @@ void showShadow() {
     int n = game->pawn.current;
 
     if (!savefile->settings.lightMode){
-        if(savefile->settings.skin == 7)
+        if(savefile->settings.colors == 2)
             clr_fade_fast((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
-        else if(savefile->settings.skin == 8){
+        else if(savefile->settings.colors == 3){
             clr_fade_fast((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16], 4, (14) * bld);
         } else
             clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
     }else{
-        if(savefile->settings.skin == 7)
+        if(savefile->settings.colors == 2)
             clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.15));
-        else if(savefile->settings.skin == 8){
+        else if(savefile->settings.colors == 3){
             clr_fade_fast((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16], 4, (14) * bld);
         }else
             clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.15));

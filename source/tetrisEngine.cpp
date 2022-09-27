@@ -267,6 +267,7 @@ void Game::hardDrop() {
             pawn.y = (int)lengthY / 2;
             pawn.x = (int)lengthX / 2 - 2;
             pawn.rotation = 0;
+
             return;
         }
     }
@@ -299,7 +300,7 @@ void Game::update() {
         return;
     }
     
-    if(gameMode == DIG){
+    if(gameMode == BATTLE){
         auto index = garbageQueue.begin();
 
         while(index != garbageQueue.end()){
@@ -1304,6 +1305,8 @@ std::list<int> Game::getBestFinesse(int piece,int dx, int rotation){
 }
 
 void Game::setTrainingMode(bool mode){
+    if(pawn.big)
+        return;
     trainingMode = mode;
 }
 

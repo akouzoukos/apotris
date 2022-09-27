@@ -245,10 +245,17 @@ int endScreen() {
         }
 
         if(game->gameMode > 0 && game->gameMode <= 9){
+            int counter = 0;
+
             std::string str = modeStrings[game->gameMode-1];
-            aprintColor(str,30-str.size(),0,0);
+            aprintColor(str,30-str.size(),counter++,0);
+
             str = modeOptionStrings[game->gameMode-1][mode];
-            aprintColor(str,30-str.size(),1,0);
+            if(str != "")
+                aprintColor(str,30-str.size(),counter++,0);
+
+            if(bigMode)
+                aprintColor("BIG MODE",22,counter++,0);
         }
 
         aprint("Play", 12, 11);

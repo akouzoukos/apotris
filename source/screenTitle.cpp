@@ -197,20 +197,20 @@ void startScreen() {
 
             startText(onSettings, selection, goalSelection, level, toStart);
 
-            if(savefile->settings.skin == 7){
-                for(int i = 0; i < 8; i++){
-                    memcpy16(&pal_bg_mem[i*16], classic_pal_bin,4);
-                    memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
-                }
-            }else if(savefile->settings.skin == 8){
-                int n = getClassicPalette();
+            // if(savefile->settings.skin == 7){
+            //     for(int i = 0; i < 8; i++){
+            //         memcpy16(&pal_bg_mem[i*16], classic_pal_bin,4);
+            //         memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
+            //     }
+            // }else if(savefile->settings.skin == 8){
+            //     int n = getClassicPalette();
 
-                for(int i = 0; i < 8; i++){
-                    memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
+            //     for(int i = 0; i < 8; i++){
+            //         memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
 
-                    memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
-                }
-            }
+            //         memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
+            //     }
+            // }
         }
 
         key_poll();
@@ -909,20 +909,6 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
             std::string levelText = std::to_string(level);
             aprint(levelText, 27 - levelText.length(), levelHeight + 2);
 
-            for (int i = 0; i < 5; i++) {
-                posprintf(buff,"%d.",i+1);
-                aprint(buff,3,11+i);
-
-                aprint("                       ", 5, 11 + i);
-                if (savefile->marathon[goalSelection].highscores[i].score == 0)
-                    continue;
-
-                aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
-                std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
-
-                aprint(score, 25 - (int)score.length(), 11 + i);
-            }
-
             aprint(" ", 10, 17);
             if (selection == 0) {
                 aprint("<", 2, levelHeight + 2);
@@ -970,6 +956,20 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
             dest += (levelHeight + 2) * 32 + 2 + level;
 
             *dest = 0x5061;
+
+            for (int i = 0; i < 5; i++) {
+                posprintf(buff,"%d.",i+1);
+                aprint(buff,3,11+i);
+
+                aprint("                       ", 5, 11 + i);
+                if (savefile->marathon[goalSelection].highscores[i].score == 0)
+                    continue;
+
+                aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
+                std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
+
+                aprint(score, 25 - (int)score.length(), 11 + i);
+            }
 
         } else if (toStart == SPRINT) {//Sprint Options
             aprintColor("Sprint",titleX,titleY,1);

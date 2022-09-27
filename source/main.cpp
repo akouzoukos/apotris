@@ -113,13 +113,12 @@ void onVBlank(void) {
 }
 
 void onHBlank() {
-    if (REG_VCOUNT < 160) {
-        clr_fade_fast((COLOR*)palette[savefile->settings.colors], GRADIENT_COLOR, pal_bg_mem, 2, (REG_VCOUNT / 20) * 2 + 16);
-        memcpy16(&pal_bg_mem[1], &palette[savefile->settings.colors][1], 1);
-    } else {
-        clr_fade_fast((COLOR*)palette[savefile->settings.colors], GRADIENT_COLOR, pal_bg_mem, 2, 16);
-        memcpy16(&pal_bg_mem[1], &palette[savefile->settings.colors][1], 1);
-    }
+    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
+
+    if(REG_VCOUNT < 160)
+        clr_fade((COLOR*)palette[n], GRADIENT_COLOR, pal_bg_mem, 1, (REG_VCOUNT / 20) * 2 + 16);
+    else
+        clr_fade((COLOR*)palette[n], GRADIENT_COLOR, pal_bg_mem, 1, 16);
 }
 
 mm_word myEventHandler(mm_word msg, mm_word param){
@@ -471,13 +470,13 @@ void setSkin() {
         for(int i = 0; i < 8; i++)
             memcpy16(&tile_mem[0][48+i],classicTiles[0][i],classic1tiles_bin_size/2);
 
-        blockSprite = (u8*)sprite21tiles_bin;
+        blockSprite = (u8*)classicTiles[0][0];
         break;
     case 8:
         for(int i = 0; i < 8; i++)
             memcpy16(&tile_mem[0][48+i],classicTiles[1][i],classic1tiles_bin_size/2);
 
-        blockSprite = (u8*)sprite21tiles_bin;
+        blockSprite = (u8*)classicTiles[1][0];
         break;
     }
 
@@ -637,20 +636,22 @@ void diagnose() {
 }
 
 void setPalette(){
-    memcpy16(pal_bg_mem, palette[savefile->settings.colors], paletteLen / 2);
-    memcpy16(pal_obj_mem, palette[savefile->settings.colors], paletteLen / 2);
+    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
+
+    memcpy16(pal_bg_mem, palette[n], paletteLen / 2);
+    memcpy16(pal_obj_mem, palette[n], paletteLen / 2);
 
     //set frame color
     int color = savefile->settings.palette + 2 * (savefile->settings.palette > 6);
-    memcpy16(&pal_obj_mem[8 * 16], &palette[savefile->settings.colors][color * 16], 16);
-    memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.colors][color * 16], 16);
+    memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
+    memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
 
-    if(savefile->settings.skin == 7){
+    if(savefile->settings.colors == 2){
         for(int i = 0; i < 9; i++){
             memcpy16(&pal_bg_mem[i*16], classic_pal_bin,4);
             memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
         }
-    }else if(savefile->settings.skin == 8){
+    }else if(savefile->settings.colors == 3){
         int n = getClassicPalette();
 
         for(int i = 0; i < 8; i++){
