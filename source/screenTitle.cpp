@@ -1321,7 +1321,8 @@ void drawUIFrame(int x, int y, int w, int h) {
 
     dest2 += y * 32 + x;
 
-    int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6)) * 0x1000;
+    // int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6)) * 0x1000;
+    int color = 8 * 0x1000;
 
     for (int i = 0; i < h; i++) {
         for (int j = 0; j < w; j++) {

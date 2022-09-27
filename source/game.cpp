@@ -163,7 +163,7 @@ void checkSounds() {
     if (game->sounds.levelUp) {
         sfx(SFX_LEVELUPSOUND);
 
-        if(savefile->settings.skin == 8){
+        if(savefile->settings.colors == 3){
             int n = getClassicPalette();
 
             for(int i = 0; i < 8; i++){
@@ -375,18 +375,18 @@ void showShadow() {
 
     if (!savefile->settings.lightMode){
         if(savefile->settings.colors == 2)
-            clr_fade_fast((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
+            clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         else if(savefile->settings.colors == 3){
-            clr_fade_fast((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16], 4, (14) * bld);
+            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         } else
             clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
     }else{
         if(savefile->settings.colors == 2)
-            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.15));
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)classic_pal_bin, 4, float2fx(0.25));
         else if(savefile->settings.colors == 3){
-            clr_fade_fast((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16], 4, (14) * bld);
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 4, float2fx(0.25));
         }else
-            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.15));
+            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.25));
     }
 
     if(!game->pawn.big){

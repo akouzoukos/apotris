@@ -483,7 +483,7 @@ void setSkin() {
     setPalette();
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
-    memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
+    // memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
 
     int** board;
     for (int i = 0; i < 7; i++) {
@@ -656,7 +656,6 @@ void setPalette(){
 
         for(int i = 0; i < 8; i++){
             memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
-
             memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
         }
     }
