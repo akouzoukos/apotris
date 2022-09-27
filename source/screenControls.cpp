@@ -38,9 +38,6 @@ static int dasVer = 0;
 static int maxArr = 3;
 static int arr = 0;
 
-static int rumbleMessageTimer = 0;
-static const int rumbleMessageMax = 300;
-
 static std::list<std::string> options = {
     "Move Left",
     "Move Right",
@@ -50,6 +47,7 @@ static std::list<std::string> options = {
     "Soft Drop",
     "Hard Drop",
     "Hold",
+    // "Training States",
     "A+B to Hold",
     "Quick Reset",
     "Rumble",
@@ -305,7 +303,7 @@ void changeInput(int selection){
         VBlankIntrWait();
         key_poll();
 
-        if(key_hit(KEY_START) || key_hit(KEY_SELECT)){
+        if(key_hit(KEY_START)){
             sfx(SFX_MENUCANCEL);
             break;
         }

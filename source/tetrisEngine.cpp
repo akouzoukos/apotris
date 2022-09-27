@@ -556,8 +556,8 @@ void Game::place() {
     }
 
 
-    if(comboCounter > statTracker[7])
-        statTracker[7] = comboCounter;
+    if(comboCounter > statTracker.maxCombo)
+        statTracker.maxCombo = comboCounter;
 
     if(gameMode == CLASSIC){
         int add = 0;
@@ -594,7 +594,6 @@ void Game::place() {
 }
 
 int Game::clear(Drop drop) {
-    int i, j;
     int clearCount = 0;
     int attack = 0;
     int isTSpin = 0;
@@ -645,9 +644,9 @@ int Game::clear(Drop drop) {
 
     //check for lines to clear
     int garbageToRemove = 0;
-    for (i = 0; i < lengthY; i++) {
+    for (int i = 0; i < lengthY; i++) {
         int toClear = 1;
-        for (j = 0; j < lengthX; j++)
+        for (int j = 0; j < lengthX; j++)
             if (board[i][j] == 0)
                 toClear = 0;
 
@@ -671,10 +670,10 @@ int Game::clear(Drop drop) {
 
         linesCleared+=clearCount;
 
-        for (j = 0; j < lengthY; j++) {
+        for (int j = 0; j < lengthY; j++) {
             bool skip = false;
             auto index = linesToClear.begin();
-            for (i = 0; i < (int)linesToClear.size(); i++) {
+            for (int i = 0; i < (int)linesToClear.size(); i++) {
                 if (j == *index) {
                     skip = true;
                     break;
@@ -683,7 +682,7 @@ int Game::clear(Drop drop) {
             }
             if (skip)
                 continue;
-            for (i = 0; i < lengthX; i++) {
+            for (int i = 0; i < lengthX; i++) {
                 if (board[j][i]) {
                     isPerfectClear = 0;
                 }
@@ -720,8 +719,7 @@ int Game::clear(Drop drop) {
 
     //calculate score
     int add = 0;
-    switch (isTSpin) {
-    case 0:
+    if(isTSpin == 0){
         //if no t-spin
         if(gameMode != CLASSIC){
             add += scoring[clearCount - 1][0] * prevLevel;
@@ -730,22 +728,19 @@ int Game::clear(Drop drop) {
         } else
             add += classicScoring[clearCount-1] * (level+1);
 
-        statTracker[clearCount-1]++;
-        break;
-    case 1:
+        statTracker.clears[clearCount-1]++;
+    }else if(isTSpin == 1){
         //if t-spin mini
         add += scoring[clearCount + 4][0] * prevLevel;
         isDifficult = scoring[clearCount + 4][1];
         attack = scoring[clearCount + 4][2];
-        statTracker[4]++;
-        break;
-    case 2:
+        statTracker.tspins++;
+    }else if(isTSpin == 2){
         //if t-spin
         add += scoring[clearCount  + 7][0] * prevLevel;
         attack = scoring[clearCount + 7][2];
         isDifficult = true;
-        statTracker[4]++;
-        break;
+        statTracker.tspins++;
     }
 
     isBackToBack = previousClear.isDifficult && (clearCount == 4 || isTSpin == 2) && gameMode != CLASSIC;
@@ -758,8 +753,8 @@ int Game::clear(Drop drop) {
         b2bCounter = 0;
     }
 
-    if(b2bCounter > statTracker[6])
-        statTracker[6] = b2bCounter;
+    if(b2bCounter > statTracker.maxStreak)
+        statTracker.maxStreak = b2bCounter;
 
     //add combo bonus
     add += scoring[16][0] * level * comboCounter;
@@ -772,7 +767,7 @@ int Game::clear(Drop drop) {
             add += 3500 * level;
         attack = scoring[clearCount - 1 + 11][2];
 
-        statTracker[5]++;
+        statTracker.perfectClears++;
     }
 
     score += add;
@@ -930,6 +925,8 @@ void Game::hold() {
     lockMoveCounter = 15;
 
     moveHistory.clear();
+
+    statTracker.holds++;
 
     if(das == maxDas)
         moveHistory.push_back(2+(right));

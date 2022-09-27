@@ -103,7 +103,7 @@ int bigModeMessageTimer = 0;
 int bigModeMessageMax = 180;
 
 std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
+std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","2P Battle","Training"};
 
 int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
@@ -362,17 +362,17 @@ void startScreen() {
                     } else if (selection == 6) {//Survival
                         options = 2;
                         n = SURVIVAL;
-                    } else if (selection == 7) {//Classic
-                        options = 2;
-                        n = CLASSIC;
+                    // } else if (selection == 7) {//Classic
+                    //     options = 2;
+                    //     n = CLASSIC;
                     // } else if (selection == 8) {//Big
                     //     options = 2;
                     //     n = BIG;
-                    } else if (selection == 8) {//2p Battle
+                    } else if (selection == 7) {//2p Battle
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 9) {//Training
+                    } else if (selection == 8) {//Training
                         options = 2;
                         n = -4;
 

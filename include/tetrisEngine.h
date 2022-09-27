@@ -18,7 +18,18 @@ namespace Tetris
         COMBO,
         SURVIVAL,
         CLASSIC,
-        BIG,
+    };
+
+    class Stats{
+    public:
+        int clears[4] = {0,0,0,0};
+        int tspins = 0;
+        int perfectClears = 0;
+        int maxStreak = 0;
+        int maxCombo = 0;
+        int holds = 0;
+
+        Stats(){}
     };
 
     class Color {
@@ -297,7 +308,7 @@ namespace Tetris
 
         int entryDelay = 0;
 
-        int statTracker[8];
+        Stats statTracker;
 
         int checkRotation(int, int, int);
         void rotateCW();
@@ -392,12 +403,8 @@ namespace Tetris
                         }
                     }
                 }
-            }else if(gameMode == BIG){
-                pawn.big = true;
             }
 
-            for(int i = 0; i < 8; i ++)
-                statTracker[i] = 0;
         }
 
         Game(int gm,bool big) : Game(gm,qran(),big){}

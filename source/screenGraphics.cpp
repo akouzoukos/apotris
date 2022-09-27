@@ -224,6 +224,7 @@ void graphicTest() {
                         sfx(SFX_MENUCANCEL);
                     }
                 }
+                setPalette();
                 break;
             case 6:
                 if (key_hit(KEY_LEFT)) {

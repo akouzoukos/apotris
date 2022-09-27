@@ -38,6 +38,18 @@ std::string modeStrings[9] = {
     "Classic",
 };
 
+std::string modeOptionStrings[9][4] = {
+    {"150","200","300","Endless"},
+    {"20","40","100"},
+    {"10","20","100"},
+    {""},
+    {"3","5","10"},
+    {""},
+    {""},
+    {"EASY","MEDIUM","HARD"},
+    {""},
+};
+
 void songListMenu() {
     int startX = 3;
     int endX = 24;
@@ -223,29 +235,20 @@ int endScreen() {
         if (record != -1 && game->gameMode != BATTLE && (game->won || game->gameMode == MARATHON || game->gameMode >= ULTRA)){
             std::string str;
             switch(record){
-            case 0:
-                str = "1st";
-                break;
-            case 1:
-                str = "2nd";
-                break;
-            case 2:
-                str = "3rd";
-                break;
-            case 3:
-                str = "4th";
-                break;
-            case 4:
-                str = "5th";
-                break;
+                case 0: str = "1st"; break;
+                case 1: str = "2nd"; break;
+                case 2: str = "3rd"; break;
+                case 3: str = "4th"; break;
+                case 4: str = "5th"; break;
             }
             aprint(str+" Place", 11, 5);
         }
 
         if(game->gameMode > 0 && game->gameMode <= 9){
             std::string str = modeStrings[game->gameMode-1];
-            aprintColor(str,30-str.size(),0,1);
-            // aprintColor(str,0,19,1);
+            aprintColor(str,30-str.size(),0,0);
+            str = modeOptionStrings[game->gameMode-1][mode];
+            aprintColor(str,30-str.size(),1,0);
         }
 
         aprint("Play", 12, 11);
@@ -299,7 +302,7 @@ int endScreen() {
             if (selection == 0) {
                 shake = 0;
 
-                if (!multiplayer) {
+ if (!multiplayer) {
                     sfx(SFX_MENUCONFIRM);
                     playAgain = true;
                     break;
@@ -465,7 +468,12 @@ void showStats(bool moreStats, std::string time, std::string pps) {
 
     int counter = 0;
 
+    int g = game->gameMode;
+
     aprints("Time: " + time,0,7*counter++,2);
+    if(g == MARATHON || g == BLITZ || g == CLASSIC)
+        aprints("Level: " + std::to_string(game->level),0,7*counter++,2);
+
     aprints("Lines: " + std::to_string(game->linesCleared),0,7*counter++,2);
     aprints("Pieces: " + std::to_string(game->pieceCounter), 0, 7*counter++, 2);
 
@@ -473,84 +481,97 @@ void showStats(bool moreStats, std::string time, std::string pps) {
 
     aprints("Finesse: " + std::to_string(game->finesseFaults), 0, 7*counter++, 2);
 
-    aprints("Singles: " + std::to_string(game->statTracker[0]), 0, 7*counter++, 2);
-    aprints("Doubles: " + std::to_string(game->statTracker[1]), 0, 7*counter++, 2);
-    aprints("Triples: " + std::to_string(game->statTracker[2]), 0, 7*counter++, 2);
-    aprints("Quads: " + std::to_string(game->statTracker[3]), 0, 7*counter++, 2);
-    aprints("T-Spins: " + std::to_string(game->statTracker[4]), 0, 7*counter++, 2);
-    aprints("Perfect Clears: " + std::to_string(game->statTracker[5]), 0, 7*counter++, 2);
-    aprints("Max Streak: " + std::to_string(game->statTracker[6]), 0, 7*counter++, 2);
-    aprints("Max Combo: " + std::to_string(game->statTracker[7]), 0, 7*counter++, 2);
-
+    aprints("Singles: " + std::to_string(game->statTracker.clears[0]), 0, 7*counter++, 2);
+    aprints("Doubles: " + std::to_string(game->statTracker.clears[1]), 0, 7*counter++, 2);
+    aprints("Triples: " + std::to_string(game->statTracker.clears[2]), 0, 7*counter++, 2);
+    aprints("Quads: " + std::to_string(game->statTracker.clears[3]), 0, 7*counter++, 2);
+    aprints("T-Spins: " + std::to_string(game->statTracker.tspins), 0, 7*counter++, 2);
+    aprints("Perfect Clears: " + std::to_string(game->statTracker.perfectClears), 0, 7*counter++, 2);
+    aprints("Max Streak: " + std::to_string(game->statTracker.maxStreak), 0, 7*counter++, 2);
+    aprints("Max Combo: " + std::to_string(game->statTracker.maxCombo), 0, 7*counter++, 2);
+    aprints("Times Held: " + std::to_string(game->statTracker.holds), 0, 7*counter++, 2);
 }
 
 int pauseMenu(){
     int selection = 0;
     int maxSelection;
 
-    if (!onStates)
-        maxSelection = 4;
-    else
-        maxSelection = 3;
+    int optionsHeight = 10;
+    int optionsCounter = 0;
 
     for (int i = 0; i < 20; i++)
         aprint("          ", 10, i);
 
     while (1) {
+        if (!onStates){
+            if(game->goal == 0 && game->gameMode == SPRINT)
+                maxSelection = 5;
+            else
+                maxSelection = 4;
+        } else
+            maxSelection = 3;
+
         VBlankIntrWait();
         key_poll();
 
-        aprint("PAUSE!", 12, 6);
+        aprint("PAUSE!", 12, 4);
 
         for (int i = 0; i < maxSelection; i++)
-            aprint(" ", 10, 11 + 2 * i);
+            aprint(" ", 10, optionsHeight + 2 * i);
 
-        aprint(">", 10, 11 + 2 * selection);
+        aprint(">", 10, optionsHeight + 2 * selection);
 
         u16 key = key_hit(KEY_FULL);
 
         if (!onStates) {
-            aprint("Resume", 12, 11);
-            aprint("Restart", 12, 13);
-            aprint("Sleep", 12, 15);
-            aprint("Quit", 12, 17);
+            optionsCounter = 0;
+            aprint("Resume", 12, optionsHeight + optionsCounter++ * 2);
+            aprint("Restart", 12, optionsHeight + optionsCounter++ * 2);
+
+            if(game->goal == 0 && game->gameMode == SPRINT)
+                aprint("Saves", 12, optionsHeight + optionsCounter++ * 2);
+
+            aprint("Sleep", 12, optionsHeight + optionsCounter++ * 2);
+            aprint("Quit", 12, optionsHeight + optionsCounter++ * 2);
 
             if (key == KEY_A) {
-                if (selection == 0) {
+                int n = selection;
+                if(!(game->goal == 0 && game->gameMode == SPRINT) && selection >= 2)
+                    n++;
+
+                if (n == 0) {
                     sfx(SFX_MENUCONFIRM);
                     clearText();
                     update();
                     pause = false;
                     mmResume();
                     break;
-                } else if (selection == 1) {
+                } else if (n == 1) {
                     // restart = true;
                     playAgain = true;
                     pause = false;
                     sfx(SFX_MENUCONFIRM);
                     break;
-                } else if (selection == 2) {
+                } else if (n == 2) {
+                    onStates = true;
+                    selection = 0;
+                    clearText();
+                    update();
+                } else if (n == 3) {
                     sleep();
-                } else if (selection == 3) {
+                } else if (n == 4) {
                     sfx(SFX_MENUCANCEL);
                     return 1;
                 }
             }
         } else {
-            aprint("Resume", 12, 11);
-            aprintColor("Load", 12, 13, !(saveExists));
-            aprint("Save", 12, 15);
+            optionsCounter = 0;
+            aprintColor("Load", 12, optionsHeight + optionsCounter++ * 2, !(saveExists));
+            aprint("Save", 12, optionsHeight + optionsCounter++ * 2);
+            aprint("Back", 12, optionsHeight + optionsCounter++ * 2);
 
             if (key == KEY_A) {
                 if (selection == 0) {
-                    sfx(SFX_MENUCONFIRM);
-                    clearText();
-                    update();
-                    pause = false;
-                    onStates = false;
-                    mmResume();
-                    break;
-                } else if (selection == 1) {
                     if (saveExists) {
                         delete game;
                         game = new Game(*quickSave);
@@ -561,6 +582,7 @@ int pauseMenu(){
                         showPawn();
                         showShadow();
                         showHold();
+                        showQueue();
                         update();
                         floatingList.clear();
                         placeEffectList.clear();
@@ -576,13 +598,19 @@ int pauseMenu(){
                     } else {
                         sfx(SFX_MENUCANCEL);
                     }
-                } else if (selection == 2) {
+                } else if (selection == 1) {
                     delete quickSave;
                     quickSave = new Game(*game);
                     saveExists = true;
 
                     aprint("Saved!", 23, 18);
                     sfx(SFX_MENUCONFIRM);
+                } else if (selection == 2) {
+                    sfx(SFX_MENUCONFIRM);
+                    clearText();
+                    update();
+                    onStates = false;
+                    selection = 0;
                 }
             }
         }
@@ -599,11 +627,17 @@ int pauseMenu(){
 
         if (key == KEY_B) {
             sfx(SFX_MENUCONFIRM);
-            clearText();
-            update();
-            pause = false;
-            onStates = false;
-            mmResume();
+            if(onStates){
+                clearText();
+                onStates = false;
+                selection = 0;
+                update();
+            }else{
+                clearText();
+                update();
+                pause = false;
+                mmResume();
+            }
             break;
         }
 

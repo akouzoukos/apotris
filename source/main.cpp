@@ -640,8 +640,13 @@ void setPalette(){
     memcpy16(pal_bg_mem, palette[savefile->settings.colors], paletteLen / 2);
     memcpy16(pal_obj_mem, palette[savefile->settings.colors], paletteLen / 2);
 
+    //set frame color
+    int color = savefile->settings.palette + 2 * (savefile->settings.palette > 6);
+    memcpy16(&pal_obj_mem[8 * 16], &palette[savefile->settings.colors][color * 16], 16);
+    memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.colors][color * 16], 16);
+
     if(savefile->settings.skin == 7){
-        for(int i = 0; i < 8; i++){
+        for(int i = 0; i < 9; i++){
             memcpy16(&pal_bg_mem[i*16], classic_pal_bin,4);
             memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
         }
@@ -654,6 +659,7 @@ void setPalette(){
             memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
         }
     }
+
 
     memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
     setLightMode();

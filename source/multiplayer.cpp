@@ -145,7 +145,7 @@ void startMultiplayerGame(int seed) {
             enemyBoard[i][j] = 0;
 
     delete game;
-    game = new Game(4, seed & 0x1fff);
+    game = new Game(4, seed & 0x1fff,bigMode);
     game->setLevel(1);
     game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
     game->setGoal(100);
