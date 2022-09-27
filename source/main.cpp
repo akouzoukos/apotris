@@ -660,7 +660,6 @@ void setPalette(){
         }
     }
 
-
     memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
     setLightMode();
 }

@@ -185,7 +185,7 @@ public:
 #define MAX_SKINS 9
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
-#define MAX_COLORS 4
+#define MAX_COLORS 2
 #define MAX_CLEAR_EFFECTS 3
 
 #define MAX_MENU_SONGS 2
