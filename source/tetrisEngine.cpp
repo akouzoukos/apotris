@@ -325,15 +325,16 @@ void Game::update() {
     if((linesCleared >= goal && gameMode == SPRINT && goal) ||
        (linesCleared >= goal && gameMode == MARATHON) ||
        (garbageCleared >= goal && gameMode == DIG) ||
-       (timer > goal && (gameMode == ULTRA || gameMode == BLITZ))){
-        won = 1;
+       (timer > goal && (gameMode == ULTRA || gameMode == BLITZ)) ||
+       (linesCleared >= goal && gameMode == CLASSIC && goal)){
+       won = 1;
     }
 
     if (gameMode == MARATHON)
         speed = gravity[(level < 19) ? level - 1 : 18];
     else if(gameMode == BLITZ)
         speed = gravity[(level < 15) ? level - 1 : 14];
-    else if(gameMode == CLASSIC)
+    else if(gameMode == CLASSIC && goal == 0)
         speed = gravity[(level < 30) ? level: 29];
     else
         speed = gravity[0];
@@ -474,7 +475,6 @@ void Game::place() {
                             continue;
 
                         board[y+k][x+l] = pawn.current + 1;
-
                     }
                 }
             }
@@ -1328,4 +1328,17 @@ void Game::demoFill(){
         int n = qran() % lengthX;
         board[i][n] = 0;
     }
+}
+
+void Game::bType(int height){
+    goal = 25;
+
+    int n = 0;
+    if(height)
+        n = 3 + (height-1) * 2;
+
+    for(int i = lengthY-n-1; i < lengthY; i++)
+        for(int j = 0; j < lengthX; j++)
+            if(qran() % 2)
+                board[i][j] = (qran() % 7);
 }
