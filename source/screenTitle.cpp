@@ -103,7 +103,7 @@ int bigModeMessageTimer = 0;
 int bigModeMessageMax = 180;
 
 std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","2P Battle","Training"};
+std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
 
 int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
@@ -362,17 +362,17 @@ void startScreen() {
                     } else if (selection == 6) {//Survival
                         options = 2;
                         n = SURVIVAL;
-                    // } else if (selection == 7) {//Classic
-                    //     options = 2;
-                    //     n = CLASSIC;
+                    } else if (selection == 7) {//Classic
+                        options = 2;
+                        n = CLASSIC;
                     // } else if (selection == 8) {//Big
                     //     options = 2;
                     //     n = BIG;
-                    } else if (selection == 7) {//2p Battle
+                    } else if (selection == 8) {//2p Battle
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 8) {//Training
+                    } else if (selection == 9) {//Training
                         options = 2;
                         n = -4;
 
@@ -871,7 +871,6 @@ void startScreen() {
     memset16(&se_mem[26], 0x0000, 32 * 20);
     memset16(&se_mem[27], 0x0000, 32 * 20);
 
-
     if (savefile->settings.lightMode)
         memset16(pal_bg_mem, 0x5ad6, 1);//background gray
     else
@@ -1226,12 +1225,81 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
 
         } else if (toStart == CLASSIC) {//Classic Options
             aprintColor("Classic",titleX,titleY,1);
+            int levelHeight = 3;
+            int goalHeight = 7;
+
+            aprint("Level: ", 12, levelHeight);
+            aprint("Lines: ", 12, goalHeight);
             aprint("START", 12, 17);
-            if(selection == 0){
-                aprint(" ", 10, 17);
-            } else if (selection == 1){
+
+            aprint(" ||||||||||||||||||||    ", 2, levelHeight + 2);
+            aprintColor(" A-TYPE   B-TYPE ", 1, goalHeight + 2, 1);
+
+            std::string levelText = std::to_string(level);
+            aprint(levelText, 27 - levelText.length(), levelHeight + 2);
+
+            aprint(" ", 10, 17);
+            if (selection == 0) {
+                aprint("<", 2, levelHeight + 2);
+                aprint(">", 23, levelHeight + 2);
+            } else if (selection == 1) {
+                // switch (goalSelection) {
+                // case 0:
+                //     aprint("[", 1, goalHeight + 2);
+                //     aprint("]", 5, goalHeight + 2);
+                //     break;
+                // case 1:
+                //     aprint("[", 7, goalHeight + 2);
+                //     aprint("]", 11, goalHeight + 2);
+                //     break;
+                // case 2:
+                //     aprint("[", 13, goalHeight + 2);
+                //     aprint("]", 17, goalHeight + 2);
+                //     break;
+                // case 3:
+                //     aprint("[", 19, goalHeight + 2);
+                //     aprint("]", 27, goalHeight + 2);
+                //     break;
+                // }
+            } else if (selection == 2) {
                 aprint(">", 10, 17);
             }
+
+            // switch (goalSelection) {
+            // case 0:
+            //     aprint("150", 2, goalHeight + 2);
+            //     break;
+            // case 1:
+            //     aprint("200", 8, goalHeight + 2);
+            //     break;
+            // case 2:
+            //     aprint("300", 14, goalHeight + 2);
+            //     break;
+            // case 3:
+            //     aprint("Endless", 20, goalHeight + 2);
+            //     break;
+            // }
+
+            // show level cursor
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight + 2) * 32 + 2 + level;
+
+            *dest = 0x5061;
+
+            for (int i = 0; i < 5; i++) {
+                posprintf(buff,"%d.",i+1);
+                aprint(buff,3,11+i);
+
+                aprint("                       ", 5, 11 + i);
+                if (savefile->marathon[goalSelection].highscores[i].score == 0)
+                    continue;
+
+                aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
+                std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
+
+                aprint(score, 25 - (int)score.length(), 11 + i);
+            }
+
         } else if (toStart == -1) {
             int startY = 5;
             int space = 2;

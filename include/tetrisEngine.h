@@ -340,6 +340,7 @@ namespace Tetris
         void setTrainingMode(bool);
         void demoClear();
         void demoFill();
+        void bType(int);
 
         Game(){
             seed = initSeed = qran();
@@ -365,7 +366,6 @@ namespace Tetris
                 maxDas = 16;
                 arr = 6;
                 softDropSpeed = 2;
-
             }else
                 fillQueue(5);
 
