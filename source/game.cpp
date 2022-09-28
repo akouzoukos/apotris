@@ -377,7 +377,7 @@ void showShadow() {
         if(savefile->settings.colors == 2)
             clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
         else if(savefile->settings.colors == 3){
-            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
         } else
             clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
     }else{
