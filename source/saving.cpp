@@ -83,6 +83,8 @@ void loadSave() {
         temp->settings.abHold = true;
         temp->settings.clearEffect = 0;
         temp->settings.resetHold = false;
+        temp->settings.placeEffect = false;
+        temp->settings.rumble = 0;
 
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 5; j++)
@@ -130,6 +132,8 @@ void loadSave() {
         temp->settings.abHold = true;
         temp->settings.clearEffect = 0;
         temp->settings.resetHold = false;
+        temp->settings.placeEffect = false;
+        temp->settings.rumble = 0;
 
         if(temp->settings.shake)
             temp->settings.shakeAmount = 2;
@@ -222,6 +226,8 @@ void loadSave() {
         savefile->settings.abHold = true;
         savefile->settings.clearEffect = 0;
         savefile->settings.resetHold = false;
+        savefile->settings.placeEffect = false;
+        savefile->settings.rumble = 0;
 
         savefile->settings.volume = 10;
 
