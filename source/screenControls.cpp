@@ -92,7 +92,7 @@ bool controlsControl(){
                     savefile->settings.rumble--;
                 }
             } else {
-                if (savefile->settings.rumble < 2) {
+                if (savefile->settings.rumble < 4) {
                     savefile->settings.rumble++;
                 }
             }
@@ -231,7 +231,7 @@ void controlsText(){
     else
         aprint("PRESS", endX-1, startY+space*9);
 
-    std::string rumbleString = std::to_string(savefile->settings.rumble * 50) + "%";
+    std::string rumbleString = std::to_string(savefile->settings.rumble * 25) + "%";
 
     aprint(rumbleString, endX+2-rumbleString.size(), startY + 10);
 
@@ -244,8 +244,8 @@ void controlsText(){
         aprint("]", endX + 3 + (!savefile->settings.resetHold), startY + space * selection);
     } else if (selection == 10) {
         if (savefile->settings.rumble > 0)
-            aprint("<", endX - 1 - savefile->settings.rumble, startY + selection);
-        if (savefile->settings.rumble < 2)
+            aprint("<", endX - 1 - (savefile->settings.rumble != 0) - (savefile->settings.rumble == 4), startY + selection);
+        if (savefile->settings.rumble < 4)
             aprint(">", endX + 2, startY + selection);
     } else if (selection == 11) {
         aprint("[", endX - 2, startY + space * selection);
