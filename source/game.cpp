@@ -86,11 +86,11 @@ void checkSounds() {
             for(int i = 0; i < 3; i++)
                 obj_hide(moveSprites[i]);
 
-        rumbleTimer = rumbleMax;
+        rumbleTimer = rumbleMax * savefile->settings.rumble;
     }
     if (game->sounds.invalid){
         sfx(SFX_INVALID);
-        rumbleTimer = rumbleMax;
+        rumbleTimer = rumbleMax * savefile->settings.rumble;
     }
     if (game->sounds.rotate)
         sfx(SFX_ROTATE);
@@ -799,12 +799,12 @@ void gameLoop(){
         if (clearTimer == maxClearTimer || (game->gameMode == SURVIVAL && clearTimer)) {
             game->removeClearLock();
             shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
-            rumbleTimer = rumbleMax * 8;
+            rumbleTimer = rumbleMax * 8 * savefile->settings.rumble;
             clearTimer = 0;
             update();
         }
 
-        if(rumbleTimer*savefile->settings.rumble > 0){
+        if(rumbleTimer> 0){
             rumbleTimer--;
 
             rumble_set_state(rumble_start);

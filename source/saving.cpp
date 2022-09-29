@@ -240,6 +240,9 @@ void loadSave() {
     if ((savefile->settings.lightMode != 0) && (savefile->settings.lightMode != 1))
         savefile->settings.lightMode = false;
 
+    if ((savefile->settings.rumble < 0) || (savefile->settings.rumble > 2))
+        savefile->settings.rumble = 0;
+
     u8* dump = (u8*)savefile;
 
     int sum = 0;
