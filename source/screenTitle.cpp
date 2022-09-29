@@ -1396,8 +1396,9 @@ void fallingBlocks() {
             else{
                 if(savefile->settings.skin < 7)
                     *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
-                else
-                    *dest++ = (48 + backgroundArray[i][j] - 1);
+                else{
+                    *dest++ = (48 + backgroundArray[i][j] - 1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+                }
             }
         }
         dest += 2;
