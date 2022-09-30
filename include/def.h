@@ -110,7 +110,8 @@ typedef struct Save{
     Scoreboard blitz[2];
     Scoreboard combo;
     Timeboard survival[3];
-
+    Timeboard sprintAttack[3];
+    Scoreboard digEfficiency[3];
 }ALIGN(4) Save;
 
 extern Save *savefile;
@@ -318,3 +319,5 @@ extern int rumbleMax;
 
 extern bool rumbleInitialized;
 extern bool bigMode;
+
+extern int subMode;

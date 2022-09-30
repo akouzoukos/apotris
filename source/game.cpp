@@ -337,28 +337,18 @@ void showShadow() {
 
     bool bld = false;
     switch (savefile->settings.shadow) {
-    case 0:
-        shadowTexture = (u8*)sprite2tiles_bin;
-        break;
-    case 1:
-        shadowTexture = (u8*)sprite15tiles_bin;
-        break;
-    case 2:
-        shadowTexture = (u8*)sprite16tiles_bin;
-        break;
-    case 3:
-        if(savefile->settings.skin < 7)
-            shadowTexture = blockSprite;
-        else
-            shadowTexture = (u8*)classicTiles[savefile->settings.skin-7][game->pawn.current];
-        bld = true;
-        break;
-    case 4:
-        obj_hide(pawnShadow);
-        return;
-    default:
-        shadowTexture = (u8*)sprite2tiles_bin;
-        break;
+        case 0: shadowTexture = (u8*)sprite2tiles_bin; break;
+        case 1: shadowTexture = (u8*)sprite15tiles_bin; break;
+        case 2: shadowTexture = (u8*)sprite16tiles_bin; break;
+        case 3:
+            if(savefile->settings.skin < 7)
+                shadowTexture = blockSprite;
+            else
+                shadowTexture = (u8*)classicTiles[savefile->settings.skin-7][game->pawn.current];
+            bld = true;
+            break;
+        case 4: obj_hide(pawnShadow); return;
+        default: shadowTexture = (u8*)sprite2tiles_bin; break;
     }
 
     obj_unhide(pawnShadow, 0);
@@ -590,14 +580,6 @@ void showTimer() {
         aprint("Finesse", 1, 14);
         aprintf(game->finesseFaults, 4, 15);
     }
-
-    // if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != CLASSIC) {
-    //     if (++trainingMessageTimer == TRAINING_MESSAGE_MAX) {
-    //         aprint("     ", 1, 3);
-    //         aprint("      ", 1, 5);
-    //         aprint("         ", 1, 7);
-    //     }
-    // }
 }
 
 void showText() {
@@ -624,7 +606,7 @@ void showText() {
         }
     }
 
-    if (game->gameMode != BATTLE && game->gameMode != BLITZ){
+    if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1)){
         aprint("Lines", 2, 17);
         if (game->gameMode == DIG)
             aprintf(game->garbageCleared, 4, 18);
@@ -653,13 +635,6 @@ void showText() {
         aprint("Attack", 2, 17);
         aprintf(game->linesSent, 4, 18);
     }
-
-    // if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != COMBO && game->gameMode != CLASSIC) {
-    //     aprint("Press", 1, 3);
-    //     aprint("SELECT", 1, 5);
-    //     aprint("for Saves", 1, 7);
-    // }
-
 }
 
 void showPPS(){
@@ -812,7 +787,7 @@ void gameLoop(){
             update();
         }
 
-        if(rumbleTimer> 0){
+        if(rumbleTimer > 0){
             rumbleTimer--;
 
             rumble_set_state(rumble_start);
@@ -1025,27 +1000,13 @@ void drawGrid() {
     int palOffset = 4;
 
     switch (savefile->settings.backgroundGrid) {
-    case 0:
-        gridTile = 0x0002;
-        break;
-    case 1:
-        gridTile = 0x000c;
-        break;
-    case 2:
-        gridTile = 0x001a;
-        break;
-    case 3:
-        gridTile = 0x001e;
-        break;
-    case 4:
-        gridTile = 0x001f;
-        break;
-    case 5:
-        gridTile = 0x0020;
-        break;
-    default:
-        gridTile = 0x0002;
-        break;
+        case 0: gridTile = 0x0002; break;
+        case 1: gridTile = 0x000c; break;
+        case 2: gridTile = 0x001a; break;
+        case 3: gridTile = 0x001e; break;
+        case 4: gridTile = 0x001f; break;
+        case 5: gridTile = 0x0020; break;
+        default: gridTile = 0x0002; break;
     }
 
     if (savefile->settings.lightMode)
@@ -1363,9 +1324,6 @@ void showPlaceEffect(){
 void addPlaceEffect(Tetris::Drop drop){
     if((int)placeEffectList.size() >= 3 || !savefile->settings.placeEffect || game->pawn.big)
         return;
-
-    // int x = (drop.x + 10) * 8 - 16 - 32;
-    // int y = drop.y * 8 - 16;
 
     placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating));
 }
