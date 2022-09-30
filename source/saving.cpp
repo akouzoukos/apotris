@@ -48,6 +48,14 @@ void loadSave() {
         temp->settings.placeEffect = false;
         temp->settings.rumble = 0;
 
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->sprintAttack[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                temp->digEfficiency[i].highscores[j].score = 0;
+
         memcpy32(savefile, temp, sizeof(Save) / 4);
 
         delete temp;
@@ -96,6 +104,14 @@ void loadSave() {
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 5; j++)
                 temp->survival[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->sprintAttack[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                temp->digEfficiency[i].highscores[j].score = 0;
 
         memcpy32(savefile, temp, sizeof(Save) / 4);
 
@@ -160,6 +176,14 @@ void loadSave() {
             for (int j = 0; j < 5; j++)
                 temp->ultra[i].highscores[j].score = 0;
 
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->sprintAttack[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                temp->digEfficiency[i].highscores[j].score = 0;
+
         memcpy32(savefile, temp, sizeof(Save) / 4);
 
         delete temp;
@@ -198,6 +222,14 @@ void loadSave() {
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < 5; j++)
                 savefile->survival[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->sprintAttack[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->digEfficiency[i].highscores[j].score = 0;
 
         savefile->settings.announcer = true;
         savefile->settings.finesse = false;
@@ -244,14 +276,19 @@ void loadSave() {
         savefile->settings.rumble = 0;
 
     u8* dump = (u8*)savefile;
-
     int sum = 0;
-
-    for (int i = 0; i < (int)sizeof(Save); i++) {
+    for (int i = 0; i < (int)sizeof(Save); i++)
         sum += dump[i];
-    }
-
     sqran(sum);
+
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 5; j++)
+            savefile->sprintAttack[i].times[j].frames = 0;
+
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 5; j++)
+            savefile->digEfficiency[i].highscores[j].score = 0;
+
 
     savefile->seed = qran();
     saveToSram();
