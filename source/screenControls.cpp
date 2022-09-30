@@ -92,7 +92,7 @@ bool controlsControl(){
                     savefile->settings.rumble--;
                 }
             } else {
-                if (savefile->settings.rumble < 2) {
+                if (savefile->settings.rumble < 4) {
                     savefile->settings.rumble++;
                 }
             }
@@ -231,7 +231,7 @@ void controlsText(){
     else
         aprint("PRESS", endX-1, startY+space*9);
 
-    std::string rumbleString = std::to_string(savefile->settings.rumble * 50) + "%";
+    std::string rumbleString = std::to_string(savefile->settings.rumble * 25) + "%";
 
     aprint(rumbleString, endX+2-rumbleString.size(), startY + 10);
 

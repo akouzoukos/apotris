@@ -438,10 +438,12 @@ void showScore(){
         aprint("Lines Sent", 10, 5);
         aprintf(game->linesSent, 14, 7);
 
-    } else if (game->gameMode == MARATHON || game->lost || game->gameMode >= ULTRA) {
+    } else if (game->gameMode == MARATHON || game->lost || game->gameMode >= ULTRA || (game->gameMode == DIG && subMode == 1)) {
         std::string score;
 
-        if (game->gameMode != 7)
+        if(game->gameMode == DIG)
+            score = std::to_string(game->pieceCounter);
+        else if (game->gameMode != 7)
             score = std::to_string(game->score);
         else
             score = std::to_string(game->linesCleared);
@@ -449,13 +451,13 @@ void showScore(){
         if (game->lost)
             aprint("GAME OVER", 11, 3);
         else {
-            if (game->gameMode != ULTRA && game->gameMode != BLITZ)
+            if (game->gameMode != ULTRA && game->gameMode != BLITZ )
                 aprint("CLEAR!", 12, 3);
             else
                 aprint("TIME!", 13, 3);
         }
 
-        if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == COMBO)
+        if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == COMBO || game->gameMode == DIG)
             aprint(score, 15 - ((int)score.size() / 2), 7);
         else if (game->gameMode == SURVIVAL)
             aprint(timeToString(gameSeconds), 11, 7);
@@ -690,28 +692,53 @@ int onRecord() {
             strncpy(savefile->marathon[mode].highscores[i].name, name.c_str(), 9);
 
         } else if (game->gameMode == SPRINT && game->won == 1) {
-            if (gameSeconds > savefile->sprint[mode].times[i].frames && savefile->sprint[mode].times[i].frames)
-                continue;
+            if(subMode == 0){
+                if (gameSeconds > savefile->sprint[mode].times[i].frames && savefile->sprint[mode].times[i].frames)
+                    continue;
 
-            for (int j = 3; j >= i; j--)
-                savefile->sprint[mode].times[j + 1] = savefile->sprint[mode].times[j];
+                for (int j = 3; j >= i; j--)
+                    savefile->sprint[mode].times[j + 1] = savefile->sprint[mode].times[j];
 
-            std::string name = nameInput(i);
+                std::string name = nameInput(i);
 
-            savefile->sprint[mode].times[i].frames = gameSeconds;
-            strncpy(savefile->sprint[mode].times[i].name, name.c_str(), 9);
+                savefile->sprint[mode].times[i].frames = gameSeconds;
+                strncpy(savefile->sprint[mode].times[i].name, name.c_str(), 9);
+            }else{
+                if (gameSeconds > savefile->sprintAttack[mode].times[i].frames && savefile->sprintAttack[mode].times[i].frames)
+                    continue;
 
+                for (int j = 3; j >= i; j--)
+                    savefile->sprintAttack[mode].times[j + 1] = savefile->sprintAttack[mode].times[j];
+
+                std::string name = nameInput(i);
+
+                savefile->sprintAttack[mode].times[i].frames = gameSeconds;
+                strncpy(savefile->sprintAttack[mode].times[i].name, name.c_str(), 9);
+            }
         } else if (game->gameMode == DIG && game->won == 1) {
-            if (gameSeconds > savefile->dig[mode].times[i].frames && savefile->dig[mode].times[i].frames)
-                continue;
+            if(subMode == 0){
+                if (gameSeconds > savefile->dig[mode].times[i].frames && savefile->dig[mode].times[i].frames)
+                    continue;
 
-            for (int j = 3; j >= i; j--)
-                savefile->dig[mode].times[j + 1] = savefile->dig[mode].times[j];
+                for (int j = 3; j >= i; j--)
+                    savefile->dig[mode].times[j + 1] = savefile->dig[mode].times[j];
 
-            std::string name = nameInput(i);
+                std::string name = nameInput(i);
 
-            savefile->dig[mode].times[i].frames = gameSeconds;
-            strncpy(savefile->dig[mode].times[i].name, name.c_str(), 9);
+                savefile->dig[mode].times[i].frames = gameSeconds;
+                strncpy(savefile->dig[mode].times[i].name, name.c_str(), 9);
+            }else{
+                if (game->pieceCounter > savefile->digEfficiency[mode].highscores[i].score && savefile->digEfficiency[mode].highscores[i].score)
+                    continue;
+
+                for (int j = 3; j >= i; j--)
+                    savefile->digEfficiency[mode].highscores[j + 1] = savefile->digEfficiency[mode].highscores[j];
+
+                std::string name = nameInput(i);
+
+                savefile->digEfficiency[mode].highscores[i].score = game->pieceCounter;
+                strncpy(savefile->digEfficiency[mode].highscores[i].name, name.c_str(), 9);
+            }
         } else if (game->gameMode == ULTRA) {
             if (game->score < savefile->ultra[mode].highscores[i].score)
                 continue;

@@ -310,6 +310,8 @@ namespace Tetris
 
         Stats statTracker;
 
+        int subMode = 0;
+
         int checkRotation(int, int, int);
         void rotateCW();
         void rotateCCW();
@@ -341,6 +343,7 @@ namespace Tetris
         void demoClear();
         void demoFill();
         void bType(int);
+        void setSubMode(int);
 
         Game(){
             seed = initSeed = qran();

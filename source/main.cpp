@@ -26,6 +26,8 @@
 #include "gbp_logo.hpp"
 #include "classic1tiles_bin.h"
 #include "classic_pal_bin.h"
+#include "tonc_bios.h"
+#include "tonc_memdef.h"
 
 using namespace Tetris;
 
@@ -208,7 +210,6 @@ int main(void) {
     loadSave();
 
     initialize();
-
     //start screen animation
     while(1){
         reset();
@@ -226,6 +227,7 @@ int main(void) {
             game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
             game->setTrainingMode(training);
             game->pawn.big = bigMode;
+            game->setSubMode(subMode);
         }
 
         gameLoop();

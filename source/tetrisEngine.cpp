@@ -322,7 +322,8 @@ void Game::update() {
         }
     }
 
-    if((linesCleared >= goal && gameMode == SPRINT && goal) ||
+    if((linesCleared >= goal && gameMode == SPRINT && goal && subMode == 0) ||
+       (linesSent >= goal && gameMode == SPRINT && goal && subMode == 1) ||
        (linesCleared >= goal && gameMode == MARATHON) ||
        (garbageCleared >= goal && gameMode == DIG) ||
        (timer > goal && (gameMode == ULTRA || gameMode == BLITZ)) ||
@@ -624,7 +625,7 @@ int Game::clear(Drop drop) {
             if (x < 0)
                 backCount = 2;
             else
-                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
+                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
             break;
         case 2:
             frontCount += (board[y + offset][x] != 0) + (board[y + offset][x + offset] != 0);
@@ -1341,4 +1342,8 @@ void Game::bType(int height){
         for(int j = 0; j < lengthX; j++)
             if(qran() % 2)
                 board[i][j] = (qran() % 7);
+}
+
+void Game::setSubMode(int sm){
+    subMode = sm;
 }
