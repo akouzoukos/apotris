@@ -1260,7 +1260,7 @@ void showPlaceEffect(){
             break;
         case 2:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
-            xoffset = -5;
+            xoffset = -4;
             yoffset = -4;
             flip = true;
             if(game->gameMode == CLASSIC)
@@ -1290,7 +1290,7 @@ void showPlaceEffect(){
             break;
         case 6:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
-            xoffset = -5;
+            xoffset = -4;
             yoffset = -4;
             flip = true;
             if(game->gameMode == CLASSIC){
@@ -1304,10 +1304,17 @@ void showPlaceEffect(){
             break;
         }
 
-        if((r == 1 || r == 2))
-            xoffset += -1;
-        if(r > 1)
-            yoffset += -1;
+        if(!flip){
+            if((r == 1 || r == 2))
+                xoffset += -1;
+            if(r > 1)
+                yoffset += -1;
+        }else{
+            if((r == 1 || r == 2))
+                yoffset += -1;
+            if(r < 2)
+                xoffset += -1;
+        }
 
         FIXED spin = 0;
         int x,y;
