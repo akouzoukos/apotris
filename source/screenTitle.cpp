@@ -320,6 +320,7 @@ void startScreen() {
             if (key == KEY_A || key == KEY_START || key == KEY_RIGHT) {
                 if(correct){
                     toggleBigMode();
+                    sfx(SFX_SECRET);
                     continue;
                 }
 
