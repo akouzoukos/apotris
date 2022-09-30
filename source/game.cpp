@@ -799,7 +799,7 @@ void gameLoop(){
         if (clearTimer == maxClearTimer || (game->gameMode == SURVIVAL && clearTimer)) {
             game->removeClearLock();
             shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
-            rumbleTimer = rumbleMax * 4 * savefile->settings.rumble;
+            rumbleTimer = rumbleMax * 2 * savefile->settings.rumble;
             clearTimer = 0;
             update();
         }
