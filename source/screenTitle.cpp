@@ -886,7 +886,7 @@ void startText(bool onSettings, int selection, int goalSelection, int level, int
     int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.2.0", 0, 19);
+        aprint("v3.2.1", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
