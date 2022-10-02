@@ -7,6 +7,7 @@
 #include "logging.h"
 #include <string>
 #include "text.h"
+#include "tonc_input.h"
 #include "tonc_memdef.h"
 #include "tonc_oam.h"
 
@@ -541,23 +542,30 @@ void control() {
         game->rotateTwice();
     }
 
-    // if (key_hit(KEY_SELECT) && game->goal == 0 && game->gameMode == SPRINT) {
-    //     sfx(SFX_MENUCONFIRM);
-    //     pause = true;
-    //     mmPause();
-    //     clearText();
-    //     update();
-    //     onStates = true;
-    // }
-
     if (key_released(k.softDrop))
         game->keyDown(0);
 
-    if (key_released(k.moveLeft))
+    if (key_released(k.moveLeft)){
         game->keyLeft(0);
 
-    if (key_released(k.moveRight))
+        if(savefile->settings.noDiagonals){
+            if(key_is_down(KEY_UP))
+                game->keyDrop();
+            else if(key_is_down(KEY_DOWN))
+                game->keyDown(1);
+        }
+    }
+
+    if (key_released(k.moveRight)){
         game->keyRight(0);
+
+        if(savefile->settings.noDiagonals){
+            if(key_is_down(KEY_UP))
+                game->keyDrop();
+            else if(key_is_down(KEY_DOWN))
+                game->keyDown(1);
+        }
+    }
 
     if (key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != BATTLE)) {
         if(restartTimer++ > maxRestartTimer || !savefile->settings.resetHold)
