@@ -29,6 +29,8 @@
 #include "tonc_bios.h"
 #include "tonc_memdef.h"
 
+#include "tetromino.hpp"
+
 using namespace Tetris;
 
 void control();
@@ -111,6 +113,7 @@ void onVBlank(void) {
         showTimer();
     }
 
+    frameCounter++;
     mmFrame();
 }
 
@@ -189,7 +192,6 @@ void initialize(){
     for(int i = 0; i < 8; i ++)
         memcpy16(&tile_mem[5][128+i], moveSpriteTiles[i], 16);
 
-
     memcpy16(&tile_mem[2][0], fontTiles, fontTilesLen / 2);
 
     //load tetriminoes into tile memory for menu screen animation
@@ -200,7 +202,6 @@ void initialize(){
     // REG_BLDCNT = BLD_BUILD(BLD_BG1,BLD_BACKDROP,BLD_STD);
     REG_BLDCNT = (1 << 6) + (1 << 13) + (1 << 1);
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
-
 }
 
 int main(void) {
@@ -210,6 +211,7 @@ int main(void) {
     loadSave();
 
     initialize();
+
     //start screen animation
     while(1){
         reset();
@@ -227,6 +229,7 @@ int main(void) {
             game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
             game->setTrainingMode(training);
             game->pawn.big = bigMode;
+            game->bTypeHeight = goalSelection;
             game->setSubMode(subMode);
         }
 
@@ -480,6 +483,12 @@ void setSkin() {
 
         blockSprite = (u8*)classicTiles[1][0];
         break;
+    case 9:
+        blockSprite = (u8*)sprite27tiles_bin;
+        break;
+    case 10:
+        blockSprite = (u8*)sprite28tiles_bin;
+        break;
     }
 
     setPalette();
@@ -493,7 +502,7 @@ void setSkin() {
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
-                    if(savefile->settings.skin < 7)
+                    if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
                     else
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], classicTiles[savefile->settings.skin-7][i], sprite1tiles_bin_size / 2);
@@ -634,6 +643,8 @@ void diagnose() {
 
     // str += std::to_string(game->previousBest.size()) + " " + std::to_string(game->moveHistory.size());
 
+    // str += std::to_string(profileResults[0]);
+
     // log(str);
 }
 
@@ -659,6 +670,11 @@ void setPalette(){
         for(int i = 0; i < 8; i++){
             memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
             memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
+        }
+    }else if(savefile->settings.colors == 4){
+        for(int i = 0; i < 9; i++){
+            memcpy16(&pal_bg_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
+            memcpy16(&pal_obj_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
         }
     }
 

@@ -96,6 +96,10 @@ typedef struct Test3{
     int t2[30];//22
 }ALIGN(4) Test3;
 
+typedef struct Stats{
+    int timePlayed;
+}ALIGN(4) Stats;
+
 typedef struct Save{
     u8 newGame;
 
@@ -112,6 +116,11 @@ typedef struct Save{
     Timeboard survival[3];
     Timeboard sprintAttack[3];
     Scoreboard digEfficiency[3];
+    Scoreboard classic[2];
+
+    int placeHolder[100];
+
+    Stats stats;
 }ALIGN(4) Save;
 
 extern Save *savefile;
@@ -183,10 +192,10 @@ public:
 };
 
 #define TRAINING_MESSAGE_MAX 300
-#define MAX_SKINS 9
+#define MAX_SKINS 11
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
-#define MAX_COLORS 4
+#define MAX_COLORS 5
 #define MAX_CLEAR_EFFECTS 3
 
 #define MAX_MENU_SONGS 2
@@ -321,3 +330,4 @@ extern bool rumbleInitialized;
 extern bool bigMode;
 
 extern int subMode;
+extern int goalSelection;

@@ -92,6 +92,12 @@ const uint16_t nesPalette[10][4] __attribute__((aligned(4)))= {
         {0x0421,0x00ff,0x229f,0x7fff},
 };
 
+const uint16_t monoPalette[2][4] = {
+        {0x7fff,0x7fff,0x7fff,0x7fff},
+        {0x0421,0x0421,0x0421,0x0421},
+};
+
+
 const uint8_t * mini[2][7] = {
     {
         small1tiles_bin,

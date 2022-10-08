@@ -4,8 +4,11 @@
 #include "tonc_memdef.h"
 
 void setDefaultKeys();
+void addStats();
 
 void saveToSram() {
+    addStats();
+
     volatile u8* sf = (volatile u8*)sram_mem;
 
     u8* arr = (u8*)savefile;
@@ -263,6 +266,8 @@ void loadSave() {
 
         savefile->settings.volume = 10;
 
+        savefile->stats.timePlayed = 0;
+
         for (int i = 0; i < 10; i++)
             savefile->settings.songList[i] = true;
 
@@ -307,4 +312,8 @@ void setDefaultKeys(){
 
     savefile->settings.keys = k;
 
+}
+
+void addStats(){
+    savefile->stats.timePlayed += frameCounter;
 }

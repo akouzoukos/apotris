@@ -7,6 +7,7 @@
 #include "logging.h"
 #include <string>
 #include "text.h"
+#include "tonc_core.h"
 #include "tonc_input.h"
 #include "tonc_memdef.h"
 #include "tonc_oam.h"
@@ -267,7 +268,7 @@ void showBackground() {
             } else{
                 int offset = 1;
 
-                if(savefile->settings.skin >= 7)
+                if(savefile->settings.skin == 7 || savefile->settings.skin == 8)
                     offset = 48 + (game->board[i][j]-1);
 
                 *dest++ = (offset + (((u32)(game->board[i][j] - 1)) << 12));
@@ -304,7 +305,7 @@ void showPawn() {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (game->pawn.board[game->pawn.rotation][i][j] > 0){
-                if(savefile->settings.skin < 7)
+                if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
                 else
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], classicTiles[savefile->settings.skin-7][game->pawn.current], sprite1tiles_bin_size / 2);
@@ -341,7 +342,7 @@ void showShadow() {
         case 1: shadowTexture = (u8*)sprite15tiles_bin; break;
         case 2: shadowTexture = (u8*)sprite16tiles_bin; break;
         case 3:
-            if(savefile->settings.skin < 7)
+            if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                 shadowTexture = blockSprite;
             else
                 shadowTexture = (u8*)classicTiles[savefile->settings.skin-7][game->pawn.current];
@@ -369,6 +370,8 @@ void showShadow() {
             clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
         else if(savefile->settings.colors == 3){
             clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
+        }else if(savefile->settings.colors == 4){
+            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
         } else
             clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
     }else{
@@ -376,6 +379,8 @@ void showShadow() {
             clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.25));
         else if(savefile->settings.colors == 3){
             clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 4, float2fx(0.25));
+        }else if(savefile->settings.colors == 4){
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
         }else
             clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.25));
     }
@@ -814,7 +819,7 @@ void gameLoop(){
             return;
         }
 
-        sqran(qran() % frameCounter++);
+        sqran(qran() % frameCounter);
     }
 }
 

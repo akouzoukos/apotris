@@ -17,6 +17,7 @@ void fallingBlocks();
 void startText();
 void settingsText();
 void toggleBigMode();
+std::string timeToStringHours(int frames);
 
 using namespace Tetris;
 
@@ -108,7 +109,7 @@ std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz"
 int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
 static int selection = 0;
-static int goalSelection = 0;
+int goalSelection = 0;
 static int level = 1;
 static int toStart = 0;
 static bool onSettings = false;
@@ -133,6 +134,8 @@ void startScreen() {
     bool movingHor = false;
     int movingTimer = 0;
     int movingDirection = 0;
+
+    selection = 0;
 
     VBlankIntrWait();
     REG_DISPCNT &= ~DCNT_BG1;
@@ -327,6 +330,8 @@ void startScreen() {
                     if (selection == 0) {//marathon
                         n = MARATHON;
                         options = 3;
+                        if(level < 1)
+                            level = 1;
                     } else if (selection == 1) {//sprint
                         n = SPRINT;
                         options = 3;
@@ -348,8 +353,10 @@ void startScreen() {
                         options = 2;
                         n = SURVIVAL;
                     } else if (selection == 7) {//Classic
-                        options = 2;
+                        options = 4;
                         n = CLASSIC;
+                        if(level > 19)
+                            level = 19;
                     // } else if (selection == 8) {//Big
                     //     options = 2;
                     //     n = BIG;
@@ -535,6 +542,70 @@ void startScreen() {
                         refreshText = true;
                     }
                 }
+            } else if (toStart == CLASSIC){
+                if (selection == 0) {
+                    if (key == KEY_RIGHT && subMode < 1) {
+                        subMode++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && subMode > 0) {
+                        subMode--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+                }else if(selection == 1){
+                    if (key == KEY_RIGHT && level < 20) {
+                        level++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && level > 1) {
+                        level--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key_is_down(KEY_LEFT)) {
+                        if (dasHor < maxDas) {
+                            dasHor++;
+                        } else if (level > 1) {
+                            if (arr++ > maxArr) {
+                                arr = 0;
+                                level--;
+                                sfx(SFX_MENUMOVE);
+                                refreshText = true;
+                            }
+                        }
+                    } else if (key_is_down(KEY_RIGHT)) {
+                        if (dasHor < maxDas) {
+                            dasHor++;
+                        } else if (level < 20) {
+                            if (arr++ > maxArr) {
+                                arr = 0;
+                                level++;
+                                sfx(SFX_MENUMOVE);
+                                refreshText = true;
+                            }
+                        }
+                    } else {
+                        dasHor = 0;
+                    }
+                }else if (selection == 2 && subMode) {
+                    if (key == KEY_RIGHT && goalSelection < 5) {
+                        goalSelection++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && goalSelection > 0) {
+                        goalSelection--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+                }
             } else if (toStart == -4) {
                 if (selection == 0) {
                     if (key == KEY_LEFT || key == KEY_RIGHT) {
@@ -682,8 +753,12 @@ void startScreen() {
             }
 
             if ((key == KEY_A || key == KEY_START) && (toStart >= 0 || toStart == -4)) {
-                if (selection != options - 1 && toStart != -2) {
+                if (selection != options - 1 && toStart != -2 && !(toStart == CLASSIC && !subMode && selection == options - 2)) {
                     selection = options - 1;
+
+                    if(toStart == CLASSIC && !subMode)
+                        selection--;
+
                     sfx(SFX_MENUCONFIRM);
                     refreshText = true;
                 } else {
@@ -694,16 +769,17 @@ void startScreen() {
                             training = true;
                         }
 
-                        if(toStart == 9)
-                            level = 0;
-
+                        // if(toStart == CLASSIC)
+                        //     level = 0;
                         initialLevel = level;
                         previousOptionMax = options;
 
+                        //START GAME
                         delete game;
                         game = new Game(toStart,bigMode);
                         game->setLevel(level);
                         game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->bTypeHeight = goalSelection;
                         game->setSubMode(subMode);
                         mode = goalSelection;
 
@@ -760,10 +836,12 @@ void startScreen() {
                         case SURVIVAL:
                             goal = goalSelection+1;
                             break;
+                        case CLASSIC:
+                            if(subMode)
+                                goal = 25;
+                            break;
                         }
-
                         game->setGoal(goal);
-
                         sfx(SFX_MENUCONFIRM);
                         break;
                     }
@@ -818,6 +896,10 @@ void startScreen() {
                     moving = true;
                     movingDirection = -1;
                 }
+
+                if(toStart == CLASSIC && !subMode && selection == 2)
+                    selection--;
+
                 sfx(SFX_MENUMOVE);
                 refreshText = true;
             }
@@ -831,6 +913,10 @@ void startScreen() {
                     moving = true;
                     movingDirection = 1;
                 }
+
+                if(toStart == CLASSIC && !subMode && selection == 2)
+                    selection++;
+
                 sfx(SFX_MENUMOVE);
                 refreshText = true;
             }
@@ -870,7 +956,7 @@ void startScreen() {
             }
         }
 
-        sqran(qran() * frameCounter++);
+        sqran(qran() * frameCounter);
 
         oam_copy(oam_mem, obj_buffer, 128);
     }
@@ -915,7 +1001,7 @@ void startText() {
             aprint("Lines: ", 12, goalHeight);
             aprint("START", 12, 17);
 
-            aprint(" ||||||||||||||||||||    ", 2, levelHeight + 2);
+            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
             aprintColor(" 150   200   300   Endless ", 1, goalHeight + 2, 1);
 
             std::string levelText = std::to_string(level);
@@ -1294,18 +1380,28 @@ void startText() {
                 aprint("HARD", 21, goalHeight + 2);
                 break;
             }
-
         } else if (toStart == CLASSIC) {//Classic Options
             aprintColor("Classic",titleX,titleY,1);
             int levelHeight = 5;
             int goalHeight = 1;
 
+            int diffHeight = 9;
+
             aprint("Level: ", 12, levelHeight);
             aprint("START", 12, 17);
 
-            aprint(" ||||||||||||||||||||    ", 2, levelHeight + 2);
+            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
             aprint("Type:",4,goalHeight+2);
             aprintColor(" A-TYPE   B-TYPE ", 10, goalHeight + 2, 1);
+
+            if(subMode){
+                aprint("Height:",4,diffHeight);
+                aprintColor(" 0 1 2 3 4 5 ", 12, diffHeight, 1);
+
+                aprintf(goalSelection,goalSelection*2+13,diffHeight);
+            }else{
+                aprint("                      ",4,diffHeight);
+            }
 
             std::string levelText = std::to_string(level);
             aprint(levelText, 27 - levelText.length(), levelHeight + 2);
@@ -1325,7 +1421,10 @@ void startText() {
             } else if (selection == 1) {
                 aprint("<", 2, levelHeight + 2);
                 aprint(">", 23, levelHeight + 2);
-            } else if (selection == 2) {
+            } else if (selection == 2 && subMode) {
+                aprint("<", 12, diffHeight);
+                aprint(">", 24, diffHeight);
+            } else if (selection == 2 || selection == 3) {
                 aprint(">", 10, 17);
             }
 
@@ -1368,7 +1467,6 @@ void startText() {
 
                 aprint(score, 25 - (int)score.length(), 11 + i);
             }
-
         } else if (toStart == -1) {
             int startY = 5;
             int space = 2;
@@ -1500,6 +1598,7 @@ void showTitleSprites() {
         if(offset == 3)
             offset = 2;
         obj_set_pos(titleSprites[i], 120 - 64 + 64 * i, 24 + offset);
+        // obj_set_pos(titleSprites[i], 120 - 64 + 64 * i, 24 + 40);
     }
 
     titleFloat+=3;
@@ -1531,7 +1630,7 @@ void fallingBlocks() {
             if (!backgroundArray[i][j])
                 *dest++ = 2 * (!savefile->settings.lightMode);
             else{
-                if(savefile->settings.skin < 7)
+                if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
                 else{
                     *dest++ = (48 + backgroundArray[i][j] - 1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
@@ -1620,6 +1719,9 @@ void settingsText() {
         aprint(*option,startX,startY+space*i);
         option++;
     }
+
+    std::string str = "Playtime: " + timeToStringHours(savefile->stats.timePlayed);
+    aprint(str,15-str.size()/2,1);
 }
 
 void toggleBigMode(){
@@ -1637,4 +1739,20 @@ void toggleBigMode(){
         aprint("Highscores disabled!",0,1);
     }else
         aprint("Big Mode disabled!",0,0);
+}
+
+std::string timeToStringHours(int frames) {
+    int t = (int)frames * 0.0167f;
+    int minutes = t / 60;
+    int hours = t / 3600;
+
+	char res[30];
+
+	posprintf(res,"%02d:%02d",hours,minutes);
+
+    std::string result = "";
+
+    result = res;
+
+    return result;
 }

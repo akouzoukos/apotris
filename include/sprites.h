@@ -25,6 +25,8 @@
 #include "../build/sprite24tiles_bin.h"
 #include "../build/sprite25tiles_bin.h"
 #include "../build/sprite26tiles_bin.h"
+#include "../build/sprite27tiles_bin.h"
+#include "../build/sprite28tiles_bin.h"
 
 #include "../build/title1tiles_bin.h"
 #include "../build/title2tiles_bin.h"
@@ -41,3 +43,5 @@ extern const uint8_t * placeEffectTiles[15];
 extern const uint8_t * classicTiles[2][8];
 
 extern const uint16_t nesPalette[10][4];
+
+extern const uint16_t monoPalette[2][4];
