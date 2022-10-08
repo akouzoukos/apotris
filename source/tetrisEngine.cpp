@@ -180,6 +180,8 @@ void Game::moveLeft() {
         lockCheck();
     }else{
         pushDir = -1;
+        if(gameMode == CLASSIC)
+            das = maxDas;
     }
 }
 
@@ -191,6 +193,8 @@ void Game::moveRight() {
         lockCheck();
     }else{
         pushDir = 1;
+        if(gameMode == CLASSIC)
+            das = maxDas;
     }
 }
 
@@ -371,19 +375,20 @@ void Game::update() {
 
     if (!(left || right)){
         das = 0;
+        arrCounter = arr;
     }else if (das < maxDas){
         das++;
     }
 
     if (das == maxDas && !(left && right)) {
-        if (++arrCounter >= arr) {
+        if (--arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
                 if (left)
                     moveLeft();
                 else
                     moveRight();
             }
-            arrCounter = 0;
+            arrCounter = arr;
         }
     }
 
@@ -573,8 +578,8 @@ void Game::place() {
         pawn.current = -1;
 
         down = 0;
-        left = 0;
-        right = 0;
+        // left = 0;
+        // right = 0;
     }
 
     if (!clearLock && !entryDelay)
@@ -968,7 +973,7 @@ void Game::lockCheck() {
 void Game::keyLeft(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-        if(!entryDelay)
+        // if(!entryDelay)
             left = dir;
         return;
     }
@@ -987,15 +992,17 @@ void Game::keyLeft(int dir) {
         else
             moveHistory.push_back(0);
 
-        if(directionCancel)
+        if(directionCancel && gameMode != CLASSIC){
             das = 0;
+            arrCounter = arr;
+        }
     }
 }
 
 void Game::keyRight(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-        if(!entryDelay)
+        // if(!entryDelay)
             right = dir;
         return;
     }
@@ -1014,8 +1021,10 @@ void Game::keyRight(int dir) {
         else
             moveHistory.push_back(1);
 
-        if(directionCancel)
+        if(directionCancel && gameMode != CLASSIC){
             das = 0;
+            arrCounter = arr;
+        }
     }
 }
 

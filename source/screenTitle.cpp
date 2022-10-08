@@ -769,15 +769,13 @@ void startScreen() {
                             training = true;
                         }
 
-                        // if(toStart == CLASSIC)
-                        //     level = 0;
-                        initialLevel = level;
+                        initialLevel = level - (toStart == CLASSIC);
                         previousOptionMax = options;
 
                         //START GAME
                         delete game;
                         game = new Game(toStart,bigMode);
-                        game->setLevel(level);
+                        game->setLevel(initialLevel);
                         game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
                         game->bTypeHeight = goalSelection;
                         game->setSubMode(subMode);
@@ -1403,7 +1401,7 @@ void startText() {
                 aprint("                      ",4,diffHeight);
             }
 
-            std::string levelText = std::to_string(level);
+            std::string levelText = std::to_string(level-1);
             aprint(levelText, 27 - levelText.length(), levelHeight + 2);
 
             aprint(" ", 10, 17);

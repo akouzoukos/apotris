@@ -456,7 +456,9 @@ namespace Tetris
             bagCounter = oldGame.bagCounter;
             seed = oldGame.seed;
             initSeed = oldGame.initSeed;
+            subMode = oldGame.subMode;
         }
+
 
         ~Game(){
             for(int i = 0; i < lengthY; i++)

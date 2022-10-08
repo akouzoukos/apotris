@@ -246,13 +246,36 @@ int endScreen() {
 
         if(game->gameMode > 0 && game->gameMode <= 9){
             int counter = 0;
+            std::string str;
+            std::string str2;
 
-            std::string str = modeStrings[game->gameMode-1];
+            str = modeStrings[game->gameMode-1];
             aprintColor(str,30-str.size(),counter++,0);
 
             str = modeOptionStrings[game->gameMode-1][mode];
             if(str != "")
                 aprintColor(str,30-str.size(),counter++,0);
+
+            str = "";
+            str2 = "";
+            if(game->subMode){
+                switch(game->gameMode){
+                case SPRINT: str = "Attack"; break;
+                case DIG: str = "Efficiency"; break;
+                case CLASSIC:
+                    str = "B-Type";
+                    str2 = std::to_string(initialLevel) + "-" + std::to_string(game->bTypeHeight);
+                    break;
+                }
+            }else{
+                if(game->gameMode == CLASSIC)
+                    str = "A-Type";
+            }
+
+            if(str != "")
+                aprintColor(str,30-str.size(),counter++,0);
+            if(str2 != "")
+                aprintColor(str2,30-str2.size(),counter++,0);
 
             if(bigMode)
                 aprintColor("BIG MODE",22,counter++,0);
