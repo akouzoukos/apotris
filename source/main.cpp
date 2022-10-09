@@ -196,6 +196,7 @@ void initialize(){
 
     //load tetriminoes into tile memory for menu screen animation
 
+    setSkin();
     setPalette();
     setClearEffect();
 
@@ -211,6 +212,8 @@ int main(void) {
     loadSave();
 
     initialize();
+
+    skinEditor();
 
     //start screen animation
     while(1){
@@ -488,6 +491,9 @@ void setSkin() {
         break;
     case 10:
         blockSprite = (u8*)sprite28tiles_bin;
+        break;
+    case -1:
+        blockSprite = (u8*)customSkin;
         break;
     }
 

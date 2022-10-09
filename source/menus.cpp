@@ -474,13 +474,13 @@ void showScore(){
         if (game->lost)
             aprint("GAME OVER", 11, 3);
         else {
-            if (game->gameMode != ULTRA && game->gameMode != BLITZ )
+            if (game->gameMode != ULTRA && game->gameMode != BLITZ)
                 aprint("CLEAR!", 12, 3);
             else
                 aprint("TIME!", 13, 3);
         }
 
-        if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == COMBO || game->gameMode == DIG)
+        if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == COMBO || game->gameMode == DIG || game->gameMode == CLASSIC)
             aprint(score, 15 - ((int)score.size() / 2), 7);
         else if (game->gameMode == SURVIVAL)
             aprint(timeToString(gameSeconds), 11, 7);
@@ -806,6 +806,17 @@ int onRecord() {
 
             savefile->survival[mode].times[i].frames = gameSeconds;
             strncpy(savefile->survival[mode].times[i].name, name.c_str(), 9);
+        } else if (game->gameMode == CLASSIC) {
+            if (game->score < savefile->classic[subMode].highscores[i].score)
+                continue;
+
+            for (int j = 3; j >= i; j--)
+                savefile->classic[subMode].highscores[j + 1] = savefile->classic[subMode].highscores[j];
+
+            std::string name = nameInput(i);
+
+            savefile->classic[subMode].highscores[i].score = game->score;
+            strncpy(savefile->classic[subMode].highscores[i].name, name.c_str(), 9);
         }
 
         place = i;

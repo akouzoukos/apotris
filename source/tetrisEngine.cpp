@@ -337,6 +337,9 @@ void Game::update() {
        (timer > goal && (gameMode == ULTRA || gameMode == BLITZ)) ||
        (linesCleared >= goal && gameMode == CLASSIC && goal)){
        won = 1;
+       if(gameMode == CLASSIC && goal){
+           score+= (level + bTypeHeight) * 1000;
+       }
     }
 
     if (gameMode == MARATHON)

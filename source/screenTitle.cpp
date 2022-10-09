@@ -1457,11 +1457,11 @@ void startText() {
                 aprint(buff,3,11+i);
 
                 aprint("                       ", 5, 11 + i);
-                if (savefile->marathon[goalSelection].highscores[i].score == 0)
+                if (savefile->classic[subMode].highscores[i].score == 0)
                     continue;
 
-                aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
-                std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
+                aprint(savefile->classic[subMode].highscores[i].name, 6, 11 + i);
+                std::string score = std::to_string(savefile->classic[subMode].highscores[i].score);
 
                 aprint(score, 25 - (int)score.length(), 11 + i);
             }

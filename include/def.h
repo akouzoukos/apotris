@@ -264,6 +264,7 @@ extern void showText();
 extern void showPlaceEffect();
 extern void checkSounds();
 extern int getClassicPalette();
+extern void skinEditor();
 
 extern std::string timeToString(int);
 
@@ -331,3 +332,5 @@ extern bool bigMode;
 
 extern int subMode;
 extern int goalSelection;
+
+extern TILE* customSkin;
