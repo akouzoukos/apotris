@@ -9,6 +9,11 @@
 using namespace Tetris;
 using namespace GameInfo;
 
+// int min(int a, int b){
+    // return (a>b)?a:b;
+    // min
+// }
+
 int Game::checkRotation(int dx, int dy, int r) {
     // int x = (dx + pawn.x) * ((pawn.big)?2:1);
     // int y = (dy + pawn.y) * ((pawn.big)?2:1);
@@ -375,12 +380,14 @@ void Game::update() {
 
     if (!(left || right)){
         das = 0;
-        arrCounter = arr;
+        arrCounter = 0;
     }else if (das < maxDas){
         das++;
+        // log("das: "+std::to_string(das));
     }
 
     if (das == maxDas && !(left && right)) {
+        // log("arr: "+std::to_string(arrCounter));
         if (--arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
                 if (left)
@@ -570,7 +577,7 @@ void Game::place() {
 
     if(gameMode == CLASSIC){
         int add = 0;
-        while(pawn.y + add < lengthY-2)
+        while(pawn.y + add < lengthY-3)
             add+=4;
 
         entryDelay = 10 + add;
@@ -714,7 +721,15 @@ int Game::clear(Drop drop) {
             }
         }
     }else if(gameMode == CLASSIC && !goal){
-        level = ((int)linesCleared / 10);
+        if(initialLevel){
+            int init = min(initialLevel*10+10,max(100,initialLevel*10-50));
+            int requirement = linesCleared-init;
+            if(requirement >= 0)
+                level = (requirement/10) + initialLevel + 1;
+            log("level: "+std::to_string(level));
+        }else{
+            level = ((int)linesCleared / 10);
+        }
     }
 
     if(level < prevLevel)
@@ -827,7 +842,6 @@ void Game::next() {
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
 
-
     pawn.rotation = 0;
 
     speedCounter = 0;
@@ -875,6 +889,8 @@ void Game::next() {
 
     lastMoveDx = 0;
     lastMoveDy = 0;
+
+    arrCounter = 0;
 
     softDrop = false;
 }
@@ -938,6 +954,7 @@ void Game::hold() {
 
     lockTimer = maxLockTimer;
     lockMoveCounter = 15;
+    arrCounter = 0;
 
     moveHistory.clear();
 
@@ -994,7 +1011,7 @@ void Game::keyLeft(int dir) {
 
         if(directionCancel && gameMode != CLASSIC){
             das = 0;
-            arrCounter = arr;
+            arrCounter = 0;
         }
     }
 }
@@ -1023,7 +1040,7 @@ void Game::keyRight(int dir) {
 
         if(directionCancel && gameMode != CLASSIC){
             das = 0;
-            arrCounter = arr;
+            arrCounter = 0;
         }
     }
 }
@@ -1078,7 +1095,7 @@ void Game::resetRefresh() {
 }
 
 void Game::setLevel(int newLevel){
-    level = newLevel;
+    initialLevel = level = newLevel;
 }
 
 void Game::setGoal(int newGoal){

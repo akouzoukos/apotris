@@ -275,6 +275,7 @@ void showBackground() {
             }
             if (game->clearLock && i == *l2c) {
                 dest--;
+
                 if (!showEdges)
                     *dest = 0;
                 if (j < 5) {

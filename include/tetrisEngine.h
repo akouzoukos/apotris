@@ -267,6 +267,8 @@ namespace Tetris
 
         int gracePeriod = 0;
 
+        int initialLevel = 0;
+
     public:
         int lengthX = 10;
         int lengthY = 40;
@@ -457,6 +459,7 @@ namespace Tetris
             seed = oldGame.seed;
             initSeed = oldGame.initSeed;
             subMode = oldGame.subMode;
+            initialLevel = oldGame.initialLevel;
         }
 
 

@@ -1741,7 +1741,7 @@ void toggleBigMode(){
 
 std::string timeToStringHours(int frames) {
     int t = (int)frames * 0.0167f;
-    int minutes = t / 60;
+    int minutes = (t / 60)%60;
     int hours = t / 3600;
 
 	char res[30];
