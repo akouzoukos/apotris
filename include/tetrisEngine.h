@@ -269,6 +269,10 @@ namespace Tetris
 
         int initialLevel = 0;
 
+        bool initialHold = false;
+
+        int initialRotate = 0;
+
     public:
         int lengthX = 10;
         int lengthY = 40;

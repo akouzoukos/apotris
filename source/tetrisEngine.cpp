@@ -68,8 +68,12 @@ void Pawn::setBlock(bool alt) {
 }
 
 void Game::rotateCW() {
-    if (clearLock || entryDelay)
+    if (clearLock || entryDelay){
+        initialRotate++;
+        if(initialRotate > 3)
+            initialRotate = 0;
         return;
+    }
 
     moveCounter++;
     lastMoveRotation = 1;
@@ -106,8 +110,12 @@ void Game::rotateCW() {
 }
 
 void Game::rotateCCW() {
-    if (clearLock || entryDelay)
+    if (clearLock || entryDelay){
+        initialRotate--;
+        if(initialRotate < 0)
+            initialRotate = 3;
         return;
+    }
 
     moveCounter++;
     lastMoveRotation = -1;
@@ -144,8 +152,14 @@ void Game::rotateCCW() {
 }
 
 void Game::rotateTwice() {
-    if (clearLock || gameMode == CLASSIC)
+    if (clearLock || entryDelay || gameMode == CLASSIC){
+        if(gameMode != CLASSIC){
+            initialRotate+=2;
+            if(initialRotate > 3)
+                initialRotate = 0;
+        }
         return;
+    }
 
     moveCounter++;
     lastMoveRotation = 1;
@@ -845,16 +859,17 @@ void Game::next() {
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
 
-    pawn.rotation = 0;
+    pawn.rotation = initialRotate;
+    initialRotate = 0;
 
     speedCounter = 0;
 
     pawn.current = queue.front();
     queue.pop_front();
-
-    pieceHistory = pawn.current;
-
     fillQueue(1);
+
+    //for CLASSIC 2 in a row protection
+    pieceHistory = pawn.current;
 
     pawn.setBlock(gameMode == CLASSIC);
 
@@ -896,6 +911,9 @@ void Game::next() {
     arrCounter = 0;
 
     softDrop = false;
+
+    if(initialHold)
+        hold();
 }
 
 void Game::fillQueue(int count) {
@@ -928,7 +946,10 @@ void Game::fillQueue(int count) {
 }
 
 void Game::hold() {
-    if (!canHold || clearLock || gameMode == CLASSIC)
+    if((clearLock || entryDelay) && !initialHold && canHold && gameMode != CLASSIC)
+        initialHold = true;
+
+    if (!canHold || clearLock || entryDelay || gameMode == CLASSIC)
         return;
 
     moveCounter++;
@@ -965,6 +986,8 @@ void Game::hold() {
 
     if(das == maxDas)
         moveHistory.push_back(2+(right));
+
+    initialHold = false;
 }
 
 int** Game::getShape(int n,int r) {
