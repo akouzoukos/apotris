@@ -79,6 +79,7 @@ typedef struct Settings{
     int rumble;
 
     int placeHolder[100];
+
 }ALIGN(4) Settings;
 
 typedef struct Test{
@@ -99,6 +100,14 @@ typedef struct Test3{
 typedef struct Stats{
     int timePlayed;
 }ALIGN(4) Stats;
+
+typedef struct Skin{
+    bool writable;
+
+    TILE board;
+}ALIGN(4) Skin;
+
+#define MAX_CUSTOM_SKINS 5
 
 typedef struct Save{
     u8 newGame;
@@ -121,6 +130,10 @@ typedef struct Save{
     int placeHolder[100];
 
     Stats stats;
+
+    int placeHolder2[100];
+
+    Skin customSkins[MAX_CUSTOM_SKINS];
 }ALIGN(4) Save;
 
 extern Save *savefile;

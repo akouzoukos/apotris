@@ -18,6 +18,7 @@ void startText();
 void settingsText();
 void toggleBigMode();
 std::string timeToStringHours(int frames);
+void resetScoreboard(int,int,int);
 
 using namespace Tetris;
 
@@ -449,6 +450,11 @@ void startScreen() {
 
             for (int i = 0; i < 2; i++)
                 obj_hide(titleSprites[i]);
+
+            if(key_held(KEY_L) && key_held(KEY_R) && key_held(KEY_SELECT)){
+                resetScoreboard(toStart,goalSelection,subMode);
+                refreshText = true;
+            }
 
             if (toStart == MARATHON) {
                 if (selection == 0) {
@@ -953,6 +959,7 @@ void startScreen() {
                 dasVer = 0;
             }
         }
+
 
         sqran(qran() * frameCounter);
 
@@ -1753,4 +1760,112 @@ std::string timeToStringHours(int frames) {
     result = res;
 
     return result;
+}
+
+void resetScoreboard(int mode, int goal, int subMode){
+    // int display_value = REG_DISPCNT;
+    // REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG2; //Disable all backgrounds except text
+    clearText();
+
+    oam_init(obj_buffer, 128);
+    oam_copy(oam_mem, obj_buffer, 128);
+
+
+    int timer = 0;
+
+    int s = 1;
+
+    while (1) {
+
+        aprint("Are you sure you", 6, 6);
+        aprint("want to reset the", 6 , 8);
+        aprint("current scoreboard?", 6 , 10);
+
+
+        VBlankIntrWait();
+        key_poll();
+
+        if(timer < 200){
+            timer++;
+        }else{
+            aprint(" YES      NO ", 8, 15);
+
+            if(s == 0){
+                aprint("[",8,15);
+                aprint("]",12,15);
+            }else{
+                aprint("[",17,15);
+                aprint("]",20,15);
+            }
+
+            if (key_hit(KEY_A)) {
+                clearText();
+                if(s == 0)
+                    break;
+                else
+                    return;
+            }
+
+            if (key_hit(KEY_B)) {
+                clearText();
+                return;
+            }
+
+            if(key_hit(KEY_LEFT)){
+                if(s > 0)
+                    s--;
+            }
+
+            if(key_hit(KEY_RIGHT)){
+                if(s < 1)
+                    s++;
+            }
+        }
+    }
+
+    switch(mode){
+    case MARATHON:
+        for (int j = 0; j < 5; j++)
+            savefile->marathon[goal].highscores[j].score = 0;
+        break;
+    case SPRINT:
+        if(!subMode){
+            for (int j = 0; j < 5; j++)
+                savefile->sprint[goal].times[j].frames = 0;
+        }else{
+            for (int j = 0; j < 5; j++)
+                savefile->sprintAttack[goal].times[j].frames = 0;
+        }
+        break;
+    case DIG:
+        if(!subMode){
+            for (int j = 0; j < 5; j++)
+                savefile->dig[goal].times[j].frames = 0;
+        }else{
+            for (int j = 0; j < 5; j++)
+                savefile->digEfficiency[goal].highscores[j].score = 0;
+        }
+        break;
+    case ULTRA:
+        for (int j = 0; j < 5; j++)
+            savefile->ultra[goal].highscores[j].score = 0;
+        break;
+    case BLITZ:
+        for (int j = 0; j < 5; j++)
+            savefile->blitz[goal].highscores[j].score = 0;
+        break;
+    case COMBO:
+        for (int j = 0; j < 5; j++)
+            savefile->combo.highscores[j].score = 0;
+        break;
+    case SURVIVAL:
+        for (int j = 0; j < 5; j++)
+            savefile->survival[goal].times[j].frames = 0;
+        break;
+    case CLASSIC:
+        break;
+    }
+
+    saveToSram();
+    clearText();
 }

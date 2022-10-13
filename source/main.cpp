@@ -492,8 +492,15 @@ void setSkin() {
     case 10:
         blockSprite = (u8*)sprite28tiles_bin;
         break;
-    case -1:
-        blockSprite = (u8*)customSkin;
+    default:
+        if(savefile->settings.skin < 0){
+            int n = savefile->settings.skin;
+            n *= -1;
+            n--;
+
+            if(!savefile->customSkins[n].writable)
+                blockSprite = (u8*)&savefile->customSkins[n].board;
+        }
         break;
     }
 

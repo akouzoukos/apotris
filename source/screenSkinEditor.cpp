@@ -337,6 +337,18 @@ void skinEditor(){
 
         oam_copy(oam_mem, obj_buffer, 32);
     }
+
+    for(int i = 0; i < 8; i++){
+        savefile->customSkins[0].board.data[i] = customSkin->data[i];
+    }
+
+    // memcpy16(&tile_mem[5][200],sprite29tiles_bin,sprite29tiles_bin_size/2);
+
+    // memcpy16(&tile_mem[5][204],sprite31tiles_bin,sprite31tiles_bin_size/2);
+    // memcpy16(&tile_mem[5][208],sprite32tiles_bin,sprite32tiles_bin_size/2);
+    // memcpy16(&tile_mem[5][212],sprite33tiles_bin,sprite33tiles_bin_size/2);
+
+    memset16(&tile_mem[5][200],0,64*4);
 }
 
 void generateTiles(){
@@ -411,6 +423,10 @@ void showMinos(){
 
 void refreshSkin(){
     savefile->settings.skin = -1;
+    savefile->customSkins[0].writable = false;
+    for(int i = 0; i < 8; i++){
+        savefile->customSkins[0].board.data[i] = customSkin->data[i];
+    }
     setSkin();
 }
 

@@ -5,6 +5,7 @@
 
 void setDefaultKeys();
 void addStats();
+void resetSkins();
 
 void saveToSram() {
     addStats();
@@ -272,6 +273,8 @@ void loadSave() {
             savefile->settings.songList[i] = true;
 
         setDefaultKeys();
+
+        resetSkins();
     }
 
     if ((savefile->settings.lightMode != 0) && (savefile->settings.lightMode != 1))
@@ -316,4 +319,10 @@ void setDefaultKeys(){
 
 void addStats(){
     savefile->stats.timePlayed += frameCounter;
+}
+
+void resetSkins(){
+    for(int i = 0; i < MAX_CUSTOM_SKINS; i++){
+        savefile->customSkins[i].writable = true;
+    }
 }

@@ -835,19 +835,14 @@ void addGlow(Tetris::Drop location) {
             for (int i = 0; i < 20; i++)
                 for (int j = 0; j < 10; j++)
                     glow[i][j] = glowDuration + abs(xCenter - j) + abs(location.endY - i);
-
-            if (game->previousClear.isBackToBack == 1) {
-                effectList.push_back(Effect(2, xCenter, location.endY));
-            }
         } else {
             for (int i = 0; i < 20; i++)
                 for (int j = 0; j < 10; j++)
                     glow[i][j] = glowDuration + Sqrt(abs(xCenter - j) * abs(xCenter - j) + abs(location.endY - i) * abs(location.endY - i));
-
-            if (game->previousClear.isBackToBack == 1) {
-                effectList.push_back(Effect(1, xCenter, location.endY));
-            }
         }
+
+        if (game->previousClear.isBackToBack == 1)
+            effectList.push_back(Effect(1 + (game->previousClear.isTSpin != 0), xCenter, location.endY));
     }
 }
 
@@ -905,7 +900,7 @@ void screenShake() {
     REG_BG0VOFS = -shake;
     REG_BG1VOFS = -shake;
 
-    if (shake != 0) {
+    if (shake) {
         if (shake > 0)
             shake--;
         else
@@ -915,6 +910,7 @@ void screenShake() {
 
     REG_BG0HOFS = -push;
     REG_BG1HOFS = -push;
+
     if (game->pushDir != 0) {
         if (abs(push) < pushMax * (savefile->settings.shakeAmount)/4)
             push += game->pushDir * (1 + (savefile->settings.shakeAmount > 2));
@@ -1052,6 +1048,8 @@ void progressBar() {
         current = game->garbageCleared;
     else if (game->gameMode == ULTRA || game->gameMode == BLITZ)
         current = game->timer;
+    else if (game->gameMode == SPRINT && game->subMode)
+        current = game->linesSent;
     else if (game->gameMode != SURVIVAL)
         current = game->linesCleared;
     else
