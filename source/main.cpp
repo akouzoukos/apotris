@@ -27,6 +27,7 @@
 #include "classic1tiles_bin.h"
 #include "classic_pal_bin.h"
 #include "tonc_bios.h"
+#include "tonc_input.h"
 #include "tonc_memdef.h"
 
 #include "tetromino.hpp"
@@ -154,13 +155,14 @@ void initialize(){
 
     initRumble();
 
+
     REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
     REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3);
     REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0);
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
 
-    // 	// //Load bg tiles
+    	// //Load bg tiles
     memcpy16(&tile_mem[0][2], sprite3tiles_bin, sprite3tiles_bin_size / 2);
     memcpy16(&tile_mem[0][4], sprite5tiles_bin, sprite3tiles_bin_size / 2);
     memcpy16(&tile_mem[0][6], sprite8tiles_bin, sprite8tiles_bin_size / 2);
@@ -283,8 +285,6 @@ void reset() {
     placeEffectList.clear();
     rumbleTimer = 0;
     rumble_set_state(RumbleState(rumble_stop));
-
-    // REG_DISPCNT &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3);
 
     memset32(&se_mem[25], 0x0000, 32 * 20);
     memset32(&se_mem[26], 0x0000, 32 * 20);
@@ -498,8 +498,7 @@ void setSkin() {
             n *= -1;
             n--;
 
-            if(!savefile->customSkins[n].writable)
-                blockSprite = (u8*)&savefile->customSkins[n].board;
+            blockSprite = (u8*)&savefile->customSkins[n].board;
         }
         break;
     }

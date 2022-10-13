@@ -347,3 +347,5 @@ extern int subMode;
 extern int goalSelection;
 
 extern TILE* customSkin;
+
+extern int usableCustomSkins;

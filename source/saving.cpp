@@ -2,6 +2,7 @@
 #include "flashSaves.h"
 #include "tonc.h"
 #include "tonc_memdef.h"
+#include "sprite1tiles_bin.h"
 
 void setDefaultKeys();
 void addStats();
@@ -297,7 +298,6 @@ void loadSave() {
         for (int j = 0; j < 5; j++)
             savefile->digEfficiency[i].highscores[j].score = 0;
 
-
     savefile->seed = qran();
     saveToSram();
 }
@@ -323,6 +323,7 @@ void addStats(){
 
 void resetSkins(){
     for(int i = 0; i < MAX_CUSTOM_SKINS; i++){
-        savefile->customSkins[i].writable = true;
+        // savefile->customSkins[i].writable = true;
+        memcpy16(&savefile->customSkins[i].board,sprite1tiles_bin,sprite1tiles_bin_size/2);
     }
 }

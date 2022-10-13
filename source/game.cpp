@@ -6,6 +6,7 @@
 #include "tonc.h"
 #include "logging.h"
 #include <string>
+#include <sys/_intsup.h>
 #include "text.h"
 #include "tonc_core.h"
 #include "tonc_input.h"
@@ -46,12 +47,12 @@ OBJ_ATTR* moveSprites[3];
 bool onStates = false;
 
 int clearTimer = 0;
-int maxClearTimer = 20;
+#define maxClearTimer 20
 // int maxClearTimer = 1;
 
 std::string clearTypeText = "";
-int maxClearTextTimer = 100;
-int clearTextHeight = 16;
+#define maxClearTextTimer 100
+#define clearTextHeight 16
 
 int glow[20][10];
 
@@ -63,10 +64,10 @@ int restartTimer = 0;
 #define maxRestartTimer 20
 
 int attackFlashTimer = 0;
-int attackFlashMax = 10;
+#define attackFlashMax  10
 
 int rumbleTimer = 0;
-int rumbleMax = 1;
+#define rumbleMax 1
 
 std::list<FloatText> floatingList;
 
@@ -75,6 +76,7 @@ std::list<Effect> effectList;
 std::list<PlaceEffect> placeEffectList;
 
 Bot *testBot;
+
 
 void checkSounds() {
     if (game->sounds.hold)
@@ -483,7 +485,12 @@ void showQueue() {
             obj_set_attr(queueSprites[k], ATTR0_SQUARE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(k), ATTR2_PALBANK(n));
             queueSprites[k]->attr2 = ATTR2_BUILD(16 * n, n, 3);
             obj_aff_identity(&obj_aff_buffer[k]);
-            FIXED size = 358;//~1.4
+            // FIXED size = 358 + sizeControl;//~1.4
+            FIXED size;
+            if(savefile->settings.skin < 9)
+                size = 357;//~1.4
+            else
+                size = 349;//~1.4
             obj_aff_scale(&obj_aff_buffer[k], size, size);
             obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push - 4, (3 + (k * 3)) * 6 - 3 * (n == 0) - 4 + yoffset);
         }
@@ -569,6 +576,7 @@ void control() {
     }else{
         restartTimer = 0;
     }
+
 }
 
 void showTimer() {

@@ -4,6 +4,7 @@
 #include "soundbank.h"
 #include "tonc_bios.h"
 #include "sprites.h"
+#include <string>
 
 using namespace Tetris;
 
@@ -190,7 +191,7 @@ void graphicTest() {
                 break;
             case 4:
                 if (key_hit(KEY_LEFT)) {
-                    if (savefile->settings.skin > 0) {
+                    if (savefile->settings.skin > -(MAX_CUSTOM_SKINS)) {
                         savefile->settings.skin--;
                         sfx(SFX_MENUMOVE);
                     } else {
@@ -352,7 +353,7 @@ void graphicTest() {
             aprint("Light Mode", startX, startY + 12);
 
             for (int i = 0; i < options; i++)
-                aprint("      ", endX - 1, startY + i);
+                aprint("       ", endX - 2, startY + i);
 
             if (savefile->settings.effects)
                 aprint("ON", endX, startY);
@@ -371,7 +372,10 @@ void graphicTest() {
 
             aprintf(savefile->settings.backgroundGrid + 1, endX, startY + 3);
 
-            aprintf(savefile->settings.skin + 1, endX, startY + 4);
+            if(savefile->settings.skin >= 0)
+                aprintf(savefile->settings.skin + 1, endX, startY + 4);
+            else
+                aprint("C" + std::to_string(-savefile->settings.skin), endX-1, startY + 4);
 
             aprintf(savefile->settings.palette + 1, endX, startY + 5);
 
@@ -417,8 +421,8 @@ void graphicTest() {
                     aprint(">", endX + 1, startY + selection);
                 break;
             case 4:
-                if (savefile->settings.skin > 0)
-                    aprint("<", endX - 1, startY + selection);
+                if (savefile->settings.skin > -(MAX_CUSTOM_SKINS))
+                    aprint("<", endX - 1 - (savefile->settings.skin < 0), startY + selection);
                 if (savefile->settings.skin < MAX_SKINS - 1)
                     aprint(">", endX + 1, startY + selection);
                 break;

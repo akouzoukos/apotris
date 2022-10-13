@@ -3,8 +3,6 @@
 
 #include "logging.h"
 #include "text.h"
-#include "tonc_input.h"
-#include "tonc_memdef.h"
 #include "posprintf.h"
 
 #include "sprite29tiles_bin.h"
@@ -13,6 +11,13 @@
 #include "sprite32tiles_bin.h"
 #include "sprite33tiles_bin.h"
 #include "sprite34tiles_bin.h"
+
+#include <string>
+#include <tuple>
+#include <algorithm>
+
+#include "soundbank.h"
+#include "tonc_bios.h"
 
 const int xoffset = 15-8;
 const int yoffset = 10-8;
@@ -32,17 +37,22 @@ public:
     }
 
     void move(int dx, int dy){
-        if(x+dx >= 0 && x+dx <= 7)
-            x += dx;
-        //     x = 7;
-        // else if(x > 7)
-        //     x = 0;
+        bool sound = false;
 
-        if(y+dy >= 0 && y+dy <= 7)
-            y += dy;
-        //     y = 7;
-        // else if(y > 7)
-        //     y = 0;
+        if(dx){
+            if(x+dx >= 0 && x+dx <= 7){
+                x += dx;
+                sfx(SFX_MENUMOVE);
+                sound = true;
+            }
+        }
+        if(dy){
+            if(y+dy >= 0 && y+dy <= 7){
+                y += dy;
+                if(!sound)
+                    sfx(SFX_MENUMOVE);
+            }
+        }
     }
 
     Cursor(){
@@ -78,6 +88,8 @@ class Board{
 
         std::list<Move> history;
 
+        std::list<std::tuple<int,int>> queue;
+
         void set(int value, bool record){
             if(record)
                 history.push_back(Move(cursor.x,cursor.y,board[cursor.y][cursor.x],value,1));
@@ -92,33 +104,48 @@ class Board{
 
         void fill(int value, int record){
             int previous = board[cursor.y][cursor.x];
+            if(value == previous)
+                return;
             if(record)
                 history.push_back(Move(cursor.x,cursor.y,previous,value,2));
 
-            board[cursor.y][cursor.x] = value;
-            int s = (cursor.x) * 4;
-            customSkin->data[cursor.y] = (customSkin->data[cursor.y] & ~(0xf << (s))) | (value << (s));
+            int x,y;
 
-            if(cursor.y - 1 >= 0 && board[cursor.y-1][cursor.x] == previous){
-                cursor.y--;
-                fill(value,false);
-                cursor.y++;
-            }
-            if(cursor.y + 1 <= 7 && board[cursor.y+1][cursor.x] == previous){
-                cursor.y++;
-                fill(value,false);
-                cursor.y--;
-            }
-            if(cursor.x - 1 >= 0 && board[cursor.y][cursor.x-1] == previous){
-                cursor.x--;
-                fill(value,false);
-                cursor.x++;
-            }
-            if(cursor.x + 1 <= 7 && board[cursor.y][cursor.x+1] == previous){
-                cursor.x++;
-                fill(value,false);
-                cursor.x--;
-            }
+            queue.push_back(std::make_tuple(cursor.x,cursor.y));
+
+            do{
+                std::tuple<int,int> coords = queue.front();
+                x = std::get<0>(coords);
+                y = std::get<1>(coords);
+
+                board[y][x] = value;
+                int s = (x) * 4;
+                customSkin->data[y] = (customSkin->data[y] & ~(0xf << (s))) | ((value + (value == 5)) << (s));
+
+                if(y - 1 >= 0 && board[y-1][x] == previous){
+                    auto n = std::make_tuple(x,y-1);
+                    if(std::find(queue.begin(),queue.end(),n) == queue.end())
+                        queue.push_back(n);
+                }
+                if(y + 1 <= 7 && board[y+1][x] == previous){
+                    auto n = std::make_tuple(x,y+1);
+                    if(std::find(queue.begin(),queue.end(),n) == queue.end())
+                        queue.push_back(n);
+                }
+                if(x - 1 >= 0 && board[y][x-1] == previous){
+                    auto n = std::make_tuple(x-1,y);
+                    if(std::find(queue.begin(),queue.end(),n) == queue.end())
+                        queue.push_back(n);
+                }
+                if(x + 1 <= 7 && board[y][x+1] == previous){
+                    auto n = std::make_tuple(x+1,y);
+                    if(std::find(queue.begin(),queue.end(),n) == queue.end())
+                        queue.push_back(n);
+                }
+
+                queue.pop_front();
+            }while(!queue.empty());
+
         }
 
         void show(){
@@ -154,6 +181,7 @@ class Board{
 
             cursor.x = previous.x;
             cursor.y = previous.y;
+
 
             switch(previous.tool){
             case 1: set(previous.previousValue,false); break;
@@ -221,36 +249,42 @@ void skinEditor(){
                 currentColor--;
                 if(currentColor < 0)
                     currentColor = 5;
+                sfx(SFX_MENUMOVE);
             }
 
             if(key_hit(KEY_RIGHT)){
                 currentColor++;
                 if(currentColor > 5)
                     currentColor = 0;
+                sfx(SFX_MENUMOVE);
             }
 
             if(key_hit(KEY_UP)){
                 currentTool--;
                 if(currentTool < 0)
                     currentTool = 2;
+                sfx(SFX_MENUMOVE);
             }
 
             if(key_hit(KEY_DOWN)){
                 currentTool++;
                 if(currentTool > 2)
                     currentTool = 0;
+                sfx(SFX_MENUMOVE);
             }
         }else if(key_is_down(KEY_L)){
             if(key_hit(KEY_LEFT)){
                 savefile->settings.colors--;
                 if(savefile->settings.colors < 0)
                     savefile->settings.colors = MAX_COLORS-1;
+                sfx(SFX_MENUMOVE);
             }
 
             if(key_hit(KEY_RIGHT)){
                 savefile->settings.colors++;
                 if(savefile->settings.colors > MAX_COLORS-1)
                     savefile->settings.colors = 0;
+                sfx(SFX_MENUMOVE);
             }
 
             if(key_hit(KEY_LEFT | KEY_RIGHT))
@@ -379,7 +413,7 @@ void showColorPalette(int c){
     for(int i = 0; i < 6; i++)
         *dest++ = 100 + i;
 
-    aprint("     ",0,1);
+    aprint("      ",0,1);
     aprint("^",c,1);
 }
 
