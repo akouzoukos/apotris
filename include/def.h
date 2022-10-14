@@ -102,8 +102,6 @@ typedef struct Stats{
 }ALIGN(4) Stats;
 
 typedef struct Skin{
-    bool writable;
-
     TILE board;
 }ALIGN(4) Skin;
 

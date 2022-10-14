@@ -457,7 +457,6 @@ void showMinos(){
 
 void refreshSkin(){
     savefile->settings.skin = -1;
-    savefile->customSkins[0].writable = false;
     for(int i = 0; i < 8; i++){
         savefile->customSkins[0].board.data[i] = customSkin->data[i];
     }

@@ -7,6 +7,7 @@
 void setDefaultKeys();
 void addStats();
 void resetSkins();
+void setDefaults(Save * save, int depth);
 
 void saveToSram() {
     addStats();
@@ -50,16 +51,8 @@ void loadSave() {
         memcpy16(&tmp[sizeof(Settings)+ sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
 
         temp->newGame = SAVE_TAG;
-        temp->settings.placeEffect = false;
-        temp->settings.rumble = 0;
 
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->sprintAttack[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                temp->digEfficiency[i].highscores[j].score = 0;
+        setDefaults(temp,3);
 
         memcpy32(savefile, temp, sizeof(Save) / 4);
 
@@ -78,45 +71,8 @@ void loadSave() {
         memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
 
         temp->newGame = SAVE_TAG;
-        temp->settings.sfxVolume = 10;
-        temp->settings.directionalDas = false;
 
-        if(temp->settings.shake)
-            temp->settings.shakeAmount = 2;
-        else{
-            temp->settings.shake = true;
-            temp->settings.shakeAmount = 0;
-        }
-
-        temp->settings.noDiagonals = false;
-        temp->settings.maxQueue = 5;
-        temp->settings.colors = 0;
-        temp->settings.cycleSongs = true;
-        temp->settings.dropProtectionFrames = 8;
-        temp->settings.abHold = true;
-        temp->settings.clearEffect = 0;
-        temp->settings.resetHold = false;
-        temp->settings.placeEffect = false;
-        temp->settings.rumble = 0;
-
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 5; j++)
-                temp->blitz[i].highscores[j].score = 0;
-
-        for (int j = 0; j < 5; j++)
-            temp->combo.highscores[j].score = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                temp->survival[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->sprintAttack[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                temp->digEfficiency[i].highscores[j].score = 0;
+        setDefaults(temp,2);
 
         memcpy32(savefile, temp, sizeof(Save) / 4);
 
@@ -137,57 +93,10 @@ void loadSave() {
         memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
 
         temp->newGame = SAVE_TAG;
-        temp->settings.edges = false;
-        temp->settings.backgroundGrid = 0;
-        temp->settings.skin = 0;
-        temp->settings.palette = 6;
-        temp->settings.shadow = 0;
-        temp->settings.lightMode = false;
-        temp->settings.sfxVolume = 10;
-        temp->settings.directionalDas = false;
-        temp->settings.noDiagonals = false;
-        temp->settings.maxQueue = 5;
-        temp->settings.colors = 0;
-        temp->settings.cycleSongs = true;
-        temp->settings.dropProtectionFrames = 8;
-        temp->settings.abHold = true;
-        temp->settings.clearEffect = 0;
-        temp->settings.resetHold = false;
-        temp->settings.placeEffect = false;
-        temp->settings.rumble = 0;
 
-        if(temp->settings.shake)
-            temp->settings.shakeAmount = 2;
-        else{
-            temp->settings.shake = true;
-            temp->settings.shakeAmount = 0;
-        }
+        setDefaults(temp,1);
 
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 5; j++)
-                temp->blitz[i].highscores[j].score = 0;
-
-        for (int j = 0; j < 5; j++)
-            temp->combo.highscores[j].score = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                temp->survival[i].times[j].frames = 0;
-
-        for (int i = 0; i < 10; i++)
-            temp->settings.songList[i] = true;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                temp->ultra[i].highscores[j].score = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->sprintAttack[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                temp->digEfficiency[i].highscores[j].score = 0;
+        setDefaultKeys();
 
         memcpy32(savefile, temp, sizeof(Save) / 4);
 
@@ -197,87 +106,14 @@ void loadSave() {
         savefile = new Save();
         savefile->newGame = SAVE_TAG;
 
-        for (int i = 0; i < 8; i++)
-            savefile->latestName[i] = ' ';
-        savefile->latestName[8] = '\0';
-
-        for (int i = 0; i < 4; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->marathon[i].highscores[j].score = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->sprint[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->dig[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->ultra[i].highscores[j].score = 0;
-
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->blitz[i].highscores[j].score = 0;
-
-        for (int j = 0; j < 5; j++)
-            savefile->combo.highscores[j].score = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->survival[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->sprintAttack[i].times[j].frames = 0;
-
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 5; j++)
-                savefile->digEfficiency[i].highscores[j].score = 0;
-
-        savefile->settings.announcer = true;
-        savefile->settings.finesse = false;
-        savefile->settings.floatText = true;
-        savefile->settings.shake = true;
-        savefile->settings.effects = true;
-        savefile->settings.das = 11;
-        savefile->settings.arr = 2;
-        savefile->settings.sfr = 2;
-        savefile->settings.dropProtection = true;
-        savefile->settings.edges = false;
-        savefile->settings.backgroundGrid = 0;
-        savefile->settings.skin = 0;
-        savefile->settings.palette = 6;
-        savefile->settings.shadow = 0;
-        savefile->settings.lightMode = false;
-
-        savefile->settings.sfxVolume = 10;
-        savefile->settings.directionalDas = false;
-        savefile->settings.shakeAmount = 2;
-        savefile->settings.noDiagonals = false;
-        savefile->settings.maxQueue = 5;
-        savefile->settings.colors = 0;
-        savefile->settings.cycleSongs = true;
-        savefile->settings.dropProtectionFrames = 8;
-        savefile->settings.abHold = true;
-        savefile->settings.clearEffect = 0;
-        savefile->settings.resetHold = false;
-        savefile->settings.placeEffect = false;
-        savefile->settings.rumble = 0;
-
-        savefile->settings.volume = 10;
-
-        savefile->stats.timePlayed = 0;
-
-        for (int i = 0; i < 10; i++)
-            savefile->settings.songList[i] = true;
+        setDefaults(savefile,0);
 
         setDefaultKeys();
 
         resetSkins();
     }
 
+    //fix invalid values, since I messed up conversion at some point
     if ((savefile->settings.lightMode != 0) && (savefile->settings.lightMode != 1))
         savefile->settings.lightMode = false;
 
@@ -289,14 +125,6 @@ void loadSave() {
     for (int i = 0; i < (int)sizeof(Save); i++)
         sum += dump[i];
     sqran(sum);
-
-    for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 5; j++)
-            savefile->sprintAttack[i].times[j].frames = 0;
-
-    for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 5; j++)
-            savefile->digEfficiency[i].highscores[j].score = 0;
 
     savefile->seed = qran();
     saveToSram();
@@ -323,7 +151,106 @@ void addStats(){
 
 void resetSkins(){
     for(int i = 0; i < MAX_CUSTOM_SKINS; i++){
-        // savefile->customSkins[i].writable = true;
         memcpy16(&savefile->customSkins[i].board,sprite1tiles_bin,sprite1tiles_bin_size/2);
+    }
+}
+
+void setDefaults(Save *save, int depth){
+
+    if(depth < 1){
+        save->settings.announcer = true;
+        save->settings.finesse = false;
+        save->settings.floatText = true;
+        save->settings.shake = true;
+        save->settings.effects = true;
+        save->settings.das = 11;
+        save->settings.arr = 2;
+        save->settings.sfr = 2;
+        save->settings.dropProtection = true;
+
+        for (int i = 0; i < 8; i++)
+            savefile->latestName[i] = ' ';
+        savefile->latestName[8] = '\0';
+
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->marathon[i].highscores[j].score = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->sprint[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                savefile->dig[i].times[j].frames = 0;
+    }
+
+    if(depth < 2){
+        save->settings.edges = false;
+        save->settings.backgroundGrid = 0;
+        save->settings.skin = 0;
+        save->settings.palette = 6;
+        save->settings.shadow = 0;
+        save->settings.lightMode = false;
+
+        for (int i = 0; i < 10; i++)
+            save->settings.songList[i] = true;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                save->ultra[i].highscores[j].score = 0;
+    }
+
+    if(depth < 3){
+        save->settings.sfxVolume = 10;
+        save->settings.directionalDas = false;
+        save->settings.noDiagonals = false;
+        save->settings.maxQueue = 5;
+        save->settings.colors = 0;
+        save->settings.cycleSongs = true;
+        save->settings.dropProtectionFrames = 8;
+        save->settings.abHold = true;
+        save->settings.clearEffect = 0;
+        save->settings.resetHold = false;
+
+        if(save->settings.shake)
+            save->settings.shakeAmount = 2;
+        else{
+            save->settings.shake = true;
+            save->settings.shakeAmount = 0;
+        }
+
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 5; j++)
+                save->blitz[i].highscores[j].score = 0;
+
+        for (int j = 0; j < 5; j++)
+            save->combo.highscores[j].score = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                save->survival[i].times[j].frames = 0;
+    }
+
+    if(depth < 4){
+        save->settings.placeEffect = false;
+        save->settings.rumble = 0;
+
+    }
+
+    if(depth < 5){
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                save->sprintAttack[i].times[j].frames = 0;
+
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 5; j++)
+                save->digEfficiency[i].highscores[j].score = 0;
+
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 5; j++)
+                save->classic[i].highscores[j].score = 0;
+
+        savefile->stats.timePlayed = 0;
     }
 }
