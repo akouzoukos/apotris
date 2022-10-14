@@ -250,9 +250,19 @@ int endScreen() {
             std::string str2;
 
             str = modeStrings[game->gameMode-1];
+
+            if(game->gameMode == SPRINT && game->goal == 0)
+                str = "Training";
+
             aprintColor(str,30-str.size(),counter++,0);
 
-            str = modeOptionStrings[game->gameMode-1][mode];
+            str = "";
+            if(game->gameMode == SPRINT && game->goal == 0){
+                if(game->trainingMode)
+                    str = "Finesse";
+            }else
+                str = modeOptionStrings[game->gameMode-1][mode];
+
             if(str != "")
                 aprintColor(str,30-str.size(),counter++,0);
 
