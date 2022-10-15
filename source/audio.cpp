@@ -1,5 +1,4 @@
 #include "def.h"
-#include "stdlib.h"
 #include "tonc_types.h"
 #include "tonc_irq.h"
 #include "maxmod.h"
@@ -7,7 +6,7 @@
 
 #define audioChannels 12
 
-u8 myMixingBuffer[ MM_MIXLEN_21KHZ ] __attribute((aligned(4)));
+u8 myMixingBuffer[ MM_MIXLEN_16KHZ ] __attribute((aligned(4)));
 
 void maxModInit(){
 
@@ -17,9 +16,9 @@ void maxModInit(){
     myData = (u8*)malloc( audioChannels * (MM_SIZEOF_MODCH
                                +MM_SIZEOF_ACTCH
                                +MM_SIZEOF_MIXCH)
-                               +MM_MIXLEN_21KHZ );
+                               +MM_MIXLEN_16KHZ );
 
-    mySystem.mixing_mode       = MM_MIX_21KHZ;
+    mySystem.mixing_mode       = MM_MIX_16KHZ;
 
     mySystem.mod_channel_count = audioChannels;
     mySystem.mix_channel_count = audioChannels;

@@ -328,7 +328,7 @@ void startScreen() {
                     } else if (selection == 1) {
                         n = -1;
                         previousSettings = savefile->settings;
-                        options = 5;
+                        options = 6;
                     } else if (selection == 2) {
                         n = -2;
                     }
@@ -644,25 +644,15 @@ void startScreen() {
                         clearText();
                         refreshText = true;
                         settingsText();
-
-                    }else if(selection == 1){
+                    }else if(selection != options-1){
                         clearText();
                         sfx(SFX_MENUCONFIRM);
-                        audioSettings();
-                        clearText();
-                        refreshText = true;
-                        settingsText();
-                    }else if(selection == 2){
-                        clearText();
-                        sfx(SFX_MENUCONFIRM);
-                        controlsSettings();
-                        clearText();
-                        refreshText = true;
-                        settingsText();
-                    }else if(selection == 3){
-                        clearText();
-                        sfx(SFX_MENUCONFIRM);
-                        handlingSettings();
+                        switch(selection){
+                            case 1: audioSettings(); break;
+                            case 2: controlsSettings(); break;
+                            case 3: handlingSettings(); break;
+                            case 4: skinEditor(); break;
+                        }
                         clearText();
                         refreshText = true;
                         settingsText();
@@ -990,8 +980,8 @@ void startScreen() {
 void startText() {
     char buff[5];
 
-    int titleX = 1;
-    int titleY = 1;
+    const int titleX = 1;
+    const int titleY = 1;
 
     if (!onSettings) {
         aprint("v3.2.1", 0, 19);
@@ -1005,8 +995,8 @@ void startText() {
     } else {
         if (toStart == MARATHON) {//Marathon Options
             aprintColor("Marathon",titleX,titleY,1);
-            int levelHeight = 3;
-            int goalHeight = 7;
+            const int levelHeight = 3;
+            const int goalHeight = 7;
 
             aprint("Level: ", 12, levelHeight);
             aprint("Lines: ", 12, goalHeight);
@@ -1015,7 +1005,7 @@ void startText() {
             aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
             aprintColor(" 150   200   300   Endless ", 1, goalHeight + 2, 1);
 
-            std::string levelText = std::to_string(level);
+            const std::string levelText = std::to_string(level);
             aprint(levelText, 27 - levelText.length(), levelHeight + 2);
 
             aprint(" ", 10, 17);
@@ -1082,7 +1072,7 @@ void startText() {
 
         } else if (toStart == SPRINT) {//Sprint Options
             aprintColor("Sprint",titleX,titleY,1);
-            int goalHeight = 3;
+            const int goalHeight = 3;
             aprint("START", 12, 17);
 
             aprint("Type: ", 12, goalHeight);
@@ -1165,7 +1155,7 @@ void startText() {
         } else if (toStart == DIG) {//Dig Options
             aprintColor("Dig",titleX,titleY,1);
 
-            int goalHeight = 3;
+            const int goalHeight = 3;
             aprint("START", 12, 17);
 
             aprint("Type: ", 12, goalHeight);
@@ -1246,7 +1236,7 @@ void startText() {
         } else if (toStart == ULTRA) {//Ultra Options
             aprintColor("Ultra",titleX,titleY,1);
 
-            int goalHeight = 4;
+            const int goalHeight = 4;
             aprint("START", 12, 17);
             aprint("Minutes: ", 12, goalHeight);
             aprintColor(" 3    5    10 ", 8, goalHeight + 2, 1);
@@ -1302,7 +1292,7 @@ void startText() {
             aprint("START", 12, 17);
             aprint(">", 10, 17);
 
-            int leaderboardHeight = 8;
+            const int leaderboardHeight = 8;
 
             for (int i = 0; i < 5; i++) {
                 posprintf(buff,"%d.",i+1);
@@ -1323,7 +1313,7 @@ void startText() {
             aprint("START", 12, 17);
             aprint(">", 10, 17);
 
-            int leaderboardHeight = 8;
+            const int leaderboardHeight = 8;
 
             for (int i = 0; i < 5; i++) {
                 posprintf(buff,"%d.",i+1);
@@ -1341,9 +1331,9 @@ void startText() {
         } else if (toStart == SURVIVAL) {//Survival Options
             aprintColor("Survival",titleX,titleY,1);
 
-            int goalHeight = 4;
+            const int goalHeight = 4;
             aprint("START", 12, 17);
-            std::string str = "Difficulty:";
+            const std::string str = "Difficulty:";
             aprint(str, 14-str.size()/2, goalHeight);
             aprintColor(" EASY   MEDIUM   HARD ", 4, goalHeight + 2, 1);
 
@@ -1393,10 +1383,10 @@ void startText() {
             }
         } else if (toStart == CLASSIC) {//Classic Options
             aprintColor("Classic",titleX,titleY,1);
-            int levelHeight = 5;
-            int goalHeight = 1;
+            const int levelHeight = 5;
+            const int goalHeight = 1;
 
-            int diffHeight = 9;
+            const int diffHeight = 9;
 
             aprint("Level: ", 12, levelHeight);
             aprint("START", 12, 17);
@@ -1444,21 +1434,6 @@ void startText() {
             case 1: aprint("B-TYPE", 20, goalHeight + 2); break;
             }
 
-            // switch (goalSelection) {
-            // case 0:
-            //     aprint("150", 2, goalHeight + 2);
-            //     break;
-            // case 1:
-            //     aprint("200", 8, goalHeight + 2);
-            //     break;
-            // case 2:
-            //     aprint("300", 14, goalHeight + 2);
-            //     break;
-            // case 3:
-            //     aprint("Endless", 20, goalHeight + 2);
-            //     break;
-            // }
-
             // show level cursor
             u16* dest = (u16*)se_mem[29];
             dest += (levelHeight + 2) * 32 + 2 + level;
@@ -1479,24 +1454,24 @@ void startText() {
                 aprint(score, 25 - (int)score.length(), 11 + i);
             }
         } else if (toStart == -1) {
-            int startY = 5;
-            int space = 2;
+            const int startY = 5;
+            const int space = 2;
             aprint(" SAVE ", 12, 17);
 
-            for(int i = 0; i < 4; i++)
+            for(int i = 0; i < 5; i++)
                 aprint(" ",10,startY+i*space);
 
-            if(selection != 4)
+            if(selection != 5)
                 aprint(">", 10, startY+selection * space);
             else{
                 aprint("[",12,17);
                 aprint("]",17,17);
             }
         } else if (toStart == -2) {
-            int startX = 4;
-            int startY = 2;
+            const int startX = 4;
+            const int startY = 2;
 
-            int startY2 = 9;
+            const int startY2 = 9;
 
             aprint("Menu Music:", startX - 1, startY);
             aprint("-veryshorty-extended", startX, startY + 1);
@@ -1713,22 +1688,22 @@ void fallingBlocks() {
 }
 
 void settingsText() {
-    std::list<std::string> options = {
+    const std::list<std::string> options = {
         "Graphics",
         "Audio",
         "Controls",
-        "Handling"
+        "Handling",
+        "Skin Editor"
     };
 
-    int startX = 12;
-    int startY = 5;
-    int space = 2;
+    const int startX = 12;
+    const int startY = 5;
+    const int space = 2;
 
-    auto option = options.begin();
-
-    for(int i = 0; option != options.end(); i++){
-        aprint(*option,startX,startY+space*i);
-        option++;
+    int i = 0;
+    for(auto const& option : options){
+        aprint(option,startX,startY+space*i);
+        i++;
     }
 
     std::string str = "Playtime: " + timeToStringHours(savefile->stats.timePlayed);

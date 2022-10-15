@@ -18,6 +18,8 @@
 
 #include "soundbank.h"
 #include "tonc_bios.h"
+#include "tonc_input.h"
+#include "tonc_memmap.h"
 
 const int xoffset = 15-8;
 const int yoffset = 10-8;
@@ -191,6 +193,14 @@ class Board{
             history.pop_back();
         }
 
+        void setBoard(TILE * t){
+            for(int i = 0; i < 8; i++){
+                for(int j = 0; j < 8; j++){
+                    board[i][j] = (t->data[i] >> (j * 4)) & 0xf;
+                }
+            }
+        }
+
         Board(){
             for(int i = 0; i < 8; i++)
                 for(int j = 0; j < 8; j++)
@@ -204,19 +214,28 @@ void showMinos();
 void refreshSkin();
 void showTools(int);
 void showCursor();
+void selector();
 
 TILE * customSkin;
 
 static int cursorTimer = 0;
 static int toolTimer = 0;
 
+static int skinIndex = 0;
+
 void skinEditor(){
+    irq_disable(II_HBLANK);
+    memset16(&pal_bg_mem[0],0,1);
+    REG_DISPCNT &= ~DCNT_BG3;
 
     u16* dest = (u16*) &se_mem[26];
 
     for(int i = 0; i < 32; i++)
         for(int j = 0; j < 20; j++)
             *dest++ = 2;
+
+    selector();
+    clearText();
 
     memcpy16(&tile_mem[0][106],sprite34tiles_bin,sprite34tiles_bin_size/2);
 
@@ -230,12 +249,18 @@ void skinEditor(){
 
     Board board;
 
+    for(int i = 0; i < 8; i++)
+        customSkin->data[i] = savefile->customSkins[skinIndex].board.data[i];
+
+    board.setBoard(customSkin);
+    refreshSkin();
+
     int currentColor = 0;
     int currentTool = 1;
 
     int das = 0;
-    int dasMax = 20;
-    int arr = 4;
+    const int arr = 4;
+    const int dasMax = 20;
 
     while(true){
         VBlankIntrWait();
@@ -290,20 +315,6 @@ void skinEditor(){
             if(key_hit(KEY_LEFT | KEY_RIGHT))
                 setPalette();
 
-            // if(key_hit(KEY_UP)){
-            //     savefile->settings.skin--;
-            //     if(savefile->settings.skin < 0)
-            //         savefile->settings.skin = MAX_SKINS-1;
-            // }
-
-            // if(key_hit(KEY_DOWN)){
-            //     savefile->settings.skin++;
-            //     if(savefile->settings.skin > MAX_SKINS-1)
-            //         savefile->settings.skin = 0;
-            // }
-
-            // if(key_hit(KEY_UP | KEY_DOWN))
-            //     setPalette();
         }else{
             if(key_hit(KEY_LEFT | KEY_RIGHT)){
                 dx = ((key_hit(KEY_RIGHT) != 0) - (key_hit(KEY_LEFT) != 0));
@@ -359,8 +370,10 @@ void skinEditor(){
             refreshSkin();
         }
 
-        if(key_hit(KEY_START))
+        if(key_hit(KEY_START)){
+            sfx(SFX_MENUCONFIRM);
             break;
+        }
 
         board.show();
         showMinos();
@@ -373,7 +386,7 @@ void skinEditor(){
     }
 
     for(int i = 0; i < 8; i++){
-        savefile->customSkins[0].board.data[i] = customSkin->data[i];
+        savefile->customSkins[skinIndex].board.data[i] = customSkin->data[i];
     }
 
     // memcpy16(&tile_mem[5][200],sprite29tiles_bin,sprite29tiles_bin_size/2);
@@ -383,6 +396,46 @@ void skinEditor(){
     // memcpy16(&tile_mem[5][212],sprite33tiles_bin,sprite33tiles_bin_size/2);
 
     memset16(&tile_mem[5][200],0,64*4);
+
+    //clean up
+
+    //hide mino previews
+    for(int i = 0; i < 7; i++)
+        obj_hide(&obj_buffer[i+1]);
+
+    irq_enable(II_HBLANK);
+    REG_DISPCNT |= DCNT_BG3;
+    memset16(&se_mem[25], 0x0000, 32 * 20);
+    memset16(&se_mem[26], 0x0000, 32 * 20);
+    drawUIFrame(0, 0, 30, 20);
+}
+
+void selector(){
+    aprint("Select a slot to edit:",4,6);
+
+    while(1){
+        VBlankIntrWait();
+        key_poll();
+
+        aprintColor(" C1 C2 C3 C4 C5 ",7, 10, 1);
+
+        aprint("C" + std::to_string(skinIndex+1),8 + skinIndex*3,10);
+
+        if(key_hit(KEY_A) || key_hit(KEY_START)){
+            sfx(SFX_MENUCONFIRM);
+            break;
+        }
+
+        if(key_hit(KEY_LEFT) && skinIndex > 0){
+            skinIndex--;
+            sfx(SFX_MENUMOVE);
+        }
+
+        if(key_hit(KEY_RIGHT) && skinIndex < 4){
+            skinIndex++;
+            sfx(SFX_MENUMOVE);
+        }
+    }
 }
 
 void generateTiles(){
@@ -456,9 +509,9 @@ void showMinos(){
 }
 
 void refreshSkin(){
-    savefile->settings.skin = -1;
+    savefile->settings.skin = -(skinIndex+1);
     for(int i = 0; i < 8; i++){
-        savefile->customSkins[0].board.data[i] = customSkin->data[i];
+        savefile->customSkins[skinIndex].board.data[i] = customSkin->data[i];
     }
     setSkin();
 }

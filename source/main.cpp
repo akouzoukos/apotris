@@ -216,8 +216,6 @@ int main(void) {
 
     initialize();
 
-    skinEditor();
-
     //start screen animation
     while(1){
         reset();

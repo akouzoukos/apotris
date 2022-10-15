@@ -103,6 +103,7 @@ typedef struct Stats{
 
 typedef struct Skin{
     TILE board;
+    int previewStyle;
 }ALIGN(4) Skin;
 
 #define MAX_CUSTOM_SKINS 5
@@ -277,6 +278,7 @@ extern void checkSounds();
 extern int getClassicPalette();
 extern void skinEditor();
 extern void maxModInit();
+extern void drawUIFrame(int,int,int,int);
 
 extern std::string timeToString(int);
 
