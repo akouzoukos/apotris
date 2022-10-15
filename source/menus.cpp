@@ -26,7 +26,7 @@ bool showingStats = false;
 bool saveExists = false;
 Tetris::Game* quickSave;
 
-std::string modeStrings[9] = {
+const std::string modeStrings[9] = {
     "Marathon",
     "Sprint",
     "Dig",
@@ -38,7 +38,7 @@ std::string modeStrings[9] = {
     "Classic",
 };
 
-std::string modeOptionStrings[9][4] = {
+const std::string modeOptionStrings[9][4] = {
     {"150","200","300","Endless"},
     {"20","40","100"},
     {"10","20","100"},

@@ -276,6 +276,7 @@ extern void showPlaceEffect();
 extern void checkSounds();
 extern int getClassicPalette();
 extern void skinEditor();
+extern void maxModInit();
 
 extern std::string timeToString(int);
 
@@ -301,7 +302,7 @@ extern std::list<Effect> effectList;
 extern std::list<FloatText> floatingList;
 extern std::list<PlaceEffect> placeEffectList;
 
-extern int glow[20][10];
+extern s16 glow[20][10];
 
 extern int nextSeed;
 
@@ -325,7 +326,7 @@ extern OBJ_ATTR * queueFrameSprites[3];
 extern int enemyHeight;
 
 extern Tetris::Bot *testBot;
-extern int enemyBoard[20][10];
+extern bool enemyBoard[20][10];
 
 extern int mode;
 
@@ -347,3 +348,4 @@ extern int goalSelection;
 extern TILE* customSkin;
 
 extern int usableCustomSkins;
+#define shakeMax 10

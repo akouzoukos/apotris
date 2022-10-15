@@ -48,7 +48,6 @@ int frameCounter = 1;
 OBJ_ATTR obj_buffer[128];
 OBJ_AFFINE* obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 
-int shakeMax = 10;
 int shake = 0;
 
 int gameSeconds;
@@ -148,7 +147,9 @@ void initialize(){
     irq_add(II_HBLANK, onHBlank);
     irq_disable(II_HBLANK);
 
-    mmInitDefault((mm_addr)soundbank_bin, 10);
+    // mmInitDefault((mm_addr)soundbank_bin, 10);
+    //
+    maxModInit();
     mmSetEventHandler((mm_callback)myEventHandler);
 
     logInitMgba();

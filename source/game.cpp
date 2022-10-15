@@ -6,12 +6,8 @@
 #include "tonc.h"
 #include "logging.h"
 #include <string>
-#include <sys/_intsup.h>
+// #include <sys/_intsup.h>
 #include "text.h"
-#include "tonc_core.h"
-#include "tonc_input.h"
-#include "tonc_memdef.h"
-#include "tonc_oam.h"
 
 #include "rumble.h"
 
@@ -54,7 +50,7 @@ std::string clearTypeText = "";
 #define maxClearTextTimer 100
 #define clearTextHeight 16
 
-int glow[20][10];
+s16 glow[20][10];
 
 int push = 0;
 
@@ -75,8 +71,7 @@ std::list<Effect> effectList;
 
 std::list<PlaceEffect> placeEffectList;
 
-Bot *testBot;
-
+// Bot *testBot;
 
 void checkSounds() {
     if (game->sounds.hold)
@@ -711,7 +706,7 @@ void showClearText() {
         } else {
             int height = 0;
             if (index->timer < 2 * maxClearTextTimer / 3)
-                height = 5 * (float)index->timer / (2 * maxClearTextTimer / 3);
+                height = 5 * (float)index->timer / ((float)2 * maxClearTextTimer / 3);
             else
                 height = (30 * (float)(index->timer) / maxClearTextTimer) - 15;
             if (text.size() <= 10) {
@@ -770,7 +765,7 @@ void gameLoop(){
 
         if(ENABLE_BOT){
             profile_start();
-            testBot->run();
+            // testBot->run();
             botGame->update();
             handleBotGame();
             addToResults(profile_stop(),0);

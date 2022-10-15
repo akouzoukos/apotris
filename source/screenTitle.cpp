@@ -85,7 +85,7 @@ public:
 WordSprite* wordSprites[MAX_WORD_SPRITES];
 int titleFloat = 0;
 OBJ_ATTR* titleSprites[2];
-int backgroundArray[30][30];
+u8 backgroundArray[30][30];
 int bgSpawnBlock = 0;
 int bgSpawnBlockMax = 20;
 int gravity = 0;
@@ -104,10 +104,10 @@ bool bigMode = false;
 int bigModeMessageTimer = 0;
 int bigModeMessageMax = 180;
 
-std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
+const std::list<std::string> menuOptions = { "Play","Settings","Credits" };
+const std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
 
-int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
+const int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
 static int selection = 0;
 int goalSelection = 0;
@@ -219,9 +219,12 @@ void startScreen() {
             startX = 12;
             startY = 11;
 
-            std::list<std::string>::iterator index = menuOptions.begin();
-            for (int i = 0; i < (int)menuOptions.size(); i++) {
+            // std::list<std::string>::iterator index = menuOptions.begin();
+            // for (int i = 0; i < (int)menuOptions.size(); i++) {
+            int i = 0;
+            for(auto const & option : menuOptions){
                 int x = (startX - 5 * onPlay) * 8;
+
                 int y = (startY + i * space) * 8;
 
                 if(movingHor){
@@ -231,21 +234,24 @@ void startScreen() {
                         x=lerp((startX)*8,x,64*movingTimer);
                 }
 
-                wordSprites[i]->setText(*index);
+                wordSprites[i]->setText(option);
                 wordSprites[i]->show(x, y , 15 - !((onPlay && i == 0) || (!onPlay && selection == i)));
-                ++index;
+                i++;
             }
 
             int offset = (int)menuOptions.size();
 
-            index = gameOptions.begin();
-            for (int i = 0; i < (int)gameOptions.size(); i++) {
-                wordSprites[i + offset]->setText(*index);
+            // index = gameOptions.begin();
+            // for (int i = 0; i < (int)gameOptions.size(); i++) {
+            i = 0;
+            for(auto const& option : gameOptions){
+                wordSprites[i + offset]->setText(option);
 
                 int height = i - selection;
 
                 if (onPlay && height >= -2 && height < 4) {
                     int x = (startX+5)*8;
+
                     int y = (startY+height*space)*8;
 
                     if(moving){
@@ -261,7 +267,7 @@ void startScreen() {
                 } else
                     wordSprites[i + offset]->hide();
 
-                ++index;
+                i++;
             }
 
             if(moving || movingHor){
