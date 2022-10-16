@@ -19,7 +19,9 @@
 #include "soundbank.h"
 #include "tonc_bios.h"
 #include "tonc_input.h"
+#include "tonc_memdef.h"
 #include "tonc_memmap.h"
+#include "tonc_oam.h"
 
 const int xoffset = 15-8;
 const int yoffset = 10-8;
@@ -412,6 +414,18 @@ void skinEditor(){
 
 void selector(){
     aprint("Select a slot to edit:",4,6);
+
+    for(int i = 0; i < 5; i++){
+        OBJ_ATTR * sprite = &obj_buffer[i+1];
+
+        memcpy16(&tile_mem[5][200+i],&savefile->customSkins[i].board,16);
+
+        obj_set_attr(sprite, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(712+i, 7, 0));
+        obj_set_pos(sprite,(8+i*3)*8 + 4,92);
+        obj_unhide(sprite,0);
+    }
+
+    oam_copy(oam_mem, obj_buffer, 32);
 
     while(1){
         VBlankIntrWait();
