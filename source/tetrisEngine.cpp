@@ -1,6 +1,5 @@
 #include "tetromino.hpp"
 #include "tetrisEngine.h"
-#include <stdlib.h>
 #include <iostream>
 #include <string>
 #include "tonc.h"
@@ -9,15 +8,7 @@
 using namespace Tetris;
 using namespace GameInfo;
 
-// int min(int a, int b){
-    // return (a>b)?a:b;
-    // min
-// }
-
 int Game::checkRotation(int dx, int dy, int r) {
-    // int x = (dx + pawn.x) * ((pawn.big)?2:1);
-    // int y = (dy + pawn.y) * ((pawn.big)?2:1);
-
     int x = dx + pawn.x;
     int y = dy + pawn.y;
 
@@ -220,7 +211,8 @@ void Game::moveRight() {
 void Game::moveDown() {
     if (checkRotation(0, 1, pawn.rotation)){
         pawn.y++;
-        sounds.shift = 1;
+        if(gameMode != CLASSIC)
+            sounds.shift = 1 ;
         lastMoveRotation = 0;
     }else if(gameMode == CLASSIC){
         place();
@@ -396,20 +388,20 @@ void Game::update() {
     }
 
     if (!(left || right)){
-        das = 0;
-        arrCounter = 0;
+        if(gameMode != CLASSIC){
+            das = 0;
+            arrCounter = 0;
+        }
     }else if (das < maxDas){
         das++;
-        // log("das: "+std::to_string(das));
     }
 
     if (das == maxDas && !(left && right)) {
-        // log("arr: "+std::to_string(arrCounter));
         if (--arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
                 if (left)
                     moveLeft();
-                else
+                else if(right)
                     moveRight();
             }
             arrCounter = arr;
@@ -602,8 +594,6 @@ void Game::place() {
         pawn.current = -1;
 
         down = 0;
-        // left = 0;
-        // right = 0;
     }
 
     if (!clearLock && !entryDelay)
@@ -743,7 +733,6 @@ int Game::clear(Drop drop) {
             int requirement = linesCleared-init;
             if(requirement >= 0)
                 level = (requirement/10) + initialLevel + 1;
-            log("level: "+std::to_string(level));
         }else{
             level = ((int)linesCleared / 10);
         }
@@ -1010,13 +999,13 @@ int** Game::getShape(int n,int r) {
 void Game::lockCheck() {
     if (pawn.lowest == pawn.y && lockMoveCounter > 0) {
         lockTimer = maxLockTimer;
+        lockMoveCounter--;
     }
 }
 
 void Game::keyLeft(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-        // if(!entryDelay)
             left = dir;
         return;
     }
@@ -1026,6 +1015,11 @@ void Game::keyLeft(int dir) {
     left = dir;
     
     previousKey = -1;
+
+    if(gameMode == CLASSIC && dir && !(down)){
+        das = 0;
+        arrCounter = 0;
+    }
 
     if(!dir){
         pushDir = 0;
@@ -1045,7 +1039,6 @@ void Game::keyLeft(int dir) {
 void Game::keyRight(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-        // if(!entryDelay)
             right = dir;
         return;
     }
@@ -1055,6 +1048,11 @@ void Game::keyRight(int dir) {
     right = dir;
     
     previousKey = 1;
+
+    if(gameMode == CLASSIC && dir && !(down)){
+        das = 0;
+        arrCounter = 0;
+    }
 
     if(!dir){
         pushDir = 0;
@@ -1108,8 +1106,6 @@ void Game::removeClearLock() {
     if(!entryDelay)
         next();
     refresh = 1;
-
-    // setCurrentHeight(); 
 }
 
 void Game::resetSounds(){

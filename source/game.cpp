@@ -423,7 +423,12 @@ void showHold() {
         obj_unhide(holdSprite, ATTR0_AFF);
         obj_set_attr(holdSprite, ATTR0_WIDE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(16 * game->held, palette, 3);
-        FIXED size = float2fx(1.4);
+        FIXED size;
+        if(savefile->settings.skin < 9)
+            size = 357;//~1.4
+        else
+            size = 349;//~1.4
+
         obj_aff_scale(&obj_aff_buffer[5], size, size);
         obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0) - 3);
     }
@@ -1332,5 +1337,5 @@ void addPlaceEffect(Tetris::Drop drop){
     if((int)placeEffectList.size() >= 3 || !savefile->settings.placeEffect || game->pawn.big)
         return;
 
-    placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating));
+    placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating * (game->gameMode != CLASSIC)));
 }

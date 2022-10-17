@@ -99,6 +99,9 @@ typedef struct Test3{
 
 typedef struct Stats{
     int timePlayed;
+    int gamesStarted;
+    int gamesCompleted;
+    int gamesLost;
 }ALIGN(4) Stats;
 
 typedef struct Skin{
@@ -217,7 +220,7 @@ public:
 
 #define SHOW_FINESSE 1
 #define DIAGNOSE 0
-#define SAVE_TAG 0x4e
+#define SAVE_TAG 0x4f
 #define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1

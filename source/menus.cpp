@@ -4,10 +4,7 @@
 #include "def.h"
 #include "soundbank.h"
 #include "tetrisEngine.h"
-#include "tonc_math.h"
-#include "tonc_memdef.h"
-#include "tonc_memmap.h"
-#include "tonc_oam.h"
+#include "logging.h"
 #include "text.h"
 #include <string>
 #include <map>
@@ -47,7 +44,7 @@ const std::string modeOptionStrings[9][4] = {
     {""},
     {""},
     {"EASY","MEDIUM","HARD"},
-    {""},
+    {"",""},
 };
 
 void songListMenu() {
@@ -224,6 +221,10 @@ int endScreen() {
         progressBar();
     }
 
+    savefile->stats.gamesCompleted++;
+    if(game->lost)
+        savefile->stats.gamesLost++;
+
     while (1) {
         handleMultiplayer();
         VBlankIntrWait();
@@ -260,11 +261,17 @@ int endScreen() {
             if(game->gameMode == SPRINT && game->goal == 0){
                 if(game->trainingMode)
                     str = "Finesse";
-            }else
-                str = modeOptionStrings[game->gameMode-1][mode];
+            }else{
+                if(game->gameMode != CLASSIC)
+                    str = modeOptionStrings[game->gameMode-1][mode];
+                else
+                    str = modeOptionStrings[game->gameMode-1][0];
+            }
 
             if(str != "")
                 aprintColor(str,30-str.size(),counter++,0);
+
+            log(std::to_string(mode));
 
             str = "";
             str2 = "";

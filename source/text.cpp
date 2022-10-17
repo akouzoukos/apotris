@@ -1,5 +1,4 @@
 #include "def.h"
-#include <string.h>
 #include <string>
 #include <tonc.h>
 

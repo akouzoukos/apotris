@@ -828,10 +828,7 @@ void startScreen() {
                                 goal = 10 * 3600;
                             break;
                         case BLITZ:
-                            if (goalSelection == 0)
-                                goal = 2 * 3600;
-                            else if (goalSelection == 1)
-                                goal = 5 * 3600;
+                            goal = 2 * 3600;
                             break;
                         case SURVIVAL:
                             goal = goalSelection+1;
@@ -842,6 +839,9 @@ void startScreen() {
                             break;
                         }
                         game->setGoal(goal);
+
+                        savefile->stats.gamesStarted++;
+
                         sfx(SFX_MENUCONFIRM);
                         break;
                     }
@@ -984,7 +984,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.2.1", 0, 19);
+        aprint("v3.3.0b", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 

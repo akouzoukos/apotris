@@ -37,7 +37,11 @@ void loadSave() {
     savefile = new Save();
     loadFromSram();
 
-    if (savefile->newGame == 0x4d) {
+    if (savefile->newGame == 0x4e) {
+        savefile->newGame = SAVE_TAG;
+
+        setDefaults(savefile,4);
+    }else if (savefile->newGame == 0x4d) {
         Save* temp = new Save();
         int oldSize = sizeof(Test3);
 
@@ -142,7 +146,6 @@ void setDefaultKeys(){
     k.hold = KEY_R | KEY_L;
 
     savefile->settings.keys = k;
-
 }
 
 void addStats(){
@@ -252,5 +255,11 @@ void setDefaults(Save *save, int depth){
                 save->classic[i].highscores[j].score = 0;
 
         savefile->stats.timePlayed = 0;
+        savefile->stats.gamesStarted = 0;
+        savefile->stats.gamesCompleted = 0;
+        savefile->stats.gamesLost = 0;
+
+        for(int i = 0; i < MAX_CUSTOM_SKINS; i++)
+            memcpy16(&savefile->customSkins[i].board,sprite1tiles_bin,sprite1tiles_bin_size/2);
     }
 }

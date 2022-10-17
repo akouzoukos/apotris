@@ -1,8 +1,5 @@
 #include <tonc.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string>
-#include <string.h>
 #include <maxmod.h>
 
 #include "def.h"
@@ -26,9 +23,6 @@
 #include "gbp_logo.hpp"
 #include "classic1tiles_bin.h"
 #include "classic_pal_bin.h"
-#include "tonc_bios.h"
-#include "tonc_input.h"
-#include "tonc_memdef.h"
 
 #include "tetromino.hpp"
 
@@ -147,9 +141,9 @@ void initialize(){
     irq_add(II_HBLANK, onHBlank);
     irq_disable(II_HBLANK);
 
-    // mmInitDefault((mm_addr)soundbank_bin, 10);
+    mmInitDefault((mm_addr)soundbank_bin, 12);
     //
-    maxModInit();
+    // maxModInit();
     mmSetEventHandler((mm_callback)myEventHandler);
 
     logInitMgba();
