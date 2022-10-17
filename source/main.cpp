@@ -25,6 +25,7 @@
 #include "classic_pal_bin.h"
 
 #include "tetromino.hpp"
+#include "tonc_bios.h"
 
 using namespace Tetris;
 
@@ -142,14 +143,11 @@ void initialize(){
     irq_disable(II_HBLANK);
 
     mmInitDefault((mm_addr)soundbank_bin, 12);
-    //
-    // maxModInit();
     mmSetEventHandler((mm_callback)myEventHandler);
 
     logInitMgba();
 
     initRumble();
-
 
     REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
     REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3);
@@ -171,7 +169,7 @@ void initialize(){
     memcpy16(&tile_mem[0][31], sprite23tiles_bin, sprite23tiles_bin_size / 2);
     memcpy16(&tile_mem[0][32], sprite24tiles_bin, sprite24tiles_bin_size / 2);
 
-    //hold tileshodl
+    //hold tiles
     memcpy16(&tile_mem[5][0], sprite6tiles_bin, sprite6tiles_bin_size / 2);
 
     //queue frame Tiles
@@ -439,8 +437,8 @@ std::string nameInput(int place) {
 
 
 void setSkin() {
-    for (int i = 0; i < 7; i++)
-        memcpy16(&tile_mem[4][9 * 16 + i * 8], mini[0][i], 16 * 7);
+    // for (int i = 0; i < 7; i++)
+    //     memcpy16(&tile_mem[4][9 * 16 + i * 8], mini[0][i], 16 * 7);
 
     switch (savefile->settings.skin) {
     case 0:
@@ -460,9 +458,6 @@ void setSkin() {
         break;
     case 5:
         blockSprite = (u8*)sprite19tiles_bin;
-        //load mini sprite tiles
-        for (int i = 0; i < 7; i++)
-            memcpy16(&tile_mem[4][9 * 16 + i * 8], mini[1][i], 16 * 7);
         break;
     case 6:
         blockSprite = (u8*)sprite21tiles_bin;
@@ -494,6 +489,18 @@ void setSkin() {
             blockSprite = (u8*)&savefile->customSkins[n].board;
         }
         break;
+    }
+
+    if(savefile->settings.skin < 7){
+        VBlankIntrWait();
+        if(savefile->settings.skin < 0){
+            int n = savefile->settings.skin;
+            n *= -1;
+            n--;
+            buildMini(&savefile->customSkins[n].smallBoard);
+        }else{
+            buildMini((TILE*)mini[savefile->settings.skin]);
+        }
     }
 
     setPalette();
@@ -740,4 +747,33 @@ int getClassicPalette(){
         n = abs(game->initSeed) % 10;
 
     return n;
+}
+
+void buildMini(TILE * customSkin){
+    memset32(&tile_mem[4][9*16],0,8*8*7);
+    for (int i = 0; i < 7; i++){
+
+        TILE * t;
+        int** p = game->getShape(i, 0);
+        int tileStart = 9 * 16 + i * 8;
+
+        for(int y = 0; y < 2; y++){
+            for(int x = 0; x < 4; x++){
+                if(!p[y][x])
+                    continue;
+
+                for(int ii = 0; ii < 6; ii++){
+                    for(int jj = 0; jj < 6; jj++){
+                        t = &tile_mem[4][tileStart + (x*6+jj)/8 + ((y*6+ii)/8)*4];
+
+                        t->data[(y*6+ii)%8] |= ((customSkin->data[ii] >> (4*jj)) & 0xf) << (((x*6+jj)%8)*4);
+                    }
+                }
+            }
+        }
+
+        for(int i = 0; i < 4; i++)
+            delete p[i];
+        delete p;
+    }
 }

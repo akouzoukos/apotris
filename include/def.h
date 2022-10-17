@@ -106,6 +106,7 @@ typedef struct Stats{
 
 typedef struct Skin{
     TILE board;
+    TILE smallBoard;
     int previewStyle;
 }ALIGN(4) Skin;
 
@@ -282,6 +283,7 @@ extern int getClassicPalette();
 extern void skinEditor();
 extern void maxModInit();
 extern void drawUIFrame(int,int,int,int);
+extern void buildMini(TILE *);
 
 extern std::string timeToString(int);
 

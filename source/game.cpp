@@ -414,7 +414,7 @@ void showHold() {
     int add = !(game->held == 0 || game->held == 3);
     int palette = (game->canHold)? game->held : 7;
 
-    if (savefile->settings.skin == 0 || savefile->settings.skin == 5) {
+    if (savefile->settings.skin < 7) {
         obj_unhide(holdSprite, 0);
         obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
@@ -475,7 +475,7 @@ void showQueue() {
         int n = *q;
 
         int add = !(n == 0 || n == 3);
-        if ((savefile->settings.skin == 0 || savefile->settings.skin == 5) && game->gameMode != CLASSIC) {
+        if ((savefile->settings.skin < 7) && game->gameMode != CLASSIC) {
             obj_unhide(queueSprites[k], 0);
             obj_set_attr(queueSprites[k], ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(n));
             queueSprites[k]->attr2 = ATTR2_BUILD(16 * 9 + 8 * n, n, 3);

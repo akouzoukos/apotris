@@ -33,20 +33,20 @@ public:
     int y = 0;
     OBJ_ATTR* sprite;
 
-    void show(){
-        int sx = x * 16 + xoffset * 8;
-        int sy = y * 16 + yoffset * 8;
+    void show(bool mini){
+        int sx = (x+mini) * 16 + xoffset * 8;
+        int sy = (y+mini) * 16 + yoffset * 8;
 
         obj_set_pos(sprite,sx,sy);
         obj_unhide(sprite,0);
     }
 
-    bool move(int dx, int dy){
+    bool move(int dx, int dy,bool mini){
         bool sound = false;
         bool moved = false;
 
         if(dx){
-            if(x+dx >= 0 && x+dx <= 7){
+            if(x+dx >= 0 && x+dx <= (7-(mini*2))){
                 x += dx;
                 sfx(SFX_SHIFT2);
                 moved = true;
@@ -54,7 +54,7 @@ public:
             }
         }
         if(dy){
-            if(y+dy >= 0 && y+dy <= 7){
+            if(y+dy >= 0 && y+dy <= 7-(mini*2)){
                 y += dy;
                 moved = true;
                 if(!sound)
@@ -158,29 +158,49 @@ class Board{
 
         }
 
-        void show(){
+        void show(bool mini){
             u16* dest = (u16*) &se_mem[25];
 
             for(int i = 0; i < 8; i++){
                 int y = ((i * 2)+yoffset) * 32;
                 for(int j = 0; j < 8; j++){
                     int x = j * 2 + xoffset;
-                    int n = board[i][j] + 100 - (board[i][j] == 6);
-                    if(board[i][j] != 0){
-                        dest[y+x] = n;
-                        dest[y+x+1] = n;
-                        dest[y+32+x] = n;
-                        dest[y+32+x+1] = n;
+                    if(!mini){
+                        if(board[i][j] != 0){
+                            int n = board[i][j] + 100 - (board[i][j] == 6);
+                            dest[y+x] = n;
+                            dest[y+x+1] = n;
+                            dest[y+32+x] = n;
+                            dest[y+32+x+1] = n;
+                        }else{
+                            dest[y+x] = 0xf06a;
+                            dest[y+x+1] = 0xf06b;
+                            dest[y+32+x] = 0xf06c;
+                            dest[y+32+x+1] = 0xf06d;
+                        }
                     }else{
-                        dest[y+x] = 0xf06a;
-                        dest[y+x+1] = 0xf06b;
-                        dest[y+32+x] = 0xf06c;
-                        dest[y+32+x+1] = 0xf06d;
+                        if(i == 0 || j == 0 || i > 6 || j > 6){
+                            dest[y+x] = 0;
+                            dest[y+x+1] = 0;
+                            dest[y+32+x] = 0;
+                            dest[y+32+x+1] = 0;
+                        }else if(board[i-1][j-1] != 0){
+                            int n = board[i-1][j-1] + 100 - (board[i-1][j-1] == 6);
+                            dest[y+x] = n;
+                            dest[y+x+1] = n;
+                            dest[y+32+x] = n;
+                            dest[y+32+x+1] = n;
+                        }else{
+                            dest[y+x] = 0xf06a;
+                            dest[y+x+1] = 0xf06b;
+                            dest[y+32+x] = 0xf06c;
+                            dest[y+32+x+1] = 0xf06d;
+                        }
                     }
                 }
             }
 
-            cursor.show();
+            cursor.show(mini);
         }
 
         bool undo(){
@@ -203,10 +223,21 @@ class Board{
             return true;
         }
 
-        void setBoard(TILE * t){
-            for(int i = 0; i < 8; i++){
-                for(int j = 0; j < 8; j++){
-                    board[i][j] = (t->data[i] >> (j * 4)) & 0xf;
+        void setBoard(TILE * t,int type){
+            if(type == 0){
+                for(int i = 0; i < 8; i++){
+                    for(int j = 0; j < 8; j++){
+                        board[i][j] = (t->data[i] >> (j * 4)) & 0xf;
+                    }
+                }
+            }else{
+                for(int i = 0; i < 8; i++){
+                    for(int j = 0; j < 8; j++){
+                        if(i < 6 && j < 6)
+                            board[i][j] = (t->data[i] >> ((j) * 4)) & 0xf;
+                        else
+                            board[i][j] = 0;
+                    }
                 }
             }
         }
@@ -224,7 +255,10 @@ void showMinos();
 void refreshSkin();
 void showTools(int);
 void showCursor();
+void showMini();
 int selector();
+void helpScreen();
+int optionsMenu();
 
 TILE * customSkin;
 
@@ -232,8 +266,10 @@ static int cursorTimer = 0;
 static int toolTimer = 0;
 
 static int skinIndex = 0;
+static bool onMini = false;
 
 void skinEditor(){
+    onMini = false;
     irq_disable(II_HBLANK);
     memset16(&pal_bg_mem[0],0,1);
     memset16(&se_mem[27], 0x0000, 32 * 20);
@@ -251,6 +287,7 @@ void skinEditor(){
 
         if(selector())
             break;
+
         REG_DISPCNT |= DCNT_BG3;
         clearText();
 
@@ -268,8 +305,12 @@ void skinEditor(){
         for(int i = 0; i < 8; i++)
             customSkin->data[i] = savefile->customSkins[skinIndex].board.data[i];
 
-        board.setBoard(customSkin);
+        board.setBoard(customSkin,0);
         refreshSkin();
+
+        setSmallTextArea(100, 0, 10, 10, 20);
+        aprints("Press SELECT",2,64,2);
+        aprints("for help",2,72,2);
 
         int currentColor = 2;
         int currentTool = 1;
@@ -314,22 +355,49 @@ void skinEditor(){
                     sfx(SFX_MENUMOVE);
                 }
             }else if(key_is_down(KEY_L)){
-                if(key_hit(KEY_LEFT)){
+                if(key_hit(KEY_UP)){
                     savefile->settings.colors--;
                     if(savefile->settings.colors < 0)
                         savefile->settings.colors = MAX_COLORS-1;
                     sfx(SFX_MENUMOVE);
                 }
 
-                if(key_hit(KEY_RIGHT)){
+                if(key_hit(KEY_DOWN)){
                     savefile->settings.colors++;
                     if(savefile->settings.colors > MAX_COLORS-1)
                         savefile->settings.colors = 0;
                     sfx(SFX_MENUMOVE);
                 }
 
-                if(key_hit(KEY_LEFT | KEY_RIGHT))
+                if(key_hit(KEY_UP) || key_hit(KEY_DOWN))
                     setPalette();
+
+                if(key_hit(KEY_LEFT) || key_hit(KEY_RIGHT)){
+                    refreshSkin();
+                    onMini = !onMini;
+
+                    if(onMini){
+                        for(int i = 0; i < 8; i++)
+                            customSkin->data[i] = savefile->customSkins[skinIndex].smallBoard.data[i];
+
+                        if(board.cursor.x > 0)
+                            board.cursor.x--;
+                        else if(board.cursor.x > 5)
+                            board.cursor.x = 5;
+
+                        if(board.cursor.y > 0)
+                            board.cursor.y--;
+                        else if(board.cursor.y > 5)
+                            board.cursor.y = 5;
+                    }else{
+                        for(int i = 0; i < 8; i++)
+                            customSkin->data[i] = savefile->customSkins[skinIndex].board.data[i];
+                        board.cursor.x++;
+                        board.cursor.y++;
+                    }
+
+                    board.setBoard(customSkin,onMini);
+                }
 
             }else{
                 if(key_hit(KEY_LEFT | KEY_RIGHT)){
@@ -360,7 +428,7 @@ void skinEditor(){
                     das -= arr;
                 }
 
-                bool moved = board.cursor.move(dx,dy);
+                bool moved = board.cursor.move(dx,dy,onMini);
                 if((dx || dy) && key_is_down(KEY_A)){
                     switch(currentTool){
                     case 0: board.set(0,true); break;
@@ -397,9 +465,14 @@ void skinEditor(){
                 break;
             }
 
-            board.show();
+            if(key_hit(KEY_SELECT)){
+                helpScreen();
+            }
+
+            board.show(onMini);
             showMinos();
             showCursor();
+            // showMini();
 
             showColorPalette(currentColor);
             showTools(currentTool);
@@ -407,8 +480,9 @@ void skinEditor(){
             oam_copy(oam_mem, obj_buffer, 32);
         }
 
-        for(int i = 0; i < 8; i++)
-            savefile->customSkins[skinIndex].board.data[i] = customSkin->data[i];
+        // for(int i = 0; i < 8; i++)
+        //     savefile->customSkins[skinIndex].board.data[i] = customSkin->data[i];
+        refreshSkin();
 
         memset16(&tile_mem[5][200],0,64*4);
 
@@ -502,12 +576,12 @@ int selector(){
             sfx(SFX_MENUMOVE);
         }
 
-        if(key_hit(KEY_LEFT) && skinIndex > 0){
+        if(key_hit(KEY_LEFT) && skinIndex > 0 && !selection){
             skinIndex--;
             sfx(SFX_MENUMOVE);
         }
 
-        if(key_hit(KEY_RIGHT) && skinIndex < 4){
+        if(key_hit(KEY_RIGHT) && skinIndex < 4 && !selection){
             skinIndex++;
             sfx(SFX_MENUMOVE);
         }
@@ -518,10 +592,10 @@ int selector(){
             if(das == dasMax){
                 das-=arr;
 
-                if(key_is_down(KEY_LEFT) && skinIndex > 0){
+                if(key_is_down(KEY_LEFT) && skinIndex > 0 && !selection){
                     skinIndex--;
                     sfx(SFX_MENUMOVE);
-                }else if(key_is_down(KEY_RIGHT) && skinIndex < 4){
+                }else if(key_is_down(KEY_RIGHT) && skinIndex < 4 && !selection){
                     skinIndex++;
                     sfx(SFX_MENUMOVE);
                 }
@@ -624,22 +698,35 @@ void showTools(int c){
 }
 
 void showMinos(){
-    OBJ_ATTR * sprites[7];
 
     for(int i = 0; i < 7; i++){
-        sprites[i] = &obj_buffer[i+1];
-        obj_set_attr(sprites[i], ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * i, i, 2));
-        obj_set_pos(sprites[i],208 - 4 * (i == 0 || i == 3),i * 24 - 4);
-        obj_unhide(sprites[i],0);
+    OBJ_ATTR *sprite = &obj_buffer[i+1];
+
+        if(!onMini){
+            obj_set_attr(sprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * i, i, 2));
+            obj_unhide(sprite,0);
+        }else{
+            obj_unhide(sprite, 0);
+            obj_set_attr(sprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_BUILD(9 * 16 + 8 * i, i, 3));
+            // obj_set_pos(sprite, 192, i * 24 + 4);
+        }
+        obj_set_pos(sprite,208 - (4-onMini) * (i == 0 || i == 3),i * 24 - 4);
     }
 }
 
 void refreshSkin(){
-    savefile->settings.skin = -(skinIndex+1);
-    for(int i = 0; i < 8; i++){
-        savefile->customSkins[skinIndex].board.data[i] = customSkin->data[i];
+    if(!onMini){
+        savefile->settings.skin = -(skinIndex+1);
+        for(int i = 0; i < 8; i++){
+            savefile->customSkins[skinIndex].board.data[i] = customSkin->data[i];
+        }
+        setSkin();
+    }else{
+        for(int i = 0; i < 8; i++){
+            savefile->customSkins[skinIndex].smallBoard.data[i] = customSkin->data[i];
+        }
+        buildMini(customSkin);
     }
-    setSkin();
 }
 
 void showCursor(){
@@ -654,4 +741,75 @@ void showCursor(){
         if(cursorTimer >= animationLength-1)
             cursorTimer = 0 ;
     }
+}
+
+void showMini(){
+    for(int i = 0; i < 7; i++){
+        OBJ_ATTR * sprite = &obj_buffer[12+i];
+
+        // int n = savefile->customSkins[skinIndex].previewStyle;
+
+        obj_unhide(sprite, 0);
+        obj_set_attr(sprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_BUILD(9 * 16 + 8 * i, i, 3));
+        obj_set_pos(sprite, 192, i * 24 + 4);
+    }
+}
+
+void helpScreen(){
+    sfx(SFX_MENUCONFIRM);
+    setSmallTextArea(100, 8, 1, 24, 21);
+    clearText();
+
+    const int startX = 2;
+    const int startY = 2;
+    u8 count = 0;
+
+    aprints("-Move using the D-Pad",startX, (startY+count)*4,2);
+    count+= 3;
+
+    aprints("-Use tools by pressing A",startX, (startY+count)*4,2);
+    count+= 3;
+
+    aprints("-Undo by pressing B",startX, (startY+count)*4,2);
+    count+= 3;
+
+    aprints("-Change tools by holding R",startX, (startY+count)*4,2);
+    aprints(" and pressing Up/Down",startX, (startY+count+2)*4,2);
+    count+= 5;
+
+    aprints("-Change colors by holding R",startX, (startY+count)*4,2);
+    aprints(" and pressing Left/Right",startX, (startY+count+2)*4,2);
+    count+= 5;
+
+    aprints("-Cycle palettes by holding L",startX, (startY+count)*4,2);
+    aprints(" and pressing Up/Down",startX, (startY+count+2)*4,2);
+    count+= 5;
+
+    aprints("-Edit preview/hold by holding R",startX, (startY+count)*4,2);
+    aprints(" and pressing Left/Right",startX, (startY+count+2)*4,2);
+    count+= 5;
+
+    aprints("-Exit by pressing Start",startX, (startY+count)*4,2);
+    count+= 3;
+
+    oam_init(obj_mem, 128);
+
+    REG_DISPCNT &= ~DCNT_BG0;
+    REG_DISPCNT &= ~DCNT_BG3;
+
+    while(true){
+        VBlankIntrWait();
+        key_poll();
+
+        if(key_hit(KEY_FULL))
+            break;
+    }
+
+    REG_DISPCNT |= DCNT_BG0;
+    REG_DISPCNT |= DCNT_BG3;
+    setSmallTextArea(100, 0, 10, 10, 20);
+    clearText();
+    aprints("Press SELECT",2,64,2);
+    aprints("for help",2,72,2);
+    sfx(SFX_MENUCANCEL);
 }

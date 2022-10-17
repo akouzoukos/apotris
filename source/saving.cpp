@@ -1,8 +1,8 @@
 #include "def.h"
 #include "flashSaves.h"
 #include "tonc.h"
-#include "tonc_memdef.h"
 #include "sprite1tiles_bin.h"
+#include "sprites.h"
 
 void setDefaultKeys();
 void addStats();
@@ -155,6 +155,7 @@ void addStats(){
 void resetSkins(){
     for(int i = 0; i < MAX_CUSTOM_SKINS; i++){
         memcpy16(&savefile->customSkins[i].board,sprite1tiles_bin,sprite1tiles_bin_size/2);
+        memcpy16(&savefile->customSkins[i].smallBoard,sprite1tiles_bin,sprite1tiles_bin_size/2);
     }
 }
 
@@ -259,7 +260,9 @@ void setDefaults(Save *save, int depth){
         savefile->stats.gamesCompleted = 0;
         savefile->stats.gamesLost = 0;
 
-        for(int i = 0; i < MAX_CUSTOM_SKINS; i++)
+        for(int i = 0; i < MAX_CUSTOM_SKINS; i++){
             memcpy16(&savefile->customSkins[i].board,sprite1tiles_bin,sprite1tiles_bin_size/2);
+            memcpy16(&savefile->customSkins[i].smallBoard,mini[0],sprite1tiles_bin_size/2);
+        }
     }
 }
