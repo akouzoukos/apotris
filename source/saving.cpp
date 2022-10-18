@@ -6,7 +6,7 @@
 
 void setDefaultKeys();
 void addStats();
-void resetSkins();
+void resetSkins(Save * save);
 void setDefaults(Save * save, int depth);
 
 void saveToSram() {
@@ -114,7 +114,7 @@ void loadSave() {
 
         setDefaultKeys();
 
-        resetSkins();
+        resetSkins(savefile);
     }
 
     //fix invalid values, since I messed up conversion at some point
@@ -152,10 +152,10 @@ void addStats(){
     savefile->stats.timePlayed += frameCounter;
 }
 
-void resetSkins(){
+void resetSkins(Save *save){
     for(int i = 0; i < MAX_CUSTOM_SKINS; i++){
-        memcpy16(&savefile->customSkins[i].board,sprite1tiles_bin,sprite1tiles_bin_size/2);
-        memcpy16(&savefile->customSkins[i].smallBoard,mini[0],sprite1tiles_bin_size/2);
+        memcpy16(&save->customSkins[i].board,sprite1tiles_bin,sprite1tiles_bin_size/2);
+        memcpy16(&save->customSkins[i].smallBoard,mini[0],sprite1tiles_bin_size/2);
     }
 }
 
@@ -255,11 +255,11 @@ void setDefaults(Save *save, int depth){
             for (int j = 0; j < 5; j++)
                 save->classic[i].highscores[j].score = 0;
 
-        savefile->stats.timePlayed = 0;
-        savefile->stats.gamesStarted = 0;
-        savefile->stats.gamesCompleted = 0;
-        savefile->stats.gamesLost = 0;
+        save->stats.timePlayed = 0;
+        save->stats.gamesStarted = 0;
+        save->stats.gamesCompleted = 0;
+        save->stats.gamesLost = 0;
 
-        resetSkins();
+        resetSkins(save);
     }
 }

@@ -506,6 +506,8 @@ void skinEditor(){
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
     REG_BG3VOFS = 0;
     REG_BG3HOFS = 0;
+
+    delete customSkin;
 }
 
 int selector(){

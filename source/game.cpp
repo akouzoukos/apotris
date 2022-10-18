@@ -618,6 +618,10 @@ void showText() {
         if (game->goal == 0) {
             aprint("Training", 1, 1);
         }
+    } else if (game->gameMode == DIG && subMode) {
+        aprint("Pieces", 2, 14);
+
+        aprintf(game->pieceCounter, 4, 15);
     }
 
     if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1)){
@@ -867,7 +871,6 @@ void countdown() {
     showQueue();
     showHold();
     oam_copy(oam_mem, obj_buffer, 128);
-
 
     while (timer++ < timerMax - 1) {
         VBlankIntrWait();
@@ -1202,7 +1205,7 @@ bool checkDiagonal(int key){
 
 void showPlaceEffect(){
 
-    int size = 384;
+    const int size = 384;
 
     for(int i = 0; i < 3; i++)
         obj_hide(&obj_buffer[19+i]);

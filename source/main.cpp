@@ -437,8 +437,6 @@ std::string nameInput(int place) {
 
 
 void setSkin() {
-    // for (int i = 0; i < 7; i++)
-    //     memcpy16(&tile_mem[4][9 * 16 + i * 8], mini[0][i], 16 * 7);
 
     switch (savefile->settings.skin) {
     case 0:
@@ -523,11 +521,11 @@ void setSkin() {
                 }
             }
         }
-    }
 
-    for (int i = 0; i < 4; i++)
-        delete[] board[i];
-    delete[] board;
+        for (int i = 0; i < 4; i++)
+            delete[] board[i];
+        delete[] board;
+    }
 }
 
 void setLightMode() {

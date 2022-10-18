@@ -83,7 +83,7 @@ void graphicTest() {
                 break;
             }
             setSkin();
-            setLightMode();
+            // setLightMode();
         }
 
         if (key_hit(KEY_B)) {
@@ -207,7 +207,7 @@ void graphicTest() {
                 }
 
                 setSkin();
-                setLightMode();
+                // setLightMode();
                 break;
             case 5:
                 if (key_hit(KEY_LEFT)) {
@@ -328,7 +328,9 @@ void graphicTest() {
             case 12:
                 savefile->settings.lightMode = !savefile->settings.lightMode;
                 memset16(&se_mem[27], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
-                setLightMode();
+                setSkin();
+                // setLightMode();
+
                 sfx(SFX_MENUMOVE);
                 break;
             }

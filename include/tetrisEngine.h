@@ -471,7 +471,7 @@ namespace Tetris
             for(int i = 0; i < lengthY; i++)
                 delete[] board[i];
             delete[] board;
-            
+
         }
     };
 
