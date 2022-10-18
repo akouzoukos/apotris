@@ -271,8 +271,6 @@ int endScreen() {
             if(str != "")
                 aprintColor(str,30-str.size(),counter++,0);
 
-            log(std::to_string(mode));
-
             str = "";
             str2 = "";
             if(game->subMode){
