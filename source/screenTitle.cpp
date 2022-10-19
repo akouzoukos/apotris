@@ -872,7 +872,6 @@ void startScreen() {
                     clearText();
                     sfx(SFX_MENUCANCEL);
                     savefile->settings = previousSettings;
-                    setPalette();
                     mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
                     setSkin();
                     setLightMode();
@@ -984,7 +983,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.3.0b0", 0, 19);
+        aprint("v3.3.0b5", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 

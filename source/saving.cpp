@@ -150,6 +150,7 @@ void setDefaultKeys(){
 
 void addStats(){
     savefile->stats.timePlayed += frameCounter;
+    frameCounter = 1;
 }
 
 void resetSkins(Save *save){
@@ -171,6 +172,7 @@ void setDefaults(Save *save, int depth){
         save->settings.arr = 2;
         save->settings.sfr = 2;
         save->settings.dropProtection = true;
+        save->settings.volume = 10;
 
         for (int i = 0; i < 8; i++)
             savefile->latestName[i] = ' ';

@@ -399,6 +399,9 @@ void Game::update() {
     if (das == maxDas && !(left && right)) {
         if (--arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
+                if(gameMode == CLASSIC && down)
+                    continue;
+
                 if (left)
                     moveLeft();
                 else if(right)

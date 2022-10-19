@@ -426,7 +426,7 @@ void graphicTest() {
                 if (savefile->settings.skin > -(MAX_CUSTOM_SKINS))
                     aprint("<", endX - 1 - (savefile->settings.skin < 0), startY + selection);
                 if (savefile->settings.skin < MAX_SKINS - 1)
-                    aprint(">", endX + 1, startY + selection);
+                    aprint(">", endX + 1 + (savefile->settings.skin > 8), startY + selection);
                 break;
             case 5:
                 if (savefile->settings.palette > 0)

@@ -192,7 +192,6 @@ void initialize(){
     //load tetriminoes into tile memory for menu screen animation
 
     setSkin();
-    setPalette();
     setClearEffect();
 
     // REG_BLDCNT = BLD_BUILD(BLD_BG1,BLD_BACKDROP,BLD_STD);
@@ -437,6 +436,7 @@ std::string nameInput(int place) {
 
 
 void setSkin() {
+    setPalette();
 
     switch (savefile->settings.skin) {
     case 0:
@@ -501,7 +501,6 @@ void setSkin() {
         }
     }
 
-    setPalette();
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
     // memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
@@ -661,13 +660,21 @@ void diagnose() {
 void setPalette(){
     int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
 
-    memcpy16(pal_bg_mem, palette[n], paletteLen / 2);
-    memcpy16(pal_obj_mem, palette[n], paletteLen / 2);
+    for(int i = 0; i < 16; i++){
 
-    //set frame color
+        if (i < 8 && savefile->settings.colors < 2){
+            memcpy16(&pal_bg_mem[i*16], &palette[n][i*16], 8);
+            memcpy16(&pal_obj_mem[i*16], &palette[n][i*16], 8);
+        }else if (i < 8){
+            memcpy16(&pal_bg_mem[i*16+4], &palette[n][i*16+4], 4);
+            memcpy16(&pal_obj_mem[i*16+4], &palette[n][i*16+4], 4);
+        }else if (i > 9){
+            memcpy16(&pal_bg_mem[i*16], &palette[n][i*16], 16);
+            memcpy16(&pal_obj_mem[i*16], &palette[n][i*16], 16);
+        }
+    }
+
     int color = savefile->settings.palette + 2 * (savefile->settings.palette > 6);
-    memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
-    memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
 
     if(savefile->settings.colors == 2){
         for(int i = 0; i < 9; i++){
@@ -681,11 +688,20 @@ void setPalette(){
             memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
             memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
         }
+
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
     }else if(savefile->settings.colors == 4){
         for(int i = 0; i < 9; i++){
             memcpy16(&pal_bg_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
             memcpy16(&pal_obj_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
         }
+    }else{
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
+
     }
 
     memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);

@@ -18,11 +18,8 @@
 #include <algorithm>
 
 #include "soundbank.h"
+#include "tetrisEngine.h"
 #include "tonc_bios.h"
-#include "tonc_input.h"
-#include "tonc_memdef.h"
-#include "tonc_memmap.h"
-#include "tonc_oam.h"
 
 const int xoffset = 15-8;
 const int yoffset = 10-8;
@@ -279,14 +276,22 @@ void skinEditor(){
 
     for(int i = 0; i < 32; i++)
         for(int j = 0; j < 20; j++)
-            *dest++ = 2;
+            *dest++ = 2 * (!savefile->settings.lightMode);
+
+    if(game->gameMode == Tetris::CLASSIC){
+        game->gameMode = Tetris::SPRINT;
+        setSkin();
+    }
 
     while(true){
 
         memcpy16(&tile_mem[5][216],sprite35tiles_bin,sprite35tiles_bin_size/2);
+        setPalette();
 
         if(selector())
             break;
+
+        onMini = false;
 
         REG_DISPCNT |= DCNT_BG3;
         clearText();
@@ -309,6 +314,7 @@ void skinEditor(){
         refreshSkin();
 
         setSmallTextArea(100, 0, 10, 10, 20);
+        clearText();
         aprints("Press SELECT",2,64,2);
         aprints("for help",2,72,2);
 
@@ -491,6 +497,8 @@ void skinEditor(){
         memset16(&se_mem[25], 0x0000, 32 * 20);
         clearText();
         REG_DISPCNT &= ~DCNT_BG3;
+
+        delete customSkin;
     }
 
     //clean up
@@ -507,7 +515,6 @@ void skinEditor(){
     REG_BG3VOFS = 0;
     REG_BG3HOFS = 0;
 
-    delete customSkin;
 }
 
 int selector(){
@@ -787,7 +794,7 @@ void helpScreen(){
     aprints(" and pressing Up/Down",startX, (startY+count+2)*4,2);
     count+= 5;
 
-    aprints("-Edit preview/hold by holding R",startX, (startY+count)*4,2);
+    aprints("-Edit preview/hold by holding L",startX, (startY+count)*4,2);
     aprints(" and pressing Left/Right",startX, (startY+count+2)*4,2);
     count+= 5;
 

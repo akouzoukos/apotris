@@ -739,7 +739,6 @@ void showClearText() {
 
 void gameLoop(){
     setSkin();
-    setPalette();
     clearSmallText();
     setSmallTextArea(100, 2, 14, 8, 17);
     gameSeconds = 0;
