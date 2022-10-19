@@ -20,6 +20,7 @@
 #include "soundbank.h"
 #include "tetrisEngine.h"
 #include "tonc_bios.h"
+#include "tonc_input.h"
 
 const int xoffset = 15-8;
 const int yoffset = 10-8;
@@ -153,6 +154,15 @@ class Board{
                 queue.pop_front();
             }while(!queue.empty());
 
+        }
+
+        void clear(){
+            for(int i = 0; i < 8; i++){
+                for(int j = 0; j < 8; j++)
+                    board[i][j] = 0;
+
+                customSkin->data[i] = 0;
+            }
         }
 
         void show(bool mini){
@@ -321,9 +331,11 @@ void skinEditor(){
         int currentColor = 2;
         int currentTool = 1;
 
-        int das = 0;
+        u8 das = 0;
         const int arr = 4;
         const int dasMax = 20;
+
+        u8 timer = 0;
 
         while(true){
             VBlankIntrWait();
@@ -473,6 +485,16 @@ void skinEditor(){
 
             if(key_hit(KEY_SELECT)){
                 helpScreen();
+            }
+
+            if(key_is_down(KEY_L) && key_is_down(KEY_R)){
+                if(++timer > 50){
+                    board.clear();
+                    refreshSkin();
+                    timer = 0;
+                }
+            }else{
+                timer = 0;
             }
 
             board.show(onMini);
@@ -770,7 +792,7 @@ void helpScreen(){
     clearText();
 
     const int startX = 2;
-    const int startY = 2;
+    const int startY = 1;
     u8 count = 0;
 
     aprints("-Move using the D-Pad",startX, (startY+count)*4,2);
@@ -796,6 +818,10 @@ void helpScreen(){
 
     aprints("-Edit preview/hold by holding L",startX, (startY+count)*4,2);
     aprints(" and pressing Left/Right",startX, (startY+count+2)*4,2);
+    count+= 5;
+
+    aprints("-Clear the canvas by",startX, (startY+count)*4,2);
+    aprints(" holding L and R",startX, (startY+count+2)*4,2);
     count+= 5;
 
     aprints("-Exit by pressing Start",startX, (startY+count)*4,2);

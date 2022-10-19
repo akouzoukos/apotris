@@ -682,16 +682,16 @@ void setPalette(){
             memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
         }
     }else if(savefile->settings.colors == 3){
-        int n = getClassicPalette();
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
 
+        int n = getClassicPalette();
         for(int i = 0; i < 8; i++){
             memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
             memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
         }
 
-        //set frame color
-        memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
-        memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
     }else if(savefile->settings.colors == 4){
         for(int i = 0; i < 9; i++){
             memcpy16(&pal_bg_mem[i*16], &monoPalette[savefile->settings.lightMode],4);

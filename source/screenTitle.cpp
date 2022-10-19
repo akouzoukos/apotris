@@ -98,6 +98,7 @@ int previousOptionMax = 0;
 std::list<int> keyHistory;
 
 Settings previousSettings;
+Skin previousSkins[MAX_CUSTOM_SKINS];
 
 bool bigMode = false;
 
@@ -328,6 +329,10 @@ void startScreen() {
                     } else if (selection == 1) {
                         n = -1;
                         previousSettings = savefile->settings;
+
+                        for (int i = 0; i < MAX_CUSTOM_SKINS; i++)
+                            previousSkins[i] = savefile->customSkins[i];
+
                         options = 6;
                     } else if (selection == 2) {
                         n = -2;
@@ -872,6 +877,10 @@ void startScreen() {
                     clearText();
                     sfx(SFX_MENUCANCEL);
                     savefile->settings = previousSettings;
+
+                        for (int i = 0; i < MAX_CUSTOM_SKINS; i++)
+                            savefile->customSkins[i] = previousSkins[i];
+
                     mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
                     setSkin();
                     setLightMode();
@@ -983,7 +992,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.3.0b5", 0, 19);
+        aprint("v3.3.0b6", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
