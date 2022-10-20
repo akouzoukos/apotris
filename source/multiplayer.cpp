@@ -8,7 +8,7 @@ using namespace Tetris;
 
 void drawEnemyBoard(int);
 
-int enemyBoard[20][10];
+bool enemyBoard[20][10];
 OBJ_ATTR* enemyBoardSprite;
 
 int timeoutTimer = 0;
@@ -25,9 +25,11 @@ int currentScanHeight = 0;
 
 int enemyHeight = 0;
 
+#if ENABLE_BOT
 Game *botGame = new Game(0,bigMode);
-int botIncomingHeight = 0;
+#endif
 
+int botIncomingHeight = 0;
 void handleMultiplayer() {
     if (!multiplayer)
         return;
@@ -125,7 +127,6 @@ void handleMultiplayer() {
             }
 
             drawEnemyBoard(incomingHeight);
-
         }
     } else {
         if (timeoutTimer++ == maxTimeout) {
@@ -133,6 +134,7 @@ void handleMultiplayer() {
             game->setWin(); // aprint("no connection.",0,5);
             connected = -1;
             aprint("Connection Lost.", 0, 0);
+            multiplayer = false;
         }
     }
 }
@@ -181,30 +183,30 @@ void drawEnemyBoard(int height) {
 
 void handleBotGame(){
 
-    if(botIncomingHeight++ > 19){
-        botIncomingHeight = 0;
+    // if(botIncomingHeight++ > 19){
+    //     botIncomingHeight = 0;
 
-    }
+    // }
 
-	if(botGame->attackQueue.size()){
-		Tetris::Garbage atck = botGame->attackQueue.front();
-		game->addToGarbageQueue(atck.id,atck.amount);
-		botGame->clearAttack(atck.id);
-	}
+	// if(botGame->attackQueue.size()){
+	// 	Tetris::Garbage atck = botGame->attackQueue.front();
+	// 	game->addToGarbageQueue(atck.id,atck.amount);
+	// 	botGame->clearAttack(atck.id);
+	// }
 
-	if(game->attackQueue.size()){
-		Tetris::Garbage atck = game->attackQueue.front();
-		botGame->addToGarbageQueue(atck.id,atck.amount);
-		game->clearAttack(atck.id);
-	}
+	// if(game->attackQueue.size()){
+	// 	Tetris::Garbage atck = game->attackQueue.front();
+	// 	botGame->addToGarbageQueue(atck.id,atck.amount);
+	// 	game->clearAttack(atck.id);
+	// }
 
-	for(int i = 0; i < 20; i++)
-		for(int j = 0; j < 10; j++)
-			enemyBoard[i][j] = (botGame->board[i+20][j]);
+	// for(int i = 0; i < 20; i++)
+	// 	for(int j = 0; j < 10; j++)
+	// 		enemyBoard[i][j] = (botGame->board[i+20][j]);
 
 	drawEnemyBoard(botIncomingHeight);
 
-	if(botGame->clearLock){
-		botGame->removeClearLock();
-	}
+	// if(botGame->clearLock){
+	// 	botGame->removeClearLock();
+	// }
 }

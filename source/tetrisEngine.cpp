@@ -1,6 +1,5 @@
 #include "tetromino.hpp"
 #include "tetrisEngine.h"
-#include <stdlib.h>
 #include <iostream>
 #include <string>
 #include "tonc.h"
@@ -10,9 +9,6 @@ using namespace Tetris;
 using namespace GameInfo;
 
 int Game::checkRotation(int dx, int dy, int r) {
-    // int x = (dx + pawn.x) * ((pawn.big)?2:1);
-    // int y = (dy + pawn.y) * ((pawn.big)?2:1);
-
     int x = dx + pawn.x;
     int y = dy + pawn.y;
 
@@ -63,8 +59,12 @@ void Pawn::setBlock(bool alt) {
 }
 
 void Game::rotateCW() {
-    if (clearLock || entryDelay)
+    if (clearLock || entryDelay){
+        initialRotate++;
+        if(initialRotate > 3)
+            initialRotate = 0;
         return;
+    }
 
     moveCounter++;
     lastMoveRotation = 1;
@@ -101,8 +101,12 @@ void Game::rotateCW() {
 }
 
 void Game::rotateCCW() {
-    if (clearLock || entryDelay)
+    if (clearLock || entryDelay){
+        initialRotate--;
+        if(initialRotate < 0)
+            initialRotate = 3;
         return;
+    }
 
     moveCounter++;
     lastMoveRotation = -1;
@@ -139,8 +143,14 @@ void Game::rotateCCW() {
 }
 
 void Game::rotateTwice() {
-    if (clearLock || gameMode == CLASSIC)
+    if (clearLock || entryDelay || gameMode == CLASSIC){
+        if(gameMode != CLASSIC){
+            initialRotate+=2;
+            if(initialRotate > 3)
+                initialRotate = 0;
+        }
         return;
+    }
 
     moveCounter++;
     lastMoveRotation = 1;
@@ -180,6 +190,8 @@ void Game::moveLeft() {
         lockCheck();
     }else{
         pushDir = -1;
+        if(gameMode == CLASSIC)
+            das = maxDas;
     }
 }
 
@@ -191,15 +203,17 @@ void Game::moveRight() {
         lockCheck();
     }else{
         pushDir = 1;
+        if(gameMode == CLASSIC)
+            das = maxDas;
     }
 }
 
 void Game::moveDown() {
     if (checkRotation(0, 1, pawn.rotation)){
         pawn.y++;
-        sounds.shift = 1;
+        if(gameMode != CLASSIC)
+            sounds.shift = 1 ;
         lastMoveRotation = 0;
-        // lockTimer = maxLockTimer;
     }else if(gameMode == CLASSIC){
         place();
     }
@@ -322,29 +336,36 @@ void Game::update() {
         }
     }
 
-    if((linesCleared >= goal && gameMode == SPRINT && goal) ||
+    if((linesCleared >= goal && gameMode == SPRINT && goal && subMode == 0) ||
+       (linesSent >= goal && gameMode == SPRINT && goal && subMode == 1) ||
        (linesCleared >= goal && gameMode == MARATHON) ||
        (garbageCleared >= goal && gameMode == DIG) ||
-       (timer > goal && (gameMode == ULTRA || gameMode == BLITZ))){
-        won = 1;
+       (timer > goal && (gameMode == ULTRA || gameMode == BLITZ)) ||
+       (linesCleared >= goal && gameMode == CLASSIC && goal)){
+       won = 1;
+       if(gameMode == CLASSIC && goal){
+           score+= (level + bTypeHeight) * 1000;
+       }
     }
 
     if (gameMode == MARATHON)
         speed = gravity[(level < 19) ? level - 1 : 18];
     else if(gameMode == BLITZ)
-        speed = gravity[(level < 15) ? level - 1 : 14];
+        speed = blitzGravity[(level < 15) ? level - 1 : 14];
     else if(gameMode == CLASSIC)
-        speed = gravity[(level < 30) ? level: 29];
+        speed = classicGravity[(level < 30) ? level: 29];
     else
         speed = gravity[0];
 
-    speedCounter += speed;
+    if(gracePeriod){
+        gracePeriod--;
+    }else
+        speedCounter += speed;
 
     int n = (int)speedCounter;
     for (int i = 0; i < n; i++) {
         if (checkRotation(0, 1, pawn.rotation)){
             pawn.y++;
-            // lockTimer = maxLockTimer;
         }else if(gameMode == CLASSIC){
             place();
         }
@@ -367,20 +388,26 @@ void Game::update() {
     }
 
     if (!(left || right)){
-        das = 0;
+        if(gameMode != CLASSIC){
+            das = 0;
+            arrCounter = 0;
+        }
     }else if (das < maxDas){
         das++;
     }
 
     if (das == maxDas && !(left && right)) {
-        if (++arrCounter >= arr) {
+        if (--arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
+                if(gameMode == CLASSIC && down)
+                    continue;
+
                 if (left)
                     moveLeft();
-                else
+                else if(right)
                     moveRight();
             }
-            arrCounter = 0;
+            arrCounter = arr;
         }
     }
 
@@ -474,7 +501,6 @@ void Game::place() {
                             continue;
 
                         board[y+k][x+l] = pawn.current + 1;
-
                     }
                 }
             }
@@ -563,7 +589,7 @@ void Game::place() {
 
     if(gameMode == CLASSIC){
         int add = 0;
-        while(pawn.y + add < lengthY-2)
+        while(pawn.y + add < lengthY-3)
             add+=4;
 
         entryDelay = 10 + add;
@@ -571,8 +597,6 @@ void Game::place() {
         pawn.current = -1;
 
         down = 0;
-        left = 0;
-        right = 0;
     }
 
     if (!clearLock && !entryDelay)
@@ -624,7 +648,7 @@ int Game::clear(Drop drop) {
             if (x < 0)
                 backCount = 2;
             else
-                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
+                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
             break;
         case 2:
             frontCount += (board[y + offset][x] != 0) + (board[y + offset][x + offset] != 0);
@@ -706,15 +730,23 @@ int Game::clear(Drop drop) {
                 break;
             }
         }
-    }else if(gameMode == CLASSIC){
-        level = ((int)linesCleared / 10);
+    }else if(gameMode == CLASSIC && !goal){
+        if(initialLevel){
+            int init = min(initialLevel*10+10,max(100,initialLevel*10-50));
+            int requirement = linesCleared-init;
+            if(requirement >= 0)
+                level = (requirement/10) + initialLevel + 1;
+        }else{
+            level = ((int)linesCleared / 10);
+        }
     }
 
     if(level < prevLevel)
         level = prevLevel;
 
-    if (prevLevel != level && (gameMode == MARATHON || gameMode == BLITZ || gameMode == CLASSIC))
+    if (prevLevel < level && (gameMode == MARATHON || gameMode == BLITZ || gameMode == CLASSIC)){
         sounds.levelUp = 1;
+    }
 
     //calculate score
     int add = 0;
@@ -819,24 +851,32 @@ void Game::next() {
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
 
+    pawn.rotation = initialRotate;
+    initialRotate = 0;
+
+    speedCounter = 0;
+
+    pawn.current = queue.front();
+    queue.pop_front();
+    fillQueue(1);
+
+    //for CLASSIC 2 in a row protection
+    pieceHistory = pawn.current;
+
+    pawn.setBlock(gameMode == CLASSIC);
+
+    if(gameMode == CLASSIC){
+        down = 0;
+        if(pawn.current != 0 && pawn.current != 3)
+            pawn.x++;
+        if(pawn.current == 0)
+            pawn.y--;
+    }
+
     if(pawn.big){
         pawn.x/=2;
         pawn.y/=2;
     }
-
-    pawn.rotation = 0;
-
-    pawn.current = queue.front();
-    queue.pop_front();
-
-    pieceHistory = pawn.current;
-
-    fillQueue(1);
-
-    pawn.setBlock(gameMode == CLASSIC);
-
-    if(gameMode == CLASSIC)
-        down = 0;
 
     //check if stack has reached top 3 lines
     bool check = false;
@@ -860,7 +900,12 @@ void Game::next() {
     lastMoveDx = 0;
     lastMoveDy = 0;
 
+    arrCounter = 0;
+
     softDrop = false;
+
+    if(initialHold)
+        hold();
 }
 
 void Game::fillQueue(int count) {
@@ -893,7 +938,10 @@ void Game::fillQueue(int count) {
 }
 
 void Game::hold() {
-    if (!canHold || clearLock || gameMode == CLASSIC)
+    if((clearLock || entryDelay) && !initialHold && canHold && gameMode != CLASSIC)
+        initialHold = true;
+
+    if (!canHold || clearLock || entryDelay || gameMode == CLASSIC)
         return;
 
     moveCounter++;
@@ -922,6 +970,7 @@ void Game::hold() {
 
     lockTimer = maxLockTimer;
     lockMoveCounter = 15;
+    arrCounter = 0;
 
     moveHistory.clear();
 
@@ -929,6 +978,8 @@ void Game::hold() {
 
     if(das == maxDas)
         moveHistory.push_back(2+(right));
+
+    initialHold = false;
 }
 
 int** Game::getShape(int n,int r) {
@@ -950,15 +1001,14 @@ int** Game::getShape(int n,int r) {
 
 void Game::lockCheck() {
     if (pawn.lowest == pawn.y && lockMoveCounter > 0) {
-        lockMoveCounter--;
         lockTimer = maxLockTimer;
+        lockMoveCounter--;
     }
 }
 
 void Game::keyLeft(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-        if(!entryDelay)
             left = dir;
         return;
     }
@@ -969,6 +1019,11 @@ void Game::keyLeft(int dir) {
     
     previousKey = -1;
 
+    if(gameMode == CLASSIC && dir && !(down)){
+        das = 0;
+        arrCounter = 0;
+    }
+
     if(!dir){
         pushDir = 0;
 
@@ -977,15 +1032,16 @@ void Game::keyLeft(int dir) {
         else
             moveHistory.push_back(0);
 
-        if(directionCancel)
+        if(directionCancel && gameMode != CLASSIC){
             das = 0;
+            arrCounter = 0;
+        }
     }
 }
 
 void Game::keyRight(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-        if(!entryDelay)
             right = dir;
         return;
     }
@@ -996,6 +1052,11 @@ void Game::keyRight(int dir) {
     
     previousKey = 1;
 
+    if(gameMode == CLASSIC && dir && !(down)){
+        das = 0;
+        arrCounter = 0;
+    }
+
     if(!dir){
         pushDir = 0;
 
@@ -1004,8 +1065,10 @@ void Game::keyRight(int dir) {
         else
             moveHistory.push_back(1);
 
-        if(directionCancel)
+        if(directionCancel && gameMode != CLASSIC){
             das = 0;
+            arrCounter = 0;
+        }
     }
 }
 
@@ -1024,6 +1087,8 @@ void Game::keyDown(int dir) {
     }
     down = dir;
     softDrop = true;
+    gracePeriod = 0;
+
 }
 
 void Game::removeClearLock() {
@@ -1044,8 +1109,6 @@ void Game::removeClearLock() {
     if(!entryDelay)
         next();
     refresh = 1;
-
-    // setCurrentHeight(); 
 }
 
 void Game::resetSounds(){
@@ -1057,7 +1120,7 @@ void Game::resetRefresh() {
 }
 
 void Game::setLevel(int newLevel){
-    level = newLevel;
+    initialLevel = level = newLevel;
 }
 
 void Game::setGoal(int newGoal){
@@ -1327,5 +1390,29 @@ void Game::demoFill(){
     for(int i = lengthY-2; i < lengthY; i++){
         int n = qran() % lengthX;
         board[i][n] = 0;
+    }
+}
+
+void Game::bType(int height){
+    int n = 0;
+
+    if(height)
+        n = height * 2 + (height + 1)/2 - (height == 5);
+
+    for(int i = lengthY-n; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            if(qran() % 2 && !(i == lengthY-n && j == 0)){
+                board[i][j] = (qran() % 7);
+            }
+        }
+    }
+}
+
+void Game::setSubMode(int sm){
+    subMode = sm;
+
+    if(sm && gameMode == CLASSIC){
+        bType(bTypeHeight);
+        goal = 25;
     }
 }

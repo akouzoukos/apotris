@@ -29,6 +29,7 @@ namespace Tetris
         int maxCombo = 0;
         int holds = 0;
 
+
         Stats(){}
     };
 
@@ -239,7 +240,7 @@ namespace Tetris
 
         int maxLockTimer = 30;
         int lockTimer = maxLockTimer;
-        int lockMoveCounter = 0;
+        int lockMoveCounter = 15;
 
         int left = 0;
         int right = 0;
@@ -263,6 +264,14 @@ namespace Tetris
         bool specialTspin = false;
 
         int pieceHistory = -1;
+
+        int gracePeriod = 0;
+
+        int initialLevel = 0;
+
+        bool initialHold = false;
+
+        int initialRotate = 0;
 
     public:
         int lengthX = 10;
@@ -307,8 +316,11 @@ namespace Tetris
         int initSeed = 0;
 
         int entryDelay = 0;
+        int bTypeHeight = 0;
 
         Stats statTracker;
+
+        int subMode = 0;
 
         int checkRotation(int, int, int);
         void rotateCW();
@@ -340,6 +352,8 @@ namespace Tetris
         void setTrainingMode(bool);
         void demoClear();
         void demoFill();
+        void bType(int);
+        void setSubMode(int);
 
         Game(){
             seed = initSeed = qran();
@@ -365,7 +379,7 @@ namespace Tetris
                 maxDas = 16;
                 arr = 6;
                 softDropSpeed = 2;
-
+                gracePeriod = 90;
             }else
                 fillQueue(5);
 
@@ -448,13 +462,16 @@ namespace Tetris
             bagCounter = oldGame.bagCounter;
             seed = oldGame.seed;
             initSeed = oldGame.initSeed;
+            subMode = oldGame.subMode;
+            initialLevel = oldGame.initialLevel;
         }
+
 
         ~Game(){
             for(int i = 0; i < lengthY; i++)
                 delete[] board[i];
             delete[] board;
-            
+
         }
     };
 

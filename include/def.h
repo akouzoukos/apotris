@@ -79,6 +79,7 @@ typedef struct Settings{
     int rumble;
 
     int placeHolder[100];
+
 }ALIGN(4) Settings;
 
 typedef struct Test{
@@ -96,6 +97,21 @@ typedef struct Test3{
     int t2[30];//22
 }ALIGN(4) Test3;
 
+typedef struct Stats{
+    int timePlayed;
+    int gamesStarted;
+    int gamesCompleted;
+    int gamesLost;
+}ALIGN(4) Stats;
+
+typedef struct Skin{
+    TILE board;
+    TILE smallBoard;
+    int previewStyle;
+}ALIGN(4) Skin;
+
+#define MAX_CUSTOM_SKINS 5
+
 typedef struct Save{
     u8 newGame;
 
@@ -110,7 +126,17 @@ typedef struct Save{
     Scoreboard blitz[2];
     Scoreboard combo;
     Timeboard survival[3];
+    Timeboard sprintAttack[3];
+    Scoreboard digEfficiency[3];
+    Scoreboard classic[2];
 
+    int placeHolder[100];
+
+    Stats stats;
+
+    int placeHolder2[100];
+
+    Skin customSkins[MAX_CUSTOM_SKINS];
 }ALIGN(4) Save;
 
 extern Save *savefile;
@@ -182,10 +208,10 @@ public:
 };
 
 #define TRAINING_MESSAGE_MAX 300
-#define MAX_SKINS 9
+#define MAX_SKINS 11
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
-#define MAX_COLORS 4
+#define MAX_COLORS 5
 #define MAX_CLEAR_EFFECTS 3
 
 #define MAX_MENU_SONGS 2
@@ -195,7 +221,7 @@ public:
 
 #define SHOW_FINESSE 1
 #define DIAGNOSE 0
-#define SAVE_TAG 0x4e
+#define SAVE_TAG 0x4f
 #define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1
@@ -254,6 +280,10 @@ extern void showText();
 extern void showPlaceEffect();
 extern void checkSounds();
 extern int getClassicPalette();
+extern void skinEditor();
+extern void maxModInit();
+extern void drawUIFrame(int,int,int,int);
+extern void buildMini(TILE *);
 
 extern std::string timeToString(int);
 
@@ -279,7 +309,7 @@ extern std::list<Effect> effectList;
 extern std::list<FloatText> floatingList;
 extern std::list<PlaceEffect> placeEffectList;
 
-extern int glow[20][10];
+extern s16 glow[20][10];
 
 extern int nextSeed;
 
@@ -303,7 +333,7 @@ extern OBJ_ATTR * queueFrameSprites[3];
 extern int enemyHeight;
 
 extern Tetris::Bot *testBot;
-extern int enemyBoard[20][10];
+extern bool enemyBoard[20][10];
 
 extern int mode;
 
@@ -318,3 +348,12 @@ extern int rumbleMax;
 
 extern bool rumbleInitialized;
 extern bool bigMode;
+
+extern int subMode;
+extern int goalSelection;
+
+extern TILE* customSkin;
+
+extern bool proMode;
+
+#define shakeMax 10

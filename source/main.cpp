@@ -1,8 +1,5 @@
 #include <tonc.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string>
-#include <string.h>
 #include <maxmod.h>
 
 #include "def.h"
@@ -27,6 +24,9 @@
 #include "classic1tiles_bin.h"
 #include "classic_pal_bin.h"
 
+#include "tetromino.hpp"
+#include "tonc_bios.h"
+
 using namespace Tetris;
 
 void control();
@@ -43,7 +43,6 @@ int frameCounter = 1;
 OBJ_ATTR obj_buffer[128];
 OBJ_AFFINE* obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 
-int shakeMax = 10;
 int shake = 0;
 
 int gameSeconds;
@@ -109,6 +108,7 @@ void onVBlank(void) {
         showTimer();
     }
 
+    frameCounter++;
     mmFrame();
 }
 
@@ -142,7 +142,7 @@ void initialize(){
     irq_add(II_HBLANK, onHBlank);
     irq_disable(II_HBLANK);
 
-    mmInitDefault((mm_addr)soundbank_bin, 10);
+    mmInitDefault((mm_addr)soundbank_bin, 12);
     mmSetEventHandler((mm_callback)myEventHandler);
 
     logInitMgba();
@@ -155,7 +155,7 @@ void initialize(){
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
 
-    // 	// //Load bg tiles
+    	// //Load bg tiles
     memcpy16(&tile_mem[0][2], sprite3tiles_bin, sprite3tiles_bin_size / 2);
     memcpy16(&tile_mem[0][4], sprite5tiles_bin, sprite3tiles_bin_size / 2);
     memcpy16(&tile_mem[0][6], sprite8tiles_bin, sprite8tiles_bin_size / 2);
@@ -169,7 +169,7 @@ void initialize(){
     memcpy16(&tile_mem[0][31], sprite23tiles_bin, sprite23tiles_bin_size / 2);
     memcpy16(&tile_mem[0][32], sprite24tiles_bin, sprite24tiles_bin_size / 2);
 
-    //hold tileshodl
+    //hold tiles
     memcpy16(&tile_mem[5][0], sprite6tiles_bin, sprite6tiles_bin_size / 2);
 
     //queue frame Tiles
@@ -187,18 +187,16 @@ void initialize(){
     for(int i = 0; i < 8; i ++)
         memcpy16(&tile_mem[5][128+i], moveSpriteTiles[i], 16);
 
-
     memcpy16(&tile_mem[2][0], fontTiles, fontTilesLen / 2);
 
     //load tetriminoes into tile memory for menu screen animation
 
-    setPalette();
+    setSkin();
     setClearEffect();
 
     // REG_BLDCNT = BLD_BUILD(BLD_BG1,BLD_BACKDROP,BLD_STD);
     REG_BLDCNT = (1 << 6) + (1 << 13) + (1 << 1);
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
-
 }
 
 int main(void) {
@@ -226,6 +224,8 @@ int main(void) {
             game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
             game->setTrainingMode(training);
             game->pawn.big = bigMode;
+            game->bTypeHeight = goalSelection;
+            game->setSubMode(subMode);
         }
 
         gameLoop();
@@ -275,8 +275,6 @@ void reset() {
     placeEffectList.clear();
     rumbleTimer = 0;
     rumble_set_state(RumbleState(rumble_stop));
-
-    // REG_DISPCNT &= ~(DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3);
 
     memset32(&se_mem[25], 0x0000, 32 * 20);
     memset32(&se_mem[26], 0x0000, 32 * 20);
@@ -438,8 +436,7 @@ std::string nameInput(int place) {
 
 
 void setSkin() {
-    for (int i = 0; i < 7; i++)
-        memcpy16(&tile_mem[4][9 * 16 + i * 8], mini[0][i], 16 * 7);
+    setPalette();
 
     switch (savefile->settings.skin) {
     case 0:
@@ -459,9 +456,6 @@ void setSkin() {
         break;
     case 5:
         blockSprite = (u8*)sprite19tiles_bin;
-        //load mini sprite tiles
-        for (int i = 0; i < 7; i++)
-            memcpy16(&tile_mem[4][9 * 16 + i * 8], mini[1][i], 16 * 7);
         break;
     case 6:
         blockSprite = (u8*)sprite21tiles_bin;
@@ -478,9 +472,35 @@ void setSkin() {
 
         blockSprite = (u8*)classicTiles[1][0];
         break;
+    case 9:
+        blockSprite = (u8*)sprite27tiles_bin;
+        break;
+    case 10:
+        blockSprite = (u8*)sprite28tiles_bin;
+        break;
+    default:
+        if(savefile->settings.skin < 0){
+            int n = savefile->settings.skin;
+            n *= -1;
+            n--;
+
+            blockSprite = (u8*)&savefile->customSkins[n].board;
+        }
+        break;
     }
 
-    setPalette();
+    if(savefile->settings.skin < 7){
+        VBlankIntrWait();
+        if(savefile->settings.skin < 0){
+            int n = savefile->settings.skin;
+            n *= -1;
+            n--;
+            buildMini(&savefile->customSkins[n].smallBoard);
+        }else{
+            buildMini((TILE*)mini[savefile->settings.skin]);
+        }
+    }
+
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
     // memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
@@ -491,7 +511,7 @@ void setSkin() {
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
-                    if(savefile->settings.skin < 7)
+                    if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
                     else
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], classicTiles[savefile->settings.skin-7][i], sprite1tiles_bin_size / 2);
@@ -500,11 +520,11 @@ void setSkin() {
                 }
             }
         }
-    }
 
-    for (int i = 0; i < 4; i++)
-        delete[] board[i];
-    delete[] board;
+        for (int i = 0; i < 4; i++)
+            delete[] board[i];
+        delete[] board;
+    }
 }
 
 void setLightMode() {
@@ -632,19 +652,29 @@ void diagnose() {
 
     // str += std::to_string(game->previousBest.size()) + " " + std::to_string(game->moveHistory.size());
 
+    // str += std::to_string(profileResults[0]);
+
     // log(str);
 }
 
 void setPalette(){
     int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
 
-    memcpy16(pal_bg_mem, palette[n], paletteLen / 2);
-    memcpy16(pal_obj_mem, palette[n], paletteLen / 2);
+    for(int i = 0; i < 16; i++){
 
-    //set frame color
+        if (i < 8 && savefile->settings.colors < 2){
+            memcpy16(&pal_bg_mem[i*16], &palette[n][i*16], 8);
+            memcpy16(&pal_obj_mem[i*16], &palette[n][i*16], 8);
+        }else if (i < 8){
+            memcpy16(&pal_bg_mem[i*16+4], &palette[n][i*16+4], 4);
+            memcpy16(&pal_obj_mem[i*16+4], &palette[n][i*16+4], 4);
+        }else if (i > 9){
+            memcpy16(&pal_bg_mem[i*16], &palette[n][i*16], 16);
+            memcpy16(&pal_obj_mem[i*16], &palette[n][i*16], 16);
+        }
+    }
+
     int color = savefile->settings.palette + 2 * (savefile->settings.palette > 6);
-    memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
-    memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
 
     if(savefile->settings.colors == 2){
         for(int i = 0; i < 9; i++){
@@ -652,12 +682,26 @@ void setPalette(){
             memcpy16(&pal_obj_mem[i*16], classic_pal_bin,4);
         }
     }else if(savefile->settings.colors == 3){
-        int n = getClassicPalette();
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
 
+        int n = getClassicPalette();
         for(int i = 0; i < 8; i++){
             memcpy16(&pal_bg_mem[i*16+1], &nesPalette[n][0],4);
             memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
         }
+
+    }else if(savefile->settings.colors == 4){
+        for(int i = 0; i < 9; i++){
+            memcpy16(&pal_bg_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
+            memcpy16(&pal_obj_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
+        }
+    }else{
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[n][color * 16], 16);
+
     }
 
     memcpy16(&pal_obj_mem[13 * 16], title_pal_bin, title_pal_bin_size / 2);
@@ -717,4 +761,33 @@ int getClassicPalette(){
         n = abs(game->initSeed) % 10;
 
     return n;
+}
+
+void buildMini(TILE * customSkin){
+    memset32(&tile_mem[4][9*16],0,8*8*7);
+    for (int i = 0; i < 7; i++){
+
+        TILE * t;
+        int** p = game->getShape(i, 0);
+        int tileStart = 9 * 16 + i * 8;
+
+        for(int y = 0; y < 2; y++){
+            for(int x = 0; x < 4; x++){
+                if(!p[y][x])
+                    continue;
+
+                for(int ii = 0; ii < 6; ii++){
+                    for(int jj = 0; jj < 6; jj++){
+                        t = &tile_mem[4][tileStart + (x*6+jj)/8 + ((y*6+ii)/8)*4];
+
+                        t->data[(y*6+ii)%8] |= ((customSkin->data[ii] >> (4*jj)) & 0xf) << (((x*6+jj)%8)*4);
+                    }
+                }
+            }
+        }
+
+        for(int i = 0; i < 4; i++)
+            delete p[i];
+        delete p;
+    }
 }

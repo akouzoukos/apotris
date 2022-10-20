@@ -6,9 +6,8 @@
 #include "tonc.h"
 #include "logging.h"
 #include <string>
+// #include <sys/_intsup.h>
 #include "text.h"
-#include "tonc_memdef.h"
-#include "tonc_oam.h"
 
 #include "rumble.h"
 
@@ -44,14 +43,15 @@ OBJ_ATTR* moveSprites[3];
 bool onStates = false;
 
 int clearTimer = 0;
+
+// #define maxClearTimer 20
 int maxClearTimer = 20;
-// int maxClearTimer = 1;
 
 std::string clearTypeText = "";
-int maxClearTextTimer = 100;
-int clearTextHeight = 16;
+#define maxClearTextTimer 100
+#define clearTextHeight 16
 
-int glow[20][10];
+s16 glow[20][10];
 
 int push = 0;
 
@@ -61,10 +61,10 @@ int restartTimer = 0;
 #define maxRestartTimer 20
 
 int attackFlashTimer = 0;
-int attackFlashMax = 10;
+#define attackFlashMax  10
 
 int rumbleTimer = 0;
-int rumbleMax = 1;
+#define rumbleMax 1
 
 std::list<FloatText> floatingList;
 
@@ -72,7 +72,7 @@ std::list<Effect> effectList;
 
 std::list<PlaceEffect> placeEffectList;
 
-Bot *testBot;
+// Bot *testBot;
 
 void checkSounds() {
     if (game->sounds.hold)
@@ -266,13 +266,14 @@ void showBackground() {
             } else{
                 int offset = 1;
 
-                if(savefile->settings.skin >= 7)
+                if(savefile->settings.skin == 7 || savefile->settings.skin == 8)
                     offset = 48 + (game->board[i][j]-1);
 
                 *dest++ = (offset + (((u32)(game->board[i][j] - 1)) << 12));
             }
             if (game->clearLock && i == *l2c) {
                 dest--;
+
                 if (!showEdges)
                     *dest = 0;
                 if (j < 5) {
@@ -303,7 +304,7 @@ void showPawn() {
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
             if (game->pawn.board[game->pawn.rotation][i][j] > 0){
-                if(savefile->settings.skin < 7)
+                if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
                 else
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], classicTiles[savefile->settings.skin-7][game->pawn.current], sprite1tiles_bin_size / 2);
@@ -336,28 +337,18 @@ void showShadow() {
 
     bool bld = false;
     switch (savefile->settings.shadow) {
-    case 0:
-        shadowTexture = (u8*)sprite2tiles_bin;
-        break;
-    case 1:
-        shadowTexture = (u8*)sprite15tiles_bin;
-        break;
-    case 2:
-        shadowTexture = (u8*)sprite16tiles_bin;
-        break;
-    case 3:
-        if(savefile->settings.skin < 7)
-            shadowTexture = blockSprite;
-        else
-            shadowTexture = (u8*)classicTiles[savefile->settings.skin-7][game->pawn.current];
-        bld = true;
-        break;
-    case 4:
-        obj_hide(pawnShadow);
-        return;
-    default:
-        shadowTexture = (u8*)sprite2tiles_bin;
-        break;
+        case 0: shadowTexture = (u8*)sprite2tiles_bin; break;
+        case 1: shadowTexture = (u8*)sprite15tiles_bin; break;
+        case 2: shadowTexture = (u8*)sprite16tiles_bin; break;
+        case 3:
+            if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
+                shadowTexture = blockSprite;
+            else
+                shadowTexture = (u8*)classicTiles[savefile->settings.skin-7][game->pawn.current];
+            bld = true;
+            break;
+        case 4: obj_hide(pawnShadow); return;
+        default: shadowTexture = (u8*)sprite2tiles_bin; break;
     }
 
     obj_unhide(pawnShadow, 0);
@@ -378,6 +369,8 @@ void showShadow() {
             clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
         else if(savefile->settings.colors == 3){
             clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
+        }else if(savefile->settings.colors == 4){
+            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
         } else
             clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
     }else{
@@ -385,6 +378,8 @@ void showShadow() {
             clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.25));
         else if(savefile->settings.colors == 3){
             clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 4, float2fx(0.25));
+        }else if(savefile->settings.colors == 4){
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
         }else
             clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.25));
     }
@@ -420,7 +415,7 @@ void showHold() {
     int add = !(game->held == 0 || game->held == 3);
     int palette = (game->canHold)? game->held : 7;
 
-    if (savefile->settings.skin == 0 || savefile->settings.skin == 5) {
+    if (savefile->settings.skin < 7) {
         obj_unhide(holdSprite, 0);
         obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
@@ -429,7 +424,12 @@ void showHold() {
         obj_unhide(holdSprite, ATTR0_AFF);
         obj_set_attr(holdSprite, ATTR0_WIDE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(16 * game->held, palette, 3);
-        FIXED size = float2fx(1.4);
+        FIXED size;
+        if(savefile->settings.skin < 9)
+            size = 357;//~1.4
+        else
+            size = 349;//~1.4
+
         obj_aff_scale(&obj_aff_buffer[5], size, size);
         obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0) - 3);
     }
@@ -476,7 +476,7 @@ void showQueue() {
         int n = *q;
 
         int add = !(n == 0 || n == 3);
-        if ((savefile->settings.skin == 0 || savefile->settings.skin == 5) && game->gameMode != CLASSIC) {
+        if ((savefile->settings.skin < 7) && game->gameMode != CLASSIC) {
             obj_unhide(queueSprites[k], 0);
             obj_set_attr(queueSprites[k], ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(n));
             queueSprites[k]->attr2 = ATTR2_BUILD(16 * 9 + 8 * n, n, 3);
@@ -486,7 +486,12 @@ void showQueue() {
             obj_set_attr(queueSprites[k], ATTR0_SQUARE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(k), ATTR2_PALBANK(n));
             queueSprites[k]->attr2 = ATTR2_BUILD(16 * n, n, 3);
             obj_aff_identity(&obj_aff_buffer[k]);
-            FIXED size = 358;//~1.4
+            // FIXED size = 358 + sizeControl;//~1.4
+            FIXED size;
+            if(savefile->settings.skin < 9)
+                size = 357;//~1.4
+            else
+                size = 349;//~1.4
             obj_aff_scale(&obj_aff_buffer[k], size, size);
             obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push - 4, (3 + (k * 3)) * 6 - 3 * (n == 0) - 4 + yoffset);
         }
@@ -541,23 +546,30 @@ void control() {
         game->rotateTwice();
     }
 
-    // if (key_hit(KEY_SELECT) && game->goal == 0 && game->gameMode == SPRINT) {
-    //     sfx(SFX_MENUCONFIRM);
-    //     pause = true;
-    //     mmPause();
-    //     clearText();
-    //     update();
-    //     onStates = true;
-    // }
-
     if (key_released(k.softDrop))
         game->keyDown(0);
 
-    if (key_released(k.moveLeft))
+    if (key_released(k.moveLeft)){
         game->keyLeft(0);
 
-    if (key_released(k.moveRight))
+        if(savefile->settings.noDiagonals){
+            if(key_is_down(KEY_UP))
+                game->keyDrop();
+            else if(key_is_down(KEY_DOWN))
+                game->keyDown(1);
+        }
+    }
+
+    if (key_released(k.moveRight)){
         game->keyRight(0);
+
+        if(savefile->settings.noDiagonals){
+            if(key_is_down(KEY_UP))
+                game->keyDrop();
+            else if(key_is_down(KEY_DOWN))
+                game->keyDown(1);
+        }
+    }
 
     if (key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != BATTLE)) {
         if(restartTimer++ > maxRestartTimer || !savefile->settings.resetHold)
@@ -569,27 +581,24 @@ void control() {
 
 void showTimer() {
     if (!(game->gameMode == SPRINT && game->goal == 0)) {
+
         std::string timer = timeToString(gameSeconds);
-        aprint(timer, 1, 1);
+        aprint(timer, 1 - (timer.size() > 8), 1);
     }
 
     if(game->trainingMode){
-    //     clearSmallText();
-    //     aprints("PPS:",0,0,2);
-    //     showPPS();
+    //
         // aprints("Finesse:",0,7,2);
         // showFinesse();
         aprint("Finesse", 1, 14);
         aprintf(game->finesseFaults, 4, 15);
     }
 
-    // if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != CLASSIC) {
-    //     if (++trainingMessageTimer == TRAINING_MESSAGE_MAX) {
-    //         aprint("     ", 1, 3);
-    //         aprint("      ", 1, 5);
-    //         aprint("         ", 1, 7);
-    //     }
-    // }
+    if(proMode){
+        clearSmallText();
+        aprints("PPS:",0,0,2);
+        showPPS();
+    }
 }
 
 void showText() {
@@ -598,7 +607,8 @@ void showText() {
         aprint("Score", 3, 3);
 
         std::string score = std::to_string(game->score);
-        aprint(score, 8 - score.size(), 5);
+        int x = 8 - score.size();
+        aprint(score, (x > 0)? x : 0, 5);
 
         if (game->gameMode != ULTRA) {
             aprint("Level", 2, 14);
@@ -614,9 +624,13 @@ void showText() {
         if (game->goal == 0) {
             aprint("Training", 1, 1);
         }
+    } else if (game->gameMode == DIG && subMode) {
+        aprint("Pieces", 2, 14);
+
+        aprintf(game->pieceCounter, 4, 15);
     }
 
-    if (game->gameMode != BATTLE && game->gameMode != BLITZ){
+    if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1)){
         aprint("Lines", 2, 17);
         if (game->gameMode == DIG)
             aprintf(game->garbageCleared, 4, 18);
@@ -645,13 +659,6 @@ void showText() {
         aprint("Attack", 2, 17);
         aprintf(game->linesSent, 4, 18);
     }
-
-    // if (game->goal == 0 && trainingMessageTimer < TRAINING_MESSAGE_MAX && game->gameMode != COMBO && game->gameMode != CLASSIC) {
-    //     aprint("Press", 1, 3);
-    //     aprint("SELECT", 1, 5);
-    //     aprint("for Saves", 1, 7);
-    // }
-
 }
 
 void showPPS(){
@@ -714,7 +721,7 @@ void showClearText() {
         } else {
             int height = 0;
             if (index->timer < 2 * maxClearTextTimer / 3)
-                height = 5 * (float)index->timer / (2 * maxClearTextTimer / 3);
+                height = 5 * (float)index->timer / ((float)2 * maxClearTextTimer / 3);
             else
                 height = (30 * (float)(index->timer) / maxClearTextTimer) - 15;
             if (text.size() <= 10) {
@@ -738,7 +745,6 @@ void showClearText() {
 
 void gameLoop(){
     setSkin();
-    setPalette();
     clearSmallText();
     setSmallTextArea(100, 2, 14, 8, 17);
     gameSeconds = 0;
@@ -760,6 +766,12 @@ void gameLoop(){
         playSongRandom(1);
     }
 
+    if(proMode){
+        maxClearTimer = 1;
+    }else{
+        maxClearTimer = 20;
+    }
+
     update();
 
     while (1) {
@@ -773,7 +785,7 @@ void gameLoop(){
 
         if(ENABLE_BOT){
             profile_start();
-            testBot->run();
+            // testBot->run();
             botGame->update();
             handleBotGame();
             addToResults(profile_stop(),0);
@@ -804,7 +816,7 @@ void gameLoop(){
             update();
         }
 
-        if(rumbleTimer> 0){
+        if(rumbleTimer > 0){
             rumbleTimer--;
 
             rumble_set_state(rumble_start);
@@ -831,7 +843,7 @@ void gameLoop(){
             return;
         }
 
-        sqran(qran() % frameCounter++);
+        sqran(qran() % frameCounter);
     }
 }
 
@@ -846,19 +858,14 @@ void addGlow(Tetris::Drop location) {
             for (int i = 0; i < 20; i++)
                 for (int j = 0; j < 10; j++)
                     glow[i][j] = glowDuration + abs(xCenter - j) + abs(location.endY - i);
-
-            if (game->previousClear.isBackToBack == 1) {
-                effectList.push_back(Effect(2, xCenter, location.endY));
-            }
         } else {
             for (int i = 0; i < 20; i++)
                 for (int j = 0; j < 10; j++)
                     glow[i][j] = glowDuration + Sqrt(abs(xCenter - j) * abs(xCenter - j) + abs(location.endY - i) * abs(location.endY - i));
-
-            if (game->previousClear.isBackToBack == 1) {
-                effectList.push_back(Effect(1, xCenter, location.endY));
-            }
         }
+
+        if (game->previousClear.isBackToBack == 1)
+            effectList.push_back(Effect(1 + (game->previousClear.isTSpin != 0), xCenter, location.endY));
     }
 }
 
@@ -875,7 +882,6 @@ void countdown() {
     showQueue();
     showHold();
     oam_copy(oam_mem, obj_buffer, 128);
-
 
     while (timer++ < timerMax - 1) {
         VBlankIntrWait();
@@ -916,7 +922,7 @@ void screenShake() {
     REG_BG0VOFS = -shake;
     REG_BG1VOFS = -shake;
 
-    if (shake != 0) {
+    if (shake) {
         if (shake > 0)
             shake--;
         else
@@ -926,6 +932,7 @@ void screenShake() {
 
     REG_BG0HOFS = -push;
     REG_BG1HOFS = -push;
+
     if (game->pushDir != 0) {
         if (abs(push) < pushMax * (savefile->settings.shakeAmount)/4)
             push += game->pushDir * (1 + (savefile->settings.shakeAmount > 2));
@@ -1017,27 +1024,13 @@ void drawGrid() {
     int palOffset = 4;
 
     switch (savefile->settings.backgroundGrid) {
-    case 0:
-        gridTile = 0x0002;
-        break;
-    case 1:
-        gridTile = 0x000c;
-        break;
-    case 2:
-        gridTile = 0x001a;
-        break;
-    case 3:
-        gridTile = 0x001e;
-        break;
-    case 4:
-        gridTile = 0x001f;
-        break;
-    case 5:
-        gridTile = 0x0020;
-        break;
-    default:
-        gridTile = 0x0002;
-        break;
+        case 0: gridTile = 0x0002; break;
+        case 1: gridTile = 0x000c; break;
+        case 2: gridTile = 0x001a; break;
+        case 3: gridTile = 0x001e; break;
+        case 4: gridTile = 0x001f; break;
+        case 5: gridTile = 0x0020; break;
+        default: gridTile = 0x0002; break;
     }
 
     if (savefile->settings.lightMode)
@@ -1077,6 +1070,8 @@ void progressBar() {
         current = game->garbageCleared;
     else if (game->gameMode == ULTRA || game->gameMode == BLITZ)
         current = game->timer;
+    else if (game->gameMode == SPRINT && game->subMode)
+        current = game->linesSent;
     else if (game->gameMode != SURVIVAL)
         current = game->linesCleared;
     else
@@ -1221,7 +1216,7 @@ bool checkDiagonal(int key){
 
 void showPlaceEffect(){
 
-    int size = 384;
+    const int size = 384;
 
     for(int i = 0; i < 3; i++)
         obj_hide(&obj_buffer[19+i]);
@@ -1356,8 +1351,5 @@ void addPlaceEffect(Tetris::Drop drop){
     if((int)placeEffectList.size() >= 3 || !savefile->settings.placeEffect || game->pawn.big)
         return;
 
-    // int x = (drop.x + 10) * 8 - 16 - 32;
-    // int y = drop.y * 8 - 16;
-
-    placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating));
+    placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating * (game->gameMode != CLASSIC)));
 }

@@ -25,6 +25,9 @@
 #include "../build/sprite24tiles_bin.h"
 #include "../build/sprite25tiles_bin.h"
 #include "../build/sprite26tiles_bin.h"
+#include "../build/sprite27tiles_bin.h"
+#include "../build/sprite28tiles_bin.h"
+#include "../build/sprite29tiles_bin.h"
 
 #include "../build/title1tiles_bin.h"
 #include "../build/title2tiles_bin.h"
@@ -33,7 +36,7 @@
 #define paletteLen 512
 extern const uint16_t palette[2][256];
 
-extern const uint8_t * mini[2][7];
+extern const uint8_t * mini[7];
 
 extern const uint8_t * moveSpriteTiles[8];
 
@@ -41,3 +44,5 @@ extern const uint8_t * placeEffectTiles[15];
 extern const uint8_t * classicTiles[2][8];
 
 extern const uint16_t nesPalette[10][4];
+
+extern const uint16_t monoPalette[2][4];

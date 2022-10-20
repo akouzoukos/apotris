@@ -4,6 +4,7 @@
 #include "soundbank.h"
 #include "tonc_bios.h"
 #include "sprites.h"
+#include <string>
 
 using namespace Tetris;
 
@@ -66,7 +67,7 @@ void graphicTest() {
         aprint("R: Toggle", 0, 18);
         aprint("Options", 3, 19);
 
-        if(selection == 7){
+        if(selection == 8){
             if(!game->clearLock)
                 game->demoClear();
         }else{
@@ -82,7 +83,7 @@ void graphicTest() {
                 break;
             }
             setSkin();
-            setLightMode();
+            // setLightMode();
         }
 
         if (key_hit(KEY_B)) {
@@ -149,27 +150,6 @@ void graphicTest() {
         if (key_hit(KEY_LEFT) || key_hit(KEY_RIGHT)) {
             switch (selection) {
             case 0:
-                savefile->settings.effects = !savefile->settings.effects;
-                if (savefile->settings.effects) {
-                    effectList.push_back(Effect(1, 4, 5));
-                }
-                sfx(SFX_MENUMOVE);
-                break;
-            case 1:
-                savefile->settings.floatText = !savefile->settings.floatText;
-
-                if(savefile->settings.floatText){
-                    floatingList.push_back(FloatText("quad"));
-                }else{
-                    floatingList.clear();
-                }
-                sfx(SFX_MENUMOVE);
-                break;
-            case 2:
-                savefile->settings.edges = !savefile->settings.edges;
-                sfx(SFX_MENUMOVE);
-                break;
-            case 3:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.backgroundGrid > 0) {
                         savefile->settings.backgroundGrid--;
@@ -188,9 +168,9 @@ void graphicTest() {
 
                 drawGrid();
                 break;
-            case 4:
+            case 1:
                 if (key_hit(KEY_LEFT)) {
-                    if (savefile->settings.skin > 0) {
+                    if (savefile->settings.skin > -(MAX_CUSTOM_SKINS)) {
                         savefile->settings.skin--;
                         sfx(SFX_MENUMOVE);
                     } else {
@@ -206,9 +186,26 @@ void graphicTest() {
                 }
 
                 setSkin();
-                setLightMode();
+                // setLightMode();
                 break;
-            case 5:
+            case 2:
+                if (key_hit(KEY_LEFT)) {
+                    if (savefile->settings.shadow > 0) {
+                        savefile->settings.shadow--;
+                        sfx(SFX_MENUMOVE);
+                    } else {
+                        sfx(SFX_MENUCANCEL);
+                    }
+                } else {
+                    if (savefile->settings.shadow < MAX_SHADOWS - 1) {
+                        savefile->settings.shadow++;
+                        sfx(SFX_MENUMOVE);
+                    } else {
+                        sfx(SFX_MENUCANCEL);
+                    }
+                }
+                break;
+            case 3:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.palette > 0) {
                         savefile->settings.palette--;
@@ -226,24 +223,44 @@ void graphicTest() {
                 }
                 setPalette();
                 break;
-            case 6:
+            case 4:
                 if (key_hit(KEY_LEFT)) {
-                    if (savefile->settings.shadow > 0) {
-                        savefile->settings.shadow--;
+                    if (savefile->settings.colors > 0) {
+                        savefile->settings.colors--;
                         sfx(SFX_MENUMOVE);
                     } else {
                         sfx(SFX_MENUCANCEL);
                     }
                 } else {
-                    if (savefile->settings.shadow < MAX_SHADOWS - 1) {
-                        savefile->settings.shadow++;
+                    if (savefile->settings.colors < MAX_COLORS-1) {
+                        savefile->settings.colors++;
                         sfx(SFX_MENUMOVE);
                     } else {
                         sfx(SFX_MENUCANCEL);
                     }
                 }
+                setPalette();
+                break;
+            case 5:
+                savefile->settings.edges = !savefile->settings.edges;
+                sfx(SFX_MENUMOVE);
+                break;
+            case 6:
+                savefile->settings.lightMode = !savefile->settings.lightMode;
+                memset16(&se_mem[27], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
+                setSkin();
+                // setLightMode();
+
+                sfx(SFX_MENUMOVE);
                 break;
             case 7:
+                savefile->settings.effects = !savefile->settings.effects;
+                if (savefile->settings.effects) {
+                    effectList.push_back(Effect(1, 4, 5));
+                }
+                sfx(SFX_MENUMOVE);
+                break;
+            case 8:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.clearEffect > 0) {
                         savefile->settings.clearEffect--;
@@ -262,7 +279,7 @@ void graphicTest() {
 
                 setClearEffect();
                 break;
-            case 8:
+            case 9:
                 savefile->settings.placeEffect = !savefile->settings.placeEffect;
                 if(savefile->settings.placeEffect && (int)placeEffectList.size() <= 3){
                     placeEffectList.push_back(PlaceEffect(game->pawn.x, game->pawn.y-20, 0, 0, game->pawn.current, 0, false));
@@ -270,7 +287,7 @@ void graphicTest() {
 
                 sfx(SFX_MENUMOVE);
                 break;
-            case 9:
+            case 10:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.shakeAmount > 0) {
                         savefile->settings.shakeAmount--;
@@ -289,7 +306,17 @@ void graphicTest() {
                 }
                 shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
                 break;
-            case 10:
+            case 11:
+                savefile->settings.floatText = !savefile->settings.floatText;
+
+                if(savefile->settings.floatText){
+                    floatingList.push_back(FloatText("quad"));
+                }else{
+                    floatingList.clear();
+                }
+                sfx(SFX_MENUMOVE);
+                break;
+            case 12:
                 if (key_hit(KEY_LEFT)) {
                     if (savefile->settings.maxQueue > 1) {
                         savefile->settings.maxQueue--;
@@ -306,165 +333,162 @@ void graphicTest() {
                     }
                 }
                 break;
-            case 11:
-                if (key_hit(KEY_LEFT)) {
-                    if (savefile->settings.colors > 0) {
-                        savefile->settings.colors--;
-                        sfx(SFX_MENUMOVE);
-                    } else {
-                        sfx(SFX_MENUCANCEL);
-                    }
-                } else {
-                    if (savefile->settings.colors < MAX_COLORS-1) {
-                        savefile->settings.colors++;
-                        sfx(SFX_MENUMOVE);
-                    } else {
-                        sfx(SFX_MENUCANCEL);
-                    }
-                }
-                setPalette();
-                break;
-            case 12:
-                savefile->settings.lightMode = !savefile->settings.lightMode;
-                memset16(&se_mem[27], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
-                setLightMode();
-                sfx(SFX_MENUMOVE);
-                break;
             }
         }
 
         if (showOptions) {
 
             aprint(" DONE ", 12, 16);
+            int counter = 0;
 
-            aprint("Effects", startX, startY);
-            aprint("Clear Text", startX, startY + 1);
-            aprint("Block Edges", startX, startY + 2);
-            aprint("Background", startX, startY + 3);
-            aprint("Skin", startX, startY + 4);
-            aprint("Frame Color", startX, startY + 5);
-            aprint("Ghost Piece", startX, startY + 6);
-            aprint("Clear Effect", startX, startY + 7);
-            aprint("Place Effect", startX, startY + 8);
-            aprint("Screen Shake", startX, startY + 9);
-            aprint("Previews", startX, startY + 10);
-            aprint("Palette", startX, startY + 11);
-            aprint("Light Mode", startX, startY + 12);
+            aprint("Background", startX, startY + counter++);
+            aprint("Skin", startX, startY + counter++);
+            aprint("Ghost Piece", startX, startY + counter++);
+            aprint("Frame Color", startX, startY + counter++);
+            aprint("Palette", startX, startY + counter++);
+            aprint("Block Edges", startX, startY + counter++);
+            aprint("Light Mode", startX, startY + counter++);
+            aprint("Board Effects", startX, startY + counter++);
+            aprint("Clear Style", startX, startY + counter++);
+            aprint("Place Effect", startX, startY + counter++);
+            aprint("Screen Shake", startX, startY + counter++);
+            aprint("Clear Text", startX, startY + counter++);
+            aprint("Previews", startX, startY + counter++);
+
+            counter = 0;
 
             for (int i = 0; i < options; i++)
-                aprint("      ", endX - 1, startY + i);
+                aprint("       ", endX - 2, startY + i);
 
-            if (savefile->settings.effects)
-                aprint("ON", endX, startY);
-            else
-                aprint("OFF", endX, startY);
+            aprintf(savefile->settings.backgroundGrid + 1, endX, startY + counter++);
 
-            if (savefile->settings.floatText)
-                aprint("ON", endX, startY + 1);
+            if(savefile->settings.skin >= 0)
+                aprintf(savefile->settings.skin + 1, endX, startY + counter);
             else
-                aprint("OFF", endX, startY + 1);
+                aprint("C" + std::to_string(-savefile->settings.skin), endX-1, startY + counter);
+
+            counter++;
+
+            aprintf(savefile->settings.shadow + 1, endX, startY + counter++);
+
+            aprintf(savefile->settings.palette + 1, endX, startY + counter++);
+
+            aprintf(savefile->settings.colors+1, endX, startY + counter++);
 
             if (savefile->settings.edges)
-                aprint("ON", endX, startY + 2);
+                aprint("ON", endX, startY + counter);
             else
-                aprint("OFF", endX, startY + 2);
+                aprint("OFF", endX, startY + counter);
 
-            aprintf(savefile->settings.backgroundGrid + 1, endX, startY + 3);
-
-            aprintf(savefile->settings.skin + 1, endX, startY + 4);
-
-            aprintf(savefile->settings.palette + 1, endX, startY + 5);
-
-            aprintf(savefile->settings.shadow + 1, endX, startY + 6);
-
-            aprintf(savefile->settings.clearEffect + 1, endX, startY + 7);
-
-            if (savefile->settings.placeEffect)
-                aprint("ON", endX, startY + 8);
-            else
-                aprint("OFF", endX, startY + 8);
-
-            std::string shakeString = std::to_string(savefile->settings.shakeAmount * 25) + "%";
-
-            aprint(shakeString, endX, startY + 9);
-
-            aprintf(savefile->settings.maxQueue, endX, startY + 10);
-
-            aprintf(savefile->settings.colors+1, endX, startY + 11);
+            counter++;
 
             if (savefile->settings.lightMode)
-                aprint("ON", endX, startY + 12);
+                aprint("ON", endX, startY + counter);
             else
-                aprint("OFF", endX, startY + 12);
+                aprint("OFF", endX, startY + counter);
+
+            counter++;
+
+            if (savefile->settings.effects)
+                aprint("ON", endX, startY + counter);
+            else
+                aprint("OFF", endX, startY + counter);
+
+            counter++;
+
+            aprintf(savefile->settings.clearEffect + 1, endX, startY + counter);
+
+            counter++;
+
+            if (savefile->settings.placeEffect)
+                aprint("ON", endX, startY + counter);
+            else
+                aprint("OFF", endX, startY + counter);
+
+            counter++;
+
+            std::string shakeString = std::to_string(savefile->settings.shakeAmount * 25) + "%";
+            aprint(shakeString, endX, startY + counter);
+
+            counter++;
+
+            if (savefile->settings.floatText)
+                aprint("ON", endX, startY + counter);
+            else
+                aprint("OFF", endX, startY + counter);
+
+            counter++;
+
+            aprintf(savefile->settings.maxQueue, endX, startY + counter++);
 
             switch (selection) {
             case 0:
-                aprint("[", endX - 1, startY + selection);
-                aprint("]", endX + 2 + !(savefile->settings.effects), startY + selection);
-                break;
-            case 1:
-                aprint("[", endX - 1, startY + selection);
-                aprint("]", endX + 2 + !(savefile->settings.floatText), startY + selection);
-                break;
-            case 2:
-                aprint("[", endX - 1, startY + selection);
-                aprint("]", endX + 2 + !(savefile->settings.edges), startY + selection);
-                break;
-            case 3:
                 if (savefile->settings.backgroundGrid > 0)
                     aprint("<", endX - 1, startY + selection);
                 if (savefile->settings.backgroundGrid < MAX_BACKGROUNDS - 1)
                     aprint(">", endX + 1, startY + selection);
                 break;
-            case 4:
-                if (savefile->settings.skin > 0)
-                    aprint("<", endX - 1, startY + selection);
+            case 1:
+                if (savefile->settings.skin > -(MAX_CUSTOM_SKINS))
+                    aprint("<", endX - 1 - (savefile->settings.skin < 0), startY + selection);
                 if (savefile->settings.skin < MAX_SKINS - 1)
-                    aprint(">", endX + 1, startY + selection);
+                    aprint(">", endX + 1 + (savefile->settings.skin > 8), startY + selection);
                 break;
-            case 5:
-                if (savefile->settings.palette > 0)
-                    aprint("<", endX - 1, startY + selection);
-                if (savefile->settings.palette < 7)
-                    aprint(">", endX + 1, startY + selection);
-                break;
-            case 6:
+            case 2:
                 if (savefile->settings.shadow > 0)
                     aprint("<", endX - 1, startY + selection);
                 if (savefile->settings.shadow < MAX_SHADOWS-1)
                     aprint(">", endX + 1, startY + selection);
                 break;
-            case 7:
-                if (savefile->settings.clearEffect > 0)
+            case 3:
+                if (savefile->settings.palette > 0)
                     aprint("<", endX - 1, startY + selection);
-                if (savefile->settings.clearEffect < MAX_CLEAR_EFFECTS-1)
+                if (savefile->settings.palette < 7)
                     aprint(">", endX + 1, startY + selection);
                 break;
-            case 8:
-                aprint("[", endX - 1, startY + selection);
-                aprint("]", endX + 2 + !(savefile->settings.placeEffect), startY + selection);
-                break;
-            case 9:
-                if (savefile->settings.shakeAmount > 0)
-                    aprint("<", endX - 1, startY + selection);
-                if (savefile->settings.shakeAmount < 4)
-                    aprint(">", endX + shakeString.size(), startY + selection);
-                break;
-            case 10:
-                if (savefile->settings.maxQueue > 1)
-                    aprint("<", endX - 1, startY + selection);
-                if (savefile->settings.maxQueue < 5)
-                    aprint(">", endX + 1, startY + selection);
-                break;
-            case 11:
+            case 4:
                 if (savefile->settings.colors > 1)
                     aprint("<", endX - 1, startY + selection);
                 if (savefile->settings.colors < MAX_COLORS)
                     aprint(">", endX + 1, startY + selection);
                 break;
-            case 12:
+            case 5:
+                aprint("[", endX - 1, startY + selection);
+                aprint("]", endX + 2 + !(savefile->settings.edges), startY + selection);
+                break;
+            case 6:
                 aprint("[", endX - 1, startY + selection);
                 aprint("]", endX + 2 + !(savefile->settings.lightMode), startY + selection);
+                break;
+            case 7:
+                aprint("[", endX - 1, startY + selection);
+                aprint("]", endX + 2 + !(savefile->settings.effects), startY + selection);
+                break;
+            case 8:
+                if (savefile->settings.clearEffect > 0)
+                    aprint("<", endX - 1, startY + selection);
+                if (savefile->settings.clearEffect < MAX_CLEAR_EFFECTS-1)
+                    aprint(">", endX + 1, startY + selection);
+                break;
+            case 9:
+                aprint("[", endX - 1, startY + selection);
+                aprint("]", endX + 2 + !(savefile->settings.placeEffect), startY + selection);
+                break;
+            case 10:
+                if (savefile->settings.shakeAmount > 0)
+                    aprint("<", endX - 1, startY + selection);
+                if (savefile->settings.shakeAmount < 4)
+                    aprint(">", endX + shakeString.size(), startY + selection);
+                break;
+            case 11:
+                aprint("[", endX - 1, startY + selection);
+                aprint("]", endX + 2 + !(savefile->settings.floatText), startY + selection);
+                break;
+            case 12:
+                if (savefile->settings.maxQueue > 1)
+                    aprint("<", endX - 1, startY + selection);
+                if (savefile->settings.maxQueue < 5)
+                    aprint(">", endX + 1, startY + selection);
                 break;
             case 13:
                 aprint("[", 12, 16);
