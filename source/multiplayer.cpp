@@ -127,7 +127,6 @@ void handleMultiplayer() {
             }
 
             drawEnemyBoard(incomingHeight);
-
         }
     } else {
         if (timeoutTimer++ == maxTimeout) {
@@ -135,6 +134,7 @@ void handleMultiplayer() {
             game->setWin(); // aprint("no connection.",0,5);
             connected = -1;
             aprint("Connection Lost.", 0, 0);
+            multiplayer = false;
         }
     }
 }

@@ -43,8 +43,9 @@ OBJ_ATTR* moveSprites[3];
 bool onStates = false;
 
 int clearTimer = 0;
-#define maxClearTimer 20
-// int maxClearTimer = 1;
+
+// #define maxClearTimer 20
+int maxClearTimer = 20;
 
 std::string clearTypeText = "";
 #define maxClearTextTimer 100
@@ -576,23 +577,27 @@ void control() {
     }else{
         restartTimer = 0;
     }
-
 }
 
 void showTimer() {
     if (!(game->gameMode == SPRINT && game->goal == 0)) {
+
         std::string timer = timeToString(gameSeconds);
-        aprint(timer, 1, 1);
+        aprint(timer, 1 - (timer.size() > 8), 1);
     }
 
     if(game->trainingMode){
-    //     clearSmallText();
-    //     aprints("PPS:",0,0,2);
-    //     showPPS();
+    //
         // aprints("Finesse:",0,7,2);
         // showFinesse();
         aprint("Finesse", 1, 14);
         aprintf(game->finesseFaults, 4, 15);
+    }
+
+    if(proMode){
+        clearSmallText();
+        aprints("PPS:",0,0,2);
+        showPPS();
     }
 }
 
@@ -602,7 +607,8 @@ void showText() {
         aprint("Score", 3, 3);
 
         std::string score = std::to_string(game->score);
-        aprint(score, 8 - score.size(), 5);
+        int x = 8 - score.size();
+        aprint(score, (x > 0)? x : 0, 5);
 
         if (game->gameMode != ULTRA) {
             aprint("Level", 2, 14);
@@ -758,6 +764,12 @@ void gameLoop(){
 
     if (!(game->gameMode == SPRINT && game->goal == 0)) {
         playSongRandom(1);
+    }
+
+    if(proMode){
+        maxClearTimer = 1;
+    }else{
+        maxClearTimer = 20;
     }
 
     update();

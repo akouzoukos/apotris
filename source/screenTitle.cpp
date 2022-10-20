@@ -116,6 +116,7 @@ static int level = 1;
 static int toStart = 0;
 static bool onSettings = false;
 int subMode = 0;
+bool proMode = false;
 
 void startScreen() {
 
@@ -774,6 +775,12 @@ void startScreen() {
                         if(toStart == -4){
                             toStart = SPRINT;
                             training = true;
+                        }
+
+                        if(key_is_down(KEY_R)){
+                            proMode = true;
+                        }else{
+                            proMode = false;
                         }
 
                         initialLevel = level - (toStart == CLASSIC);

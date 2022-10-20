@@ -354,4 +354,6 @@ extern int goalSelection;
 
 extern TILE* customSkin;
 
+extern bool proMode;
+
 #define shakeMax 10
