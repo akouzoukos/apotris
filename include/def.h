@@ -248,11 +248,11 @@ extern void showPawn();
 extern void showShadow();
 extern void showQueue();
 extern void showHold();
-extern void showFrames();
 extern void drawGrid();
 extern void drawFrame();
 extern void clearGlow();
 extern void showClearText();
+extern void hideMinos();
 
 extern void reset();
 extern void sleep();

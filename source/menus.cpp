@@ -6,6 +6,8 @@
 #include "tetrisEngine.h"
 #include "logging.h"
 #include "text.h"
+#include "tonc_memmap.h"
+#include "tonc_oam.h"
 #include <string>
 #include <map>
 
@@ -546,8 +548,17 @@ int pauseMenu(){
     int optionsHeight = 10;
     int optionsCounter = 0;
 
-    for (int i = 0; i < 20; i++)
-        aprint("          ", 10, i);
+    // for (int i = 0; i < 20; i++)
+    //     aprint("          ", 10, i);
+    clearText();
+
+    int prevBld = REG_BLDCNT;
+    REG_BLDCNT = (1 << 6) + (0b1111 << 9) + (1);
+    memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
+
+    hideMinos();
+
+    oam_copy(oam_mem, obj_buffer, 128);
 
     while (1) {
         if (!onStates){
@@ -607,6 +618,7 @@ int pauseMenu(){
                 } else if (n == 3) {
                     sleep();
                 } else if (n == 4) {
+                    REG_BLDCNT = prevBld;
                     sfx(SFX_MENUCANCEL);
                     return 1;
                 }
@@ -706,6 +718,10 @@ int pauseMenu(){
 
         oam_copy(oam_mem, obj_buffer, 128);
     }
+
+    REG_BLDCNT = prevBld;
+    memset16(&se_mem[25], 0 , 32 * 20);
+    showBackground();
 
     return 0;
 }

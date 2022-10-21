@@ -29,6 +29,8 @@ void showBestMove();
 bool checkDiagonal(int);
 void showFinesse();
 
+void hideMinos();
+
 Game* game;
 OBJ_ATTR* pawnSprite;
 OBJ_ATTR* pawnShadow;
@@ -596,7 +598,6 @@ void showTimer() {
 
     if(proMode){
         clearSmallText();
-        aprints("PPS:",0,0,2);
         showPPS();
     }
 }
@@ -680,6 +681,7 @@ void showPPS(){
         fractional &= 0xff;
     }
 
+    aprints("PPS:",0,0,2);
     aprints(str,25,0,2);
 }
 
@@ -746,7 +748,7 @@ void showClearText() {
 void gameLoop(){
     setSkin();
     clearSmallText();
-    setSmallTextArea(100, 2, 14, 8, 17);
+    setSmallTextArea(100, 3, 7, 9, 10);
     gameSeconds = 0;
     update();
 
@@ -1352,4 +1354,13 @@ void addPlaceEffect(Tetris::Drop drop){
         return;
 
     placeEffectList.push_back(PlaceEffect(drop.x, drop.y, drop.dx, drop.dy, drop.piece, drop.rotation, drop.rotating * (game->gameMode != CLASSIC)));
+}
+
+void hideMinos(){
+    obj_hide(pawnSprite);
+    obj_hide(pawnShadow);
+    obj_hide(holdSprite);
+
+    for(int i = 0; i < 5; i++)
+        obj_hide(queueSprites[i]);
 }

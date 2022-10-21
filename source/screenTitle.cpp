@@ -777,11 +777,11 @@ void startScreen() {
                             training = true;
                         }
 
-                        // if(key_is_down(KEY_R)){
-                        //     proMode = true;
-                        // }else{
-                        //     proMode = false;
-                        // }
+                        if(key_is_down(KEY_R)){
+                            proMode = true;
+                        }else{
+                            proMode = false;
+                        }
 
                         initialLevel = level - (toStart == CLASSIC);
                         previousOptionMax = options;
