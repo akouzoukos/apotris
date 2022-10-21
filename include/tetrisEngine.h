@@ -156,6 +156,7 @@ namespace Tetris
         int clear = 0;
         int levelUp = 0;
         int finesse = 0;
+        int section = 0;
 
         SoundFlags() {}
         SoundFlags(const SoundFlags& oldFlags){
@@ -167,6 +168,7 @@ namespace Tetris
             clear = oldFlags.clear;
             levelUp = oldFlags.levelUp;
             finesse = oldFlags.finesse;
+            section = oldFlags.section;
         }
     };
 
@@ -217,6 +219,7 @@ namespace Tetris
         void place();
         void generateGarbage(int,int);
         Drop calculateDrop();
+        void setMasterTuning();
 
         std::list<int> bag;
 
@@ -274,6 +277,13 @@ namespace Tetris
 
         int initialRotate = 0;
 
+        int section = 0;
+        int sectionStart = 0;
+        int previousSectionTime = 0;
+
+        bool cool = false;
+        bool regret = false;
+
     public:
         int lengthX = 10;
         int lengthY = 40;
@@ -317,6 +327,10 @@ namespace Tetris
         int initSeed = 0;
 
         int entryDelay = 0;
+        int areMax = 0;
+        int lineAre = 0;
+        int maxClearDelay = 1;
+
         int bTypeHeight = 0;
 
         Stats statTracker;
@@ -418,7 +432,11 @@ namespace Tetris
                         }
                     }
                 }
+            }else if(gameMode == MASTER){
+                level = 0;
+                setMasterTuning();
             }
+
 
         }
 
