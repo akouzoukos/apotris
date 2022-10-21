@@ -175,6 +175,18 @@ void checkSounds() {
             }
         }
     }
+
+    std::string sectionText = "";
+
+    if(game->sounds.section > 0){
+        sectionText = "cool!!";
+    }else if(game->sounds.section < 0){
+        sectionText = "regret!!";
+    }
+
+    if (sectionText.size() && savefile->settings.floatText)
+        floatingList.push_back(FloatText(sectionText));
+
     game->resetSounds();
 }
 
@@ -330,7 +342,7 @@ void showPawn() {
 
 void showShadow() {
     pawnShadow = &obj_buffer[1];
-    if (game->clearLock || game->gameMode == CLASSIC) {
+    if (game->clearLock || game->gameMode == CLASSIC || game->pawn.current == -1) {
         obj_hide(pawnShadow);
         return;
     }
@@ -603,7 +615,7 @@ void showTimer() {
 }
 
 void showText() {
-    if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == CLASSIC) {
+    if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == CLASSIC || game->gameMode == MASTER) {
 
         aprint("Score", 3, 3);
 
