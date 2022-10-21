@@ -354,7 +354,19 @@ void Game::update() {
         speed = blitzGravity[(level < 15) ? level - 1 : 14];
     else if(gameMode == CLASSIC)
         speed = classicGravity[(level < 30) ? level: 29];
-    else
+    else if(gameMode == MASTER){
+        if(level >= 500)
+            speed = masterGravity[29][1];
+        else{
+            for(int i = 28; i >= 0; i--){
+                if(level >= masterGravity[i][0]){
+                    speed = masterGravity[i][1];
+                    break;
+                }
+            }
+        }
+        log(std::to_string(speed ));
+    } else
         speed = gravity[0];
 
     if(gracePeriod){
@@ -523,6 +535,8 @@ void Game::place() {
 
     lastDrop = calculateDrop();
 
+    int prevLevel = level;
+
     if (clear(lastDrop)){
         if(gameMode != CLASSIC)
             comboCounter++;
@@ -552,11 +566,13 @@ void Game::place() {
             }
         }
 
+        if(gameMode == MASTER)
+            entryDelay = lineAre;
+
     } else{
         if(gameMode == COMBO && comboCounter)
             lost = 1;
         comboCounter = 0;
-
 
         int targetHeight = 9;
         if(pawn.big)
@@ -581,8 +597,10 @@ void Game::place() {
             }
             generateGarbage(sum,1);
         }
-    }
 
+        if(gameMode == MASTER)
+            entryDelay = areMax;
+    }
 
     if(comboCounter > statTracker.maxCombo)
         statTracker.maxCombo = comboCounter;
@@ -594,10 +612,20 @@ void Game::place() {
 
         entryDelay = 10 + add;
 
-        pawn.current = -1;
-
         down = 0;
+    }else if (gameMode == MASTER){
+        if(level % 100 < 99)
+            level++;
+        if (level % 100 >= 70 && prevLevel % 100 < 70){
+            if(sectionTimeGoal[(level / 100)][0] > timer-sectionStart)
+                cool = true;
+        }else if(cool && level % 100 >= 80 && prevLevel % 100 < 80){
+            sounds.section = 1;
+        }
     }
+
+    if(entryDelay)
+        pawn.current = -1;
 
     if (!clearLock && !entryDelay)
         next();
@@ -738,6 +766,24 @@ int Game::clear(Drop drop) {
                 level = (requirement/10) + initialLevel + 1;
         }else{
             level = ((int)linesCleared / 10);
+        }
+    }else if(gameMode == MASTER){
+        level += clearCount + (clearCount > 2) + (clearCount > 3);
+
+        int currentSection = level / 100 ;
+
+        if(currentSection > prevLevel / 100){
+            previousSectionTime = timer - sectionStart;
+            if(cool){
+                level += 100;
+            }else if(previousSectionTime > sectionTimeGoal[currentSection-1][1]){
+                regret = true;
+                sounds.section = -1;
+            }
+
+            sounds.levelUp = 1;
+            sectionStart = timer;
+            setMasterTuning();
         }
     }
 
@@ -1009,7 +1055,7 @@ void Game::lockCheck() {
 void Game::keyLeft(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-            left = dir;
+        left = dir;
         return;
     }
 
@@ -1019,7 +1065,7 @@ void Game::keyLeft(int dir) {
     
     previousKey = -1;
 
-    if(gameMode == CLASSIC && dir && !(down)){
+    if(gameMode == CLASSIC && dir){
         das = 0;
         arrCounter = 0;
     }
@@ -1042,7 +1088,7 @@ void Game::keyLeft(int dir) {
 void Game::keyRight(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-            right = dir;
+        right = dir;
         return;
     }
 
@@ -1052,7 +1098,7 @@ void Game::keyRight(int dir) {
     
     previousKey = 1;
 
-    if(gameMode == CLASSIC && dir && !(down)){
+    if(gameMode == CLASSIC && dir){
         das = 0;
         arrCounter = 0;
     }
@@ -1283,7 +1329,7 @@ Drop Game::calculateDrop(){
 }
 
 void Game::setTuning(int newDas, int newArr, int newSfr, int newDropProtection, bool directionalDas){
-    if(gameMode == CLASSIC)
+    if(gameMode == CLASSIC || gameMode == MASTER)
         return;
 
     maxDas = newDas;
@@ -1291,6 +1337,21 @@ void Game::setTuning(int newDas, int newArr, int newSfr, int newDropProtection, 
     softDropSpeed = newSfr;
     dropLockMax = newDropProtection;
     directionCancel = directionalDas;
+}
+
+void Game::setMasterTuning(){
+    int n = 0;
+
+    if(level >= 500){
+        n = (level - 400)/100;
+    }
+
+    arr = 1;
+    areMax = masterDelays[n][0];
+    lineAre = masterDelays[n][1];
+    maxDas = masterDelays[n][2];
+    maxLockTimer = masterDelays[n][3];
+    maxClearDelay = masterDelays[n][4];
 }
 
 void Game::clearAttack(int id){

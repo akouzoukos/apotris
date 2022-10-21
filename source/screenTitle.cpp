@@ -783,7 +783,7 @@ void startScreen() {
                             proMode = false;
                         }
 
-                        initialLevel = level - (toStart == CLASSIC);
+                        initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
                         previousOptionMax = options;
 
                         //START GAME
