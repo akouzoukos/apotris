@@ -18,6 +18,7 @@ namespace Tetris
         COMBO,
         SURVIVAL,
         CLASSIC,
+        MASTER,
     };
 
     class Stats{
