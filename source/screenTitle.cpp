@@ -106,7 +106,7 @@ int bigModeMessageTimer = 0;
 int bigModeMessageMax = 180;
 
 const std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-const std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
+const std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","Master","2P Battle","Training"};
 
 const int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
@@ -370,9 +370,9 @@ void startScreen() {
                         n = CLASSIC;
                         if(level > 19)
                             level = 19;
-                    // } else if (selection == 8) {//Big
-                    //     options = 2;
-                    //     n = BIG;
+                    } else if (selection == 8) {//Master
+                        options = 1;
+                        n = MASTER;
                     } else if (selection == 8) {//2p Battle
                         n = -3;
                         linkConnection->activate();
@@ -1467,6 +1467,14 @@ void startText() {
                 std::string score = std::to_string(savefile->classic[subMode].highscores[i].score);
 
                 aprint(score, 25 - (int)score.length(), 11 + i);
+            }
+        } else if (toStart == MASTER) {//Master Options
+            aprintColor("Master",titleX,titleY,1);
+
+            aprint("  START", 10, 17);
+
+            if(selection == 0){
+                aprint(">", 10, 17);
             }
         } else if (toStart == -1) {
             const int startY = 5;
