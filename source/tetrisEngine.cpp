@@ -618,10 +618,12 @@ void Game::place() {
         if(level % 100 < 99)
             level++;
         if (level % 100 >= 70 && prevLevel % 100 < 70){
-            if(sectionTimeGoal[(level / 100)][0] > timer-sectionStart)
+            if(sectionTimeGoal[(level / 100)][0] > timer-sectionStart && timer-sectionStart < previousSectionTime+120)
                 cool = true;
         }else if(cool && level % 100 >= 80 && prevLevel % 100 < 80){
             sounds.section = 1;
+        }else if(level % 100 == 99 && prevLevel % 100 < 99){
+            sounds.section = 2;
         }
     }
 
@@ -771,17 +773,19 @@ int Game::clear(Drop drop) {
     }else if(gameMode == MASTER){
         level += clearCount + (clearCount > 2) + (clearCount > 3);
 
-        int currentSection = level / 100 ;
+        int currentSectionLevel = level / 100 ;
 
-        if(currentSection > prevLevel / 100){
-            previousSectionTime = timer - sectionStart;
+        if(currentSectionLevel > prevLevel / 100){
+            int currentSession = timer-sectionStart;
             if(cool){
                 level += 100;
-            }else if(previousSectionTime > sectionTimeGoal[currentSection-1][1]){
+                cool = false;
+            }else if(currentSession > sectionTimeGoal[currentSectionLevel-1][1]){
                 regret = true;
                 sounds.section = -1;
             }
 
+            previousSectionTime = currentSession;
             sounds.levelUp = 1;
             sectionStart = timer;
             setMasterTuning();
@@ -988,7 +992,8 @@ void Game::hold() {
     if((clearLock || entryDelay) && !initialHold && canHold && gameMode != CLASSIC)
         initialHold = true;
 
-    if (!canHold || clearLock || entryDelay || gameMode == CLASSIC)
+    // if (!canHold || clearLock || entryDelay || gameMode == CLASSIC || pawn.current == -1)
+    if (!canHold || gameMode == CLASSIC || pawn.current == -1)
         return;
 
     moveCounter++;

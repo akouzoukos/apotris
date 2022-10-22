@@ -174,14 +174,18 @@ void checkSounds() {
                 memcpy16(&pal_obj_mem[i*16+1], &nesPalette[n][0],4);
             }
         }
+
+        if(game->gameMode == MASTER){
+            maxClearTimer = game->maxClearDelay;
+        }
     }
 
     std::string sectionText = "";
 
-    if(game->sounds.section > 0){
-        sectionText = "cool!!";
-    }else if(game->sounds.section < 0){
-        sectionText = "regret!!";
+    switch(game->sounds.section){
+        case -1: sectionText = "regret!!"; break;
+        case 1: sectionText = "cool!!"; break;
+        case 2: sfx(SFX_SECRET); break;
     }
 
     if (sectionText.size() && savefile->settings.floatText)
@@ -780,7 +784,9 @@ void gameLoop(){
         playSongRandom(1);
     }
 
-    if(proMode){
+    if(game->gameMode == MASTER){
+        maxClearTimer = game->maxClearDelay;
+    }else if(proMode){
         maxClearTimer = 1;
     }else{
         maxClearTimer = 20;
