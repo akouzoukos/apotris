@@ -912,7 +912,7 @@ void startScreen() {
                     movingDirection = -1;
                 }
 
-                if(toStart == CLASSIC && !subMode && selection == 2)
+                if(onSettings && toStart == CLASSIC && !subMode && selection == 2)
                     selection--;
 
                 sfx(SFX_MENUMOVE);
@@ -929,7 +929,7 @@ void startScreen() {
                     movingDirection = 1;
                 }
 
-                if(toStart == CLASSIC && !subMode && selection == 2)
+                if(onSettings && toStart == CLASSIC && !subMode && selection == 2)
                     selection++;
 
                 sfx(SFX_MENUMOVE);
