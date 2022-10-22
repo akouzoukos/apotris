@@ -7,7 +7,7 @@
 #define REG_MGBA_FLAGS          VOLADDR(0x04FFF700, u16)
 #define MGBA_LOG_OUT            ((char*)0x04FFF600)
 
-static bool logInitMgba(void)
+inline bool logInitMgba(void)
 {
     REG_MGBA_ENABLE = 0xC0DE;
 
