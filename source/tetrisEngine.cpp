@@ -825,6 +825,10 @@ int Game::clear(Drop drop) {
         statTracker.tspins++;
     }
 
+    if(clearCount && gameMode == MASTER){
+        gradePoints += (int) ((float) gradeTable[internalGrade][clearCount+1] * masterComboMultiplayer[(comboCounter < 10)?comboCounter:9][clearCount-1] + 1) * ((int)(level/250)+1);
+    }
+
     isBackToBack = previousClear.isDifficult && (clearCount == 4 || isTSpin == 2) && gameMode != CLASSIC;
 
     if (isBackToBack){

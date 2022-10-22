@@ -281,6 +281,9 @@ namespace Tetris
         int sectionStart = 0;
         int previousSectionTime = 0;
 
+        int internalGrade = 0;
+        int gradePoints = 0;
+
         bool cool = false;
         bool regret = false;
 
