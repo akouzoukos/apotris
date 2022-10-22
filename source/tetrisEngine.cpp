@@ -311,7 +311,33 @@ void Game::update() {
 
     if (entryDelay){
         entryDelay--;
+    }
+
+    if (!(left || right)){
+        if(gameMode != CLASSIC){
+            das = 0;
+            arrCounter = 0;
+        }
+    }else if (das < maxDas){
+        das++;
+    }
+
+    if(entryDelay)
         return;
+
+    if (das == maxDas && !(left && right)) {
+        if (--arrCounter <= 0) {
+            for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
+                if(gameMode == CLASSIC && down)
+                    continue;
+
+                if (left)
+                    moveLeft();
+                else if(right)
+                    moveRight();
+            }
+            arrCounter = arr;
+        }
     }
     
     if(gameMode == BATTLE){
@@ -365,7 +391,6 @@ void Game::update() {
                 }
             }
         }
-        log(std::to_string(speed ));
     } else
         speed = gravity[0];
 
@@ -397,30 +422,6 @@ void Game::update() {
 
         if (lockTimer == 0 && gameMode != CLASSIC)
             place();
-    }
-
-    if (!(left || right)){
-        if(gameMode != CLASSIC){
-            das = 0;
-            arrCounter = 0;
-        }
-    }else if (das < maxDas){
-        das++;
-    }
-
-    if (das == maxDas && !(left && right)) {
-        if (--arrCounter <= 0) {
-            for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
-                if(gameMode == CLASSIC && down)
-                    continue;
-
-                if (left)
-                    moveLeft();
-                else if(right)
-                    moveRight();
-            }
-            arrCounter = arr;
-        }
     }
 
     if (down) {
