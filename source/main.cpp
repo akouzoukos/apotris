@@ -217,6 +217,7 @@ int main(void) {
             playAgain = false;
             int goal = game->goal;
             int training = game->trainingMode;
+            int rs = game->rotationSystem;
             delete game;
             game = new Game(game->gameMode,bigMode);
             game->setGoal(goal);
@@ -226,6 +227,7 @@ int main(void) {
             game->pawn.big = bigMode;
             game->bTypeHeight = goalSelection;
             game->setSubMode(subMode);
+            game->setRotationSystem(rs);
         }
 
         gameLoop();
@@ -694,9 +696,26 @@ void setPalette(){
 
     }else if(savefile->settings.colors == 4){
         for(int i = 0; i < 9; i++){
-            memcpy16(&pal_bg_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
-            memcpy16(&pal_obj_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
+            memcpy16(&pal_bg_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
+            memcpy16(&pal_obj_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
         }
+    }else if(savefile->settings.colors == 5){
+        for(int i = 0; i < 8; i++){
+            memcpy16(&pal_bg_mem[i*16+1], &arsPalette[0][i],4);
+            memcpy16(&pal_obj_mem[i*16+1], &arsPalette[0][i],4);
+        }
+
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[0][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[0][color * 16], 16);
+    }else if(savefile->settings.colors == 6){
+        for(int i = 0; i < 8; i++){
+            memcpy16(&pal_bg_mem[i*16+1], &arsPalette[1][i],4);
+            memcpy16(&pal_obj_mem[i*16+1], &arsPalette[1][i],4);
+        }
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[1][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[1][color * 16], 16);
     }else{
         //set frame color
         memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);

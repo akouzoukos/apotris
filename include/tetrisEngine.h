@@ -3,6 +3,7 @@
 #include <cstring>
 #include <list>
 #include <string>
+#include "tetromino.hpp"
 #include "tonc.h"
 
 namespace Tetris
@@ -19,6 +20,23 @@ namespace Tetris
         SURVIVAL,
         CLASSIC,
         MASTER,
+    };
+
+    enum RotationSystems{
+        SRS,
+        NRS,
+        ARS,
+        A_SRS,
+    };
+
+    enum Pieces{
+        PIECE_I,
+        PIECE_J,
+        PIECE_L,
+        PIECE_O,
+        PIECE_S,
+        PIECE_T,
+        PIECE_Z,
     };
 
     class Stats{
@@ -182,7 +200,7 @@ namespace Tetris
         int board[4][4][4];
         int lowest;
         bool big = false;
-        void setBlock(bool alt);
+        void setBlock(int system);
 
         Pawn(int newX, int newY) {
             x = newX;
@@ -220,10 +238,18 @@ namespace Tetris
         void generateGarbage(int,int);
         Drop calculateDrop();
         void setMasterTuning();
+        void rotate(int);
+        int checkSpecialRotation(int,int);
+        int checkITouching(int,int);
+        void rotatePlace(int,int,int,int);
+
+        std::list<int> historyList;
+
+        int pieceDrought[7];
+        int bigBag[35];
 
         std::list<int> bag;
 
-        float speed;
         float speedCounter = 0;
 
         //7  117
@@ -242,8 +268,6 @@ namespace Tetris
         int softDropSpeed = 2;
         int softDropRepeatTimer = 0;
 
-        int maxLockTimer = 30;
-        int lockTimer = maxLockTimer;
         int lockMoveCounter = 15;
 
         int left = 0;
@@ -286,6 +310,9 @@ namespace Tetris
 
         bool cool = false;
         bool regret = false;
+        int decayTimer = 0;
+
+        bool stopLockReset = false;
 
     public:
         int lengthX = 10;
@@ -294,6 +321,7 @@ namespace Tetris
         std::list<int> queue;
         Pawn pawn = Pawn(0, 0);
         int held = -1;
+        float speed;
         int linesCleared = 0;
         int level = 0;
         int score = 0;
@@ -340,6 +368,14 @@ namespace Tetris
 
         int subMode = 0;
 
+        int grade = 0;
+        int coolCount = 0;
+
+        int rotationSystem = SRS;
+
+        int maxLockTimer = 30;
+        int lockTimer = maxLockTimer;
+
         int checkRotation(int, int, int);
         void rotateCW();
         void rotateCCW();
@@ -372,6 +408,8 @@ namespace Tetris
         void demoFill();
         void bType(int);
         void setSubMode(int);
+        void setSpeed();
+        void setRotationSystem(int);
 
         Game(){
             seed = initSeed = qran();
@@ -398,6 +436,8 @@ namespace Tetris
                 arr = 6;
                 softDropSpeed = 2;
                 gracePeriod = 90;
+
+                rotationSystem = NRS;
             }else
                 fillQueue(5);
 
@@ -437,9 +477,9 @@ namespace Tetris
                 }
             }else if(gameMode == MASTER){
                 level = 0;
+                speed = GameInfo::masterGravity[0][1];
                 setMasterTuning();
             }
-
 
         }
 
