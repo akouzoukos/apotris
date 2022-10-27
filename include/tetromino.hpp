@@ -44,4 +44,8 @@ namespace GameInfo{
     extern const u8 gradeTable[32][6];
 
     extern const float masterComboMultiplayer[10][4];
+
+    extern const float masterComboMultiplayer[10][4];
+
+    extern const float creditPoints[5][2];
 }

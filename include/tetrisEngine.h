@@ -5,9 +5,13 @@
 #include <string>
 #include "tetromino.hpp"
 #include "tonc.h"
+#include <tuple>
 
 namespace Tetris
 {
+    #define MAX_DISAPPEAR 300
+    #define CREDITS_LENGTH 3240 //54 seconds * 60
+
     enum Modes{
         NO_MODE,
         MARATHON,
@@ -175,6 +179,7 @@ namespace Tetris
         int levelUp = 0;
         int finesse = 0;
         int section = 0;
+        int disappear = 0;
 
         SoundFlags() {}
         SoundFlags(const SoundFlags& oldFlags){
@@ -187,6 +192,7 @@ namespace Tetris
             levelUp = oldFlags.levelUp;
             finesse = oldFlags.finesse;
             section = oldFlags.section;
+            disappear = oldFlags.disappear;
         }
     };
 
@@ -242,10 +248,8 @@ namespace Tetris
         int checkSpecialRotation(int,int);
         int checkITouching(int,int);
         void rotatePlace(int,int,int,int);
+        void updateDisappear();
 
-        std::list<int> historyList;
-
-        int pieceDrought[7];
         int bigBag[35];
 
         std::list<int> bag;
@@ -314,9 +318,13 @@ namespace Tetris
 
         bool stopLockReset = false;
 
+        std::list<int> historyList;
+
+        int pieceDrought[7];
+
     public:
-        int lengthX = 10;
-        int lengthY = 40;
+        const int lengthX = 10;
+        const int lengthY = 40;
         int** board;
         std::list<int> queue;
         Pawn pawn = Pawn(0, 0);
@@ -375,6 +383,13 @@ namespace Tetris
 
         int maxLockTimer = 30;
         int lockTimer = maxLockTimer;
+
+        u16 ** disappearTimers;
+        int disappearing = 0;
+
+        std::list<std::tuple<u8,u8>> toDisappear;
+
+        float creditGrade = 0;
 
         int checkRotation(int, int, int);
         void rotateCW();
@@ -534,6 +549,11 @@ namespace Tetris
                 delete[] board[i];
             delete[] board;
 
+            if(disappearing){
+                for(int i = 0; i < lengthY; i++)
+                    delete[] disappearTimers[i];
+                delete[] disappearTimers;
+            }
         }
     };
 

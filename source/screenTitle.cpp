@@ -783,7 +783,8 @@ void startScreen() {
                             proMode = false;
                         }
 
-                        initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
+                        // initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
+                        initialLevel = 999;
                         previousOptionMax = options;
 
                         //START GAME
@@ -851,7 +852,7 @@ void startScreen() {
                             game->setRotationSystem(NRS);
                             break;
                         case MASTER:
-                            game->setRotationSystem(ARS);
+                            // game->setRotationSystem(ARS);
                             break;
                         }
                         game->setGoal(goal);

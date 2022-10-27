@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <tuple>
 #include "tonc.h"
 #include "logging.h"
 #include "posprintf.h"
@@ -374,7 +375,9 @@ void Game::hardDrop() {
 void Game::update() {
     if (lost)
         return;
-    timer++;
+
+    if(!disappearing)
+        timer++;
 
     if(pawn.current == -1 && !entryDelay)
         next();
@@ -445,11 +448,6 @@ void Game::update() {
             if(gradePoints)
                 gradePoints--;
         }
-
-        // char buff[50];
-        // posprintf(buff,"%d %d %d %d",internalGrade,grade,gradePoints,decayTimer);
-
-        // log(buff);
     }
 
     if((linesCleared >= goal && gameMode == SPRINT && goal && subMode == 0) ||
@@ -462,6 +460,23 @@ void Game::update() {
        if(gameMode == CLASSIC && goal){
            score+= (level + bTypeHeight) * 1000;
        }
+    }else if(gameMode == MASTER && level >= 999 && !disappearing){
+    // }else if(level >= 999 && !disappearing){
+
+        disappearing = 1;
+        disappearTimers = new u16*[lengthY];
+        for(int i = 0; i < lengthY; i++){
+            disappearTimers[i] = new u16[lengthX];
+            for(int j = 0; j < lengthX; j++)
+                disappearTimers[i][j] = 0;
+        }
+
+        sectionStart = timer;
+
+    }if(disappearing && (timer-sectionStart) >= CREDITS_LENGTH){
+        won = 1;
+
+        creditGrade += creditPoints[4][disappearing-1];
     }
 
     if(gracePeriod){
@@ -513,6 +528,9 @@ void Game::update() {
             softDropRepeatTimer = 0;
         }
     }
+
+    if(disappearing)
+        updateDisappear();
 }
 
 int Game::lowest() {
@@ -553,7 +571,6 @@ int Game::lowest() {
                 }
             }
         }
-
     }
     
     return pawn.y;
@@ -576,6 +593,10 @@ void Game::place() {
                     continue;
 
                 board[y][x] = pawn.current + 1;
+                if(disappearing == 1)
+                    disappearTimers[y][x] = MAX_DISAPPEAR;
+                else if(disappearing == 2)
+                    disappearTimers[y][x] = 1;
             }else{
                 x *=2;
                 y *=2;
@@ -586,6 +607,10 @@ void Game::place() {
                             continue;
 
                         board[y+k][x+l] = pawn.current + 1;
+                        if(disappearing == 1)
+                            disappearTimers[y+k][x+l] = MAX_DISAPPEAR;
+                        else if(disappearing == 2)
+                            disappearTimers[y][x] = 1;
                     }
                 }
             }
@@ -847,8 +872,11 @@ int Game::clear(Drop drop) {
         }else{
             level = ((int)linesCleared / 10);
         }
-    }else if(gameMode == MASTER){
+    }else if(gameMode == MASTER && level < 999){
         level += clearCount + (clearCount > 2) + (clearCount > 3);
+
+        if(level > 999)
+            level = 999;
 
         int currentSectionLevel = level / 100 ;
 
@@ -874,6 +902,10 @@ int Game::clear(Drop drop) {
             sounds.levelUp = 1;
             sectionStart = timer;
             setMasterTuning();
+        }
+
+        if(disappearing && clearCount){
+            creditGrade += creditPoints[clearCount-1][disappearing-1];
         }
     }
 
@@ -1334,13 +1366,17 @@ void Game::removeClearLock() {
     if(!clearLock)
         return;
     clearLock = 0;
-    std::list<int>::iterator index = linesToClear.begin();
+    auto index = linesToClear.begin();
 
     for (int i = 0; i < (int)linesToClear.size(); i++) {
-        for (int j = *index; j > 0; j--)
-            for (int k = 0; k < lengthX; k++)
+        for (int j = *index; j > 0; j--){
+            for (int k = 0; k < lengthX; k++){
                 board[j][k] = board[j - 1][k];
-        std::advance(index, 1);
+                if(disappearing)
+                    disappearTimers[j][k] = disappearTimers[j - 1][k];
+            }
+        }
+        ++index;
     }
 
     linesToClear = std::list<int>();
@@ -1681,17 +1717,18 @@ void Game::setSpeed(){
     else if(gameMode == CLASSIC)
         speed = classicGravity[(level < 30) ? level: 29];
     else if(gameMode == MASTER){
-        int speedLevel = level + coolCount * 100;
-        if(speedLevel >= 500)
-            speed = masterGravity[29][1];
-        else{
-            for(int i = 28; i >= 0; i--){
-                if(speedLevel >= masterGravity[i][0]){
-                    speed = masterGravity[i][1];
-                    break;
-                }
-            }
-        }
+        // int speedLevel = level + coolCount * 100;
+        // if(speedLevel >= 500)
+        //     speed = masterGravity[29][1];
+        // else{
+        //     for(int i = 28; i >= 0; i--){
+        //         if(speedLevel >= masterGravity[i][0]){
+        //             speed = masterGravity[i][1];
+        //             break;
+        //         }
+        //     }
+        // }
+        // setMasterTuning();
     } else
         speed = gravity[0];
 
@@ -1741,4 +1778,27 @@ int Game::checkITouching(int r, int oriantation){
     }
 
     return 0;
+}
+
+void Game::updateDisappear(){
+    if(!disappearing)
+        return;
+
+    bool found = false;
+
+    for(int i = 0; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            if(disappearTimers[i][j] <= 1)
+                continue;
+            disappearTimers[i][j]--;
+
+            if(disappearTimers[i][j] == 1){
+                found = true;
+                toDisappear.push_back(std::make_tuple(j,i));
+            }
+        }
+    }
+
+    if(found)
+        sounds.disappear = 1;
 }
