@@ -512,7 +512,7 @@ void Game::update() {
     }
 
     if (down) {
-        if(rotationSystem == NRS)
+        if(rotationSystem == NRS || gameMode == MASTER)
             softDropCounter = maxDas;
         else if (softDropCounter < maxDas)
             softDropCounter++;
@@ -1583,6 +1583,7 @@ void Game::setMasterTuning(){
     maxDas = masterDelays[n][2];
     maxLockTimer = masterDelays[n][3];
     maxClearDelay = masterDelays[n][4];
+    softDropSpeed = 1;
 }
 
 void Game::clearAttack(int id){
@@ -1717,18 +1718,18 @@ void Game::setSpeed(){
     else if(gameMode == CLASSIC)
         speed = classicGravity[(level < 30) ? level: 29];
     else if(gameMode == MASTER){
-        // int speedLevel = level + coolCount * 100;
-        // if(speedLevel >= 500)
-        //     speed = masterGravity[29][1];
-        // else{
-        //     for(int i = 28; i >= 0; i--){
-        //         if(speedLevel >= masterGravity[i][0]){
-        //             speed = masterGravity[i][1];
-        //             break;
-        //         }
-        //     }
-        // }
-        // setMasterTuning();
+        int speedLevel = level + coolCount * 100;
+        if(speedLevel >= 500)
+            speed = masterGravity[29][1];
+        else{
+            for(int i = 28; i >= 0; i--){
+                if(speedLevel >= masterGravity[i][0]){
+                    speed = masterGravity[i][1];
+                    break;
+                }
+            }
+        }
+        setMasterTuning();
     } else
         speed = gravity[0];
 
