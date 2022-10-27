@@ -6,6 +6,7 @@
 #include "tonc.h"
 #include "logging.h"
 #include <string>
+#include <tuple>
 // #include <sys/_intsup.h>
 #include "text.h"
 
@@ -13,9 +14,8 @@
 
 #include "classic_pal_bin.h"
 #include "logging.h"
+#include "posprintf.h"
 #include "tonc_core.h"
-#include "tonc_memdef.h"
-#include "tonc_oam.h"
 
 using namespace Tetris;
 
@@ -32,8 +32,9 @@ void showBestMove();
 bool checkDiagonal(int);
 void showFinesse();
 void showSpeedMeter(int);
-
 void hideMinos();
+void disappear();
+INLINE int getBoard(int,int);
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -195,6 +196,11 @@ void checkSounds() {
     if (sectionText.size() && savefile->settings.floatText)
         floatingList.push_back(FloatText(sectionText));
 
+
+    if(game->sounds.disappear){
+        disappear();
+    }
+
     game->resetSounds();
 }
 
@@ -211,32 +217,42 @@ void showBackground() {
     dest += 10;
     for (int i = 20; i < 40; i++) {
         if (game->linesToClear.size() > 0) {
-            std::list<int>::iterator l2c2 = game->linesToClear.begin();
             before = after = false;
-            while (l2c2 != game->linesToClear.end()) {
-                if (*l2c2 == i - 1) {
+            for(auto const& l : game->linesToClear){
+                if(l == i - 1)
                     before = true;
-
-                }
-                if (*l2c2 == i + 1) {
+                if(l == i + 1)
                     after = true;
-                }
-                ++l2c2;
+                if(l > i + 1)
+                    break;
             }
         }
 
+        if(game->clearLock && i != *l2c && clearTimer != 1){
+            dest+= 32;
+            continue;
+        }
+
         for (int j = 0; j < 10; j++) {
-            // draw white for clear animation
-            if (!game->board[i][j] || (game->clearLock && i == *l2c && showEdges)) {
+            if (!game->board[i][j] || (game->clearLock && i == *l2c && showEdges) || (game->disappearing && game->disappearTimers[i][j] == 1)) {
+            // if (!game->board[i][j] || (game->clearLock && i == *l2c && showEdges)) {
+                // if (!showEdges || (game->disappearing && game->disappearTimers[i][j] == 1)) {
                 if (!showEdges) {
                     *dest++ = 0;
                     continue;
                 }
 
-                up = (game->board[i - 1][j] > 0 && !before);
-                left = (j - 1 >= 0 && game->board[i][j - 1] > 0 && !(i == *l2c && game->clearLock));
-                right = (j + 1 <= 9 && game->board[i][j + 1] > 0 && !(i == *l2c && game->clearLock));
-                down = (i + 1 <= 39 && game->board[i + 1][j] > 0 && !after);
+                if(!game->disappearing){
+                    up = (game->board[i - 1][j] > 0 && !before);
+                    left = (j - 1 >= 0 && game->board[i][j - 1] > 0 && !(i == *l2c && game->clearLock));
+                    right = (j + 1 <= 9 && game->board[i][j + 1] > 0 && !(i == *l2c && game->clearLock));
+                    down = (i + 1 <= 39 && game->board[i + 1][j] > 0 && !after);
+                }else{
+                    up = (getBoard(j,i-1) > 0 && !before);
+                    left = (j - 1 >= 0 && getBoard(j-1, i) > 0 && !(i == *l2c && game->clearLock));
+                    right = (j + 1 <= 9 && getBoard(j+1,i) > 0 && !(i == *l2c && game->clearLock));
+                    down = (i + 1 <= 39 && getBoard(j,i+1) > 0 && !after);
+                }
 
                 int count = up + down + left + right;
 
@@ -309,9 +325,10 @@ void showBackground() {
             }
         }
         if (i == *l2c)
-            std::advance(l2c, 1);
+            ++l2c;
         dest += 22;
     }
+
 }
 
 void showPawn() {
@@ -705,7 +722,12 @@ void showText() {
 
         showSpeedMeter((int)game->speed);
 
-        aprintf(((game->level / 100)+1) * 100, 4, 18);
+        int n = ((game->level / 100)+1) * 100;
+
+        if(n == 1000)
+            n--;
+
+        aprintf(n, 4, 18);
 
         aprint(GameInfo::masterGrades[game->grade + game->coolCount],5,3);
     }
@@ -1505,4 +1527,35 @@ void showSpeedMeter(int fill){
     obj_set_pos(sprite,35, 139);
     obj_unhide(sprite, 0);
 
+}
+
+void disappear(){
+    std::tuple<u8,u8> coords;
+    u16* dest = (u16*)se_mem[25];
+
+    bool found = false;
+
+    while(!game->toDisappear.empty()){
+        coords = game->toDisappear.front();
+
+        int x = std::get<0>(coords);
+        int y = std::get<1>(coords);
+
+        dest[(y-20)*32 + x + 10] = 0;
+
+        found = true;
+
+        game->toDisappear.pop_front();
+    }
+
+    if(found){
+        showBackground();
+    }
+}
+
+INLINE int getBoard(int x, int y){
+    if(game->disappearTimers[y][x] == 1)
+        return 0;
+
+    return game->board[y][x];
 }
