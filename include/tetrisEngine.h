@@ -307,7 +307,7 @@ namespace Tetris
 
         int section = 0;
         int sectionStart = 0;
-        int previousSectionTime = 0;
+        int previousSectionTime = 1000000;
 
         int internalGrade = 0;
         int gradePoints = 0;
@@ -321,6 +321,7 @@ namespace Tetris
         std::list<int> historyList;
 
         int pieceDrought[7];
+        int eventTimer = 0;
 
     public:
         const int lengthX = 10;
@@ -391,6 +392,8 @@ namespace Tetris
 
         float creditGrade = 0;
 
+        bool eventLock = false;
+
         int checkRotation(int, int, int);
         void rotateCW();
         void rotateCCW();
@@ -425,6 +428,7 @@ namespace Tetris
         void setSubMode(int);
         void setSpeed();
         void setRotationSystem(int);
+        void removeEventLock();
 
         Game(){
             seed = initSeed = qran();
@@ -620,7 +624,7 @@ namespace Tetris
         void move(){
             if(--sleepTimer > 0)
                 return;
-            else
+            else
                 sleepTimer = maxSleep;
 
             if(rotation != current.rotation){

@@ -128,12 +128,14 @@ void Game::rotateTwice() {
 }
 
 void Game::rotate(int dir){
-    if (clearLock || entryDelay){
+    if ((clearLock || entryDelay) && !eventLock){
         initialRotate += dir;
+
         if(initialRotate > 3)
             initialRotate -= 4;
         else if(initialRotate < 0)
             initialRotate += 4;
+
         return;
     }
 
@@ -164,8 +166,9 @@ void Game::rotate(int dir){
                 rotatePlace(dir,dx,dy,r);
                 return;
 
-            }else
+            }else{
                 sounds.invalid = 1;
+            }
         }
 
     }else if(rotationSystem == NRS){
@@ -378,9 +381,8 @@ void Game::update() {
 
     if(!disappearing)
         timer++;
-
-    if(pawn.current == -1 && !entryDelay)
-        next();
+    else
+        eventTimer++;
 
     if(dropLockTimer)
         dropLockTimer--;
@@ -391,6 +393,9 @@ void Game::update() {
     if (entryDelay){
         entryDelay--;
     }
+
+    if(pawn.current == -1 && !entryDelay)
+        next();
 
     if (!(left || right)){
         if(gameMode != CLASSIC){
@@ -437,7 +442,7 @@ void Game::update() {
             while(!checkRotation(0,0,pawn.rotation))
                 pawn.y--;
         }
-    }else if(gameMode == MASTER){
+    }else if(gameMode == MASTER && !disappearing){
         if(level < 500 && timer >= 25200)
             lost = 1;
 
@@ -460,20 +465,7 @@ void Game::update() {
        if(gameMode == CLASSIC && goal){
            score+= (level + bTypeHeight) * 1000;
        }
-    }else if(gameMode == MASTER && level >= 999 && !disappearing){
-    // }else if(level >= 999 && !disappearing){
-
-        disappearing = 1;
-        disappearTimers = new u16*[lengthY];
-        for(int i = 0; i < lengthY; i++){
-            disappearTimers[i] = new u16[lengthX];
-            for(int j = 0; j < lengthX; j++)
-                disappearTimers[i][j] = 0;
-        }
-
-        sectionStart = timer;
-
-    }if(disappearing && (timer-sectionStart) >= CREDITS_LENGTH){
+    }else if(disappearing && (eventTimer) >= CREDITS_LENGTH){
         won = 1;
 
         creditGrade += creditPoints[4][disappearing-1];
@@ -713,14 +705,15 @@ void Game::place() {
         down = 0;
     }else if (gameMode == MASTER){
 
-        if(level % 100 < 99)
+        if(level % 100 < 99 && level < 998)
             level++;
+
         if (level % 100 >= 70 && prevLevel % 100 < 70){
-            if(sectionTimeGoal[(level / 100)][0] > timer-sectionStart && timer-sectionStart < previousSectionTime+120)
+            if(sectionTimeGoal[(level / 100)][0] > timer-sectionStart && (timer-sectionStart < previousSectionTime+120))
                 cool = true;
         }else if(cool && level % 100 >= 82 && prevLevel % 100 < 82){
             sounds.section = 1;
-        }else if(level % 100 == 99 && prevLevel % 100 < 99){
+        }else if((level % 100 == 99 && prevLevel % 100 < 99 && level != 999) || (level == 998 && prevLevel != 998)){
             sounds.section = 2;
         }
     }
@@ -753,6 +746,7 @@ void Game::place() {
 }
 
 int Game::clear(Drop drop) {
+
     int clearCount = 0;
     int attack = 0;
     int isTSpin = 0;
@@ -878,14 +872,40 @@ int Game::clear(Drop drop) {
         if(level > 999)
             level = 999;
 
+        if(level == 999 && !disappearing){
+        // }else if(level >= 999 && !disappearing){
+
+            disappearing = 1 + (coolCount == 9);
+
+            disappearTimers = new u16*[lengthY];
+            for(int i = 0; i < lengthY; i++){
+                disappearTimers[i] = new u16[lengthX];
+                for(int j = 0; j < lengthX; j++)
+                    disappearTimers[i][j] = 0;
+            }
+
+            sectionStart = timer;
+
+            eventLock = true;
+
+            for(int i = 0; i < lengthY; i++)
+                for(int j = 0; j < lengthX; j++)
+                    board[i][j] = 0;
+
+
+        }
+
         int currentSectionLevel = level / 100 ;
 
         if(currentSectionLevel > prevLevel / 100){
             int currentSession = timer-sectionStart;
+
             if(cool){
                 coolCount++;
                 cool = false;
-            }else if(currentSession > sectionTimeGoal[currentSectionLevel-1][1]){//regret
+            }
+
+            if(currentSession > sectionTimeGoal[currentSectionLevel-1][1]){//regret
                 if(grade){
                     int newInternal = 31;
                     while(newInternal != 0 && gradeTable[newInternal][0] >= grade)
@@ -942,7 +962,7 @@ int Game::clear(Drop drop) {
         statTracker.tspins++;
     }
 
-    if(clearCount && gameMode == MASTER){
+    if(clearCount && gameMode == MASTER && !disappearing){
         gradePoints += (int) ((float) gradeTable[internalGrade][clearCount+1] * masterComboMultiplayer[(comboCounter < 10)?comboCounter:9][clearCount-1] + 1) * ((int)(level/250)+1);
 
         if(gradePoints >= 100){
@@ -1802,4 +1822,8 @@ void Game::updateDisappear(){
 
     if(found)
         sounds.disappear = 1;
+}
+
+void Game::removeEventLock(){
+    eventLock = false;
 }
