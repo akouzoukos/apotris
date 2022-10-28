@@ -554,7 +554,7 @@ void control() {
     if (key_released(k.moveLeft)){
         game->keyLeft(0);
 
-        if(savefile->settings.noDiagonals){
+        if(savefile->settings.diagonalType == 1){
             if(key_is_down(KEY_UP))
                 game->keyDrop();
             else if(key_is_down(KEY_DOWN))
@@ -565,7 +565,7 @@ void control() {
     if (key_released(k.moveRight)){
         game->keyRight(0);
 
-        if(savefile->settings.noDiagonals){
+        if(savefile->settings.diagonalType == 1){
             if(key_is_down(KEY_UP))
                 game->keyDrop();
             else if(key_is_down(KEY_DOWN))
@@ -1211,7 +1211,7 @@ void showBestMove(){
 }
 
 bool checkDiagonal(int key){
-    if(!savefile->settings.noDiagonals)
+    if(!savefile->settings.diagonalType)
         return false;
     return ((key == KEY_DOWN || key == KEY_UP) && (key_is_down(KEY_LEFT) || key_is_down(KEY_RIGHT)));
 }

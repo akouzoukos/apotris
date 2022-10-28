@@ -68,6 +68,7 @@ void Game::rotateCW() {
 
     moveCounter++;
     lastMoveRotation = 1;
+    dropLockTimer = 0;
     for (int i = 0; i < 5; i++) {
         int dx = kicks[(pawn.current == 0)][0][pawn.rotation][i][0];
         int dy = kicks[(pawn.current == 0)][0][pawn.rotation][i][1];
@@ -110,6 +111,7 @@ void Game::rotateCCW() {
 
     moveCounter++;
     lastMoveRotation = -1;
+    dropLockTimer = 0;
     for (int i = 0; i < 5; i++) {
         int dx = kicks[(pawn.current == 0)][1][pawn.rotation][i][0];
         int dy = kicks[(pawn.current == 0)][1][pawn.rotation][i][1];
@@ -154,6 +156,7 @@ void Game::rotateTwice() {
 
     moveCounter++;
     lastMoveRotation = 1;
+    dropLockTimer = 0;
     for (int i = 0; i < 6; i++) {
         int dx = kickTwice[pawn.rotation][i][0];
         int dy = kickTwice[pawn.rotation][i][1];
@@ -972,6 +975,7 @@ void Game::hold() {
     lockMoveCounter = 15;
     arrCounter = 0;
 
+    dropLockTimer = 0;
     moveHistory.clear();
 
     statTracker.holds++;
@@ -1018,6 +1022,7 @@ void Game::keyLeft(int dir) {
     left = dir;
     
     previousKey = -1;
+    dropLockTimer = 0;
 
     if(gameMode == CLASSIC && dir && !(down)){
         das = 0;
@@ -1051,6 +1056,7 @@ void Game::keyRight(int dir) {
     right = dir;
     
     previousKey = 1;
+    dropLockTimer = 0;
 
     if(gameMode == CLASSIC && dir && !(down)){
         das = 0;
@@ -1087,6 +1093,7 @@ void Game::keyDown(int dir) {
     }
     down = dir;
     softDrop = true;
+    dropLockTimer = 0;
     gracePeriod = 0;
 
 }

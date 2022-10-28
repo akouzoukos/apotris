@@ -77,8 +77,9 @@ typedef struct Settings{
     bool resetHold;
     bool placeEffect;
     int rumble;
+    int diagonalType;
 
-    int placeHolder[100];
+    int placeHolder[99];
 
 }ALIGN(4) Settings;
 
@@ -221,7 +222,7 @@ public:
 
 #define SHOW_FINESSE 1
 #define DIAGNOSE 0
-#define SAVE_TAG 0x4f
+#define SAVE_TAG 0x50
 #define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1

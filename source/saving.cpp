@@ -37,7 +37,11 @@ void loadSave() {
     savefile = new Save();
     loadFromSram();
 
-    if (savefile->newGame == 0x4e) {
+    if (savefile->newGame == 0x50) {
+        savefile->newGame = SAVE_TAG;
+
+        setDefaults(savefile,5);
+    }else if (savefile->newGame == 0x4e) {
         savefile->newGame = SAVE_TAG;
 
         setDefaults(savefile,4);
@@ -263,5 +267,9 @@ void setDefaults(Save *save, int depth){
         save->stats.gamesLost = 0;
 
         resetSkins(save);
+    }
+
+    if(depth < 6){
+        save->settings.diagonalType = save->settings.noDiagonals;
     }
 }

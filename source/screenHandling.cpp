@@ -89,7 +89,10 @@ bool handlingControl(){
         }else if (selection == 4){
             savefile->settings.directionalDas = !savefile->settings.directionalDas;
         }else if (selection == 5){
-            savefile->settings.noDiagonals = !savefile->settings.noDiagonals;
+            if (key_hit(KEY_LEFT) && savefile->settings.diagonalType > 0)
+                savefile->settings.diagonalType--;
+            else if (key_hit(KEY_RIGHT) && savefile->settings.diagonalType < 2)
+                savefile->settings.diagonalType++;
         }
 
         sfx(SFX_MENUMOVE);
@@ -238,10 +241,14 @@ void handlingText(){
     else
         aprint("OFF", endX, startY + space * 4);
 
-    if (savefile->settings.noDiagonals)
-        aprint("ON", endX, startY + space * 5);
-    else
-        aprint("OFF", endX, startY + space * 5);
+    std::string diagonalString;
+    switch(savefile->settings.diagonalType){
+    case 0: diagonalString = "OFF"; break;
+    case 1: diagonalString = "SOFT"; break;
+    case 2: diagonalString = "STRICT"; break;
+    }
+
+    aprint(diagonalString, endX, startY + space * 5);
 
     //show cursor
     if (selection == 0) {
@@ -268,8 +275,10 @@ void handlingText(){
         aprint("[", endX - 1, startY + space * selection);
         aprint("]", endX + 2 + (!savefile->settings.directionalDas), startY + space * selection);
     } else if (selection == 5) {
-        aprint("[", endX - 1, startY + space * selection);
-        aprint("]", endX + 2 + (!savefile->settings.noDiagonals), startY + space * selection);
+        if(savefile->settings.diagonalType != 0)
+            aprint("<", endX - 1, startY + space * selection);
+        if(savefile->settings.diagonalType != 2)
+            aprint(">", endX + diagonalString.size(), startY + space * selection);
     }else if (selection == (int) options.size()){
         aprint("[",12,17);
         aprint("]",17,17);
