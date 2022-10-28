@@ -481,6 +481,21 @@ void showScore(){
         aprint("Lines Sent", 10, 5);
         aprintf(game->linesSent, 14, 7);
 
+    } else if (game->gameMode == MASTER){
+        int grade = game->grade + game->coolCount + (int) game->creditGrade;
+
+        std::string gradeText = GameInfo::masterGrades[grade];
+
+        if(game-> won && game->level < 500 && game->timer >= 25200) {
+            aprint("TIME!", 13, 3);
+        }else if(game->won && game->level == 999){
+            aprint("CLEAR!", 12, 3);
+        }else{
+            aprint("GAME OVER", 11, 3);
+        }
+
+        aprint(gradeText, 15 - ((int)gradeText.size()/2),7);
+
     } else if (game->gameMode == MARATHON || game->lost || game->gameMode >= ULTRA || (game->gameMode == DIG && subMode == 1)) {
         std::string score;
 
@@ -504,21 +519,6 @@ void showScore(){
             aprint(score, 15 - ((int)score.size() / 2), 7);
         else if (game->gameMode == SURVIVAL)
             aprint(timeToString(gameSeconds), 11, 7);
-    } else if (game->gameMode == MASTER){
-        int grade = game->grade + game->coolCount + (int) game->creditGrade;
-
-        std::string gradeText = GameInfo::masterGrades[grade];
-
-        if(game-> won && game->level < 500 && game->timer >= 25200) {
-            aprint("TIME!", 13, 3);
-        }else if(game->won && game->level == 999){
-            aprint("CLEAR!", 12, 3);
-        }else{
-            aprint("GAME OVER", 11, 3);
-        }
-
-        aprint(gradeText, 15 - ((int)gradeText.size()/2),7);
-
     } else {
         aprint("CLEAR!", 12, 3);
 

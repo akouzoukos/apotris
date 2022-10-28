@@ -79,6 +79,10 @@ std::list<Effect> effectList;
 
 std::list<PlaceEffect> placeEffectList;
 
+#define eventPauseTimerMax 60
+
+int eventPauseTimer = 0;
+
 // Bot *testBot;
 
 void checkSounds() {
@@ -188,8 +192,14 @@ void checkSounds() {
     std::string sectionText = "";
 
     switch(game->sounds.section){
-        case -1: sectionText = "regret!!"; break;
-        case 1: sectionText = "cool!!"; break;
+        case -1:
+            sectionText = "regret!!";
+            sfx(SFX_REGRET);
+            break;
+        case 1:
+            sectionText = "cool!!";
+            sfx(SFX_COOL);
+            break;
         case 2: sfx(SFX_SECRET); break;
     }
 
@@ -884,7 +894,7 @@ void gameLoop(){
 
     while (1) {
         diagnose();
-        if (!game->lost && !pause) {
+        if (!game->lost && !pause && !game->eventLock) {
             game->update();
         }
         handleMultiplayer();
@@ -903,6 +913,18 @@ void gameLoop(){
 
         if (game->clearLock) {
             clearTimer++;
+        }
+
+        if(game->eventLock){
+            if(eventPauseTimer == 0){
+                eventPauseTimer = eventPauseTimerMax;
+                showBackground();
+            }
+
+            eventPauseTimer--;
+
+            if(eventPauseTimer == 0)
+                game->removeEventLock();
         }
 
         Tetris::Drop latestDrop = game->getDrop();
@@ -1503,6 +1525,7 @@ void showSpeedMeter(int fill){
     //set palette
     memset16(&pal_obj_mem[13*16+1],0x03e0,1); //green
     memset16(&pal_obj_mem[13*16+2],0x001f,1); //red
+    memset16(&pal_obj_mem[13*16+3],0x4a52,1); //gray
 
     TILE *dest;
     for(int x = 0; x < 4; x++){
@@ -1515,11 +1538,16 @@ void showSpeedMeter(int fill){
     if(fill > maxLength)
         fill = maxLength;
 
-    for(int x = 0; x < maxLength; x++){
+    for(int x = 0; x < maxLength+1; x++){
         dest = (TILE *) &tile_mem[4][256 + x / 8];
-        int c = (1 + (x < fill)) << ((x%8) * 4);
-        for(int y = 0; y < 2; y++){
-            dest->data[y] |= c;
+        int shift = ((x%8) * 4);
+        int c = (1 + (x < fill)) << shift;
+        if(x < maxLength){
+            dest->data[0] |= c;
+            if(x > 0)
+                dest->data[1] |= 3 << shift;
+        }else{
+            dest->data[1] |= 3 << shift;
         }
     }
 

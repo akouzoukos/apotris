@@ -785,7 +785,7 @@ void startScreen() {
                         }
 
                         initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
-                        // initialLevel = 999;
+                        // initialLevel = 990;
                         previousOptionMax = options;
 
                         //START GAME
@@ -976,7 +976,6 @@ void startScreen() {
                 dasVer = 0;
             }
         }
-
 
         sqran(qran() * frameCounter);
 
