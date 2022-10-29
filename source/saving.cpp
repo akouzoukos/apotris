@@ -37,9 +37,9 @@ void loadSave() {
     savefile = new Save();
     loadFromSram();
 
-    if (savefile->newGame == 0x4e) {
-        savefile->newGame = SAVE_TAG;
-
+    if (savefile->newGame == 0x4f) {
+        setDefaults(savefile,5);
+    }else if (savefile->newGame == 0x4e) {
         setDefaults(savefile,4);
     }else if (savefile->newGame == 0x4d) {
         Save* temp = new Save();
@@ -53,8 +53,6 @@ void loadSave() {
             tmp[i] = sf[i];
 
         memcpy16(&tmp[sizeof(Settings)+ sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
-
-        temp->newGame = SAVE_TAG;
 
         setDefaults(temp,3);
 
@@ -73,8 +71,6 @@ void loadSave() {
             tmp[i] = sf[i];
 
         memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
-
-        temp->newGame = SAVE_TAG;
 
         setDefaults(temp,2);
 
@@ -96,8 +92,6 @@ void loadSave() {
 
         memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
 
-        temp->newGame = SAVE_TAG;
-
         setDefaults(temp,1);
 
         setDefaultKeys();
@@ -108,7 +102,6 @@ void loadSave() {
 
     } else if (savefile->newGame != SAVE_TAG) {
         savefile = new Save();
-        savefile->newGame = SAVE_TAG;
 
         setDefaults(savefile,0);
 
@@ -123,6 +116,8 @@ void loadSave() {
 
     if ((savefile->settings.rumble < 0) || (savefile->settings.rumble > 4))
         savefile->settings.rumble = 0;
+
+    savefile->newGame = SAVE_TAG;
 
     u8* dump = (u8*)savefile;
     int sum = 0;
@@ -263,5 +258,14 @@ void setDefaults(Save *save, int depth){
         save->stats.gamesLost = 0;
 
         resetSkins(save);
+    }
+
+    if(depth < 6){
+        for (int i = 0; i < 2; i++){
+            for (int j = 0; j < 5; j++){
+                save->master[i].times[j].frames = 0;
+                save->master[i].grade[j] = -1;
+            }
+        }
     }
 }

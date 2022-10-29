@@ -33,6 +33,11 @@ typedef struct Timeboard{
     Time times[5];
 }ALIGN(4) Timeboard;
 
+typedef struct Gradeboard{
+    Time times[5];
+    s8 grade[5];
+}ALIGN(4) Gradeboard;
+
 typedef struct Keys{
     int moveLeft;
     int moveRight;
@@ -129,8 +134,9 @@ typedef struct Save{
     Timeboard sprintAttack[3];
     Scoreboard digEfficiency[3];
     Scoreboard classic[2];
+    Gradeboard master[2];
 
-    int placeHolder[100];
+    int placeHolder[56];
 
     Stats stats;
 
@@ -221,7 +227,7 @@ public:
 
 #define SHOW_FINESSE 1
 #define DIAGNOSE 0
-#define SAVE_TAG 0x4f
+#define SAVE_TAG 0x50
 #define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1

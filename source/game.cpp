@@ -7,7 +7,6 @@
 #include "logging.h"
 #include <string>
 #include <tuple>
-// #include <sys/_intsup.h>
 #include "text.h"
 
 #include "rumble.h"
@@ -61,7 +60,6 @@ std::string clearTypeText = "";
 s16 glow[20][10];
 
 int push = 0;
-
 int pushTimer = 0;
 
 int restartTimer = 0;
