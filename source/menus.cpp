@@ -864,6 +864,21 @@ int onRecord() {
 
             savefile->classic[subMode].highscores[i].score = game->score;
             strncpy(savefile->classic[subMode].highscores[i].name, name.c_str(), 9);
+        } else if (game->gameMode == MASTER) {
+            int grade = game->grade + game->coolCount + (int) game->creditGrade;
+            if (grade < savefile->master[subMode].grade[i] || (grade == savefile->master[subMode].grade[i] && gameSeconds > savefile->master[subMode].times[i].frames))
+                continue;
+
+            for (int j = 3; j >= i; j--){
+                savefile->master[subMode].times[j + 1] = savefile->master[subMode].times[j];
+                savefile->master[subMode].grade[j + 1] = savefile->master[subMode].grade[j];
+            }
+
+            std::string name = nameInput(i);
+
+            savefile->master[subMode].times[i].frames = gameSeconds;
+            strncpy(savefile->master[subMode].times[i].name, name.c_str(), 9);
+            savefile->master[subMode].grade[i] = grade;
         }
 
         place = i;

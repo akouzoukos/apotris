@@ -299,7 +299,7 @@ void Game::moveDown() {
 }
 
 void Game::hardDrop() {
-    if (clearLock || dropLockTimer)
+    if (clearLock || dropLockTimer || entryDelay)
         return;
 
     int diff = pawn.lowest - pawn.y;
@@ -1485,7 +1485,7 @@ void Game::generateGarbage(int height,int mode){
 }
 
 void Game::keyDrop(){
-    if(gameMode == CLASSIC)
+    if(gameMode == CLASSIC || entryDelay)
         return;
 
     dropping = true;
@@ -1722,6 +1722,13 @@ void Game::bType(int height){
 }
 
 void Game::setSubMode(int sm){
+
+    if(gameMode == MASTER && sm){
+        setRotationSystem(ARS);
+
+        return;
+    }
+
     subMode = sm;
 
     if(sm && gameMode == CLASSIC){

@@ -1,4 +1,5 @@
 #include "def.h"
+#include "tetromino.hpp"
 #include "tonc.h"
 #include "text.h"
 #include <string>
@@ -371,7 +372,7 @@ void startScreen() {
                         if(level > 19)
                             level = 19;
                     } else if (selection == 8) {//Master
-                        options = 1;
+                        options = 2;
                         n = MASTER;
                     } else if (selection == 8) {//2p Battle
                         n = -3;
@@ -624,6 +625,21 @@ void startScreen() {
                         refreshText = true;
                     }
                 }
+
+            }else if (toStart == MASTER){
+                if (selection == 0) {
+                    if (key == KEY_RIGHT && subMode < 1) {
+                        subMode++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && subMode > 0) {
+                        subMode--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+                }
             } else if (toStart == -4) {
                 if (selection == 0) {
                     if (key == KEY_LEFT || key == KEY_RIGHT) {
@@ -785,6 +801,7 @@ void startScreen() {
 
                         initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
                         // initialLevel = 990;
+
                         previousOptionMax = options;
 
                         //START GAME
@@ -1475,10 +1492,49 @@ void startText() {
         } else if (toStart == MASTER) {//Master Options
             aprintColor("Master",titleX,titleY,1);
 
+            const int goalHeight = 4;
             aprint("  START", 10, 17);
+            aprint("Rules: ", 12, goalHeight);
+            aprintColor(" Normal    Classic ", 5, goalHeight + 2, 1);
 
-            if(selection == 0){
+            for (int i = 0; i < 5; i++) {
+                posprintf(buff,"%d.",i+1);
+                aprint(buff,3,11+i);
+
+                aprint("                       ", 5, 11 + i);
+                if (savefile->master[subMode].times[i].frames == 0)
+                    continue;
+
+                aprint(savefile->master[subMode].times[i].name, 6, 11 + i);
+                std::string text;
+                text += GameInfo::masterGrades[savefile->master[subMode].grade[i]];
+                text += " " + timeToString(savefile->master[subMode].times[i].frames);
+
+                aprint(text, 25 - (int)text.length(), 11 + i);
+            }
+
+            if (selection == 0) {
+                switch (subMode) {
+                case 0:
+                    aprint("[", 5, goalHeight + 2);
+                    aprint("]", 12, goalHeight + 2);
+                    break;
+                case 1:
+                    aprint("[", 15, goalHeight + 2);
+                    aprint("]", 23, goalHeight + 2);
+                    break;
+                }
+            } else if (selection == 1) {
                 aprint(">", 10, 17);
+            }
+
+            switch (subMode) {
+            case 0:
+                aprint("Normal", 6, goalHeight + 2);
+                break;
+            case 1:
+                aprint("Classic", 16, goalHeight + 2);
+                break;
             }
         } else if (toStart == -1) {
             const int startY = 5;
@@ -1871,6 +1927,14 @@ void resetScoreboard(int mode, int goal, int subMode){
             savefile->survival[goal].times[j].frames = 0;
         break;
     case CLASSIC:
+        for (int j = 0; j < 5; j++)
+            savefile->classic[goal].highscores[j].score = 0;
+        break;
+    case MASTER:
+        for (int j = 0; j < 5; j++){
+            savefile->master[goal].times[j].frames = 0;
+            savefile->master[goal].grade[j] = -1;
+        }
         break;
     }
 
