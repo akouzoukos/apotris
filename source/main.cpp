@@ -785,7 +785,7 @@ int getClassicPalette(){
 void buildMini(TILE * customSkin){
     memset32(&tile_mem[4][9*16],0,8*8*7);
 
-    int add = (game->gameMode == CLASSIC);
+    int add = (game->rotationSystem == NRS || game->rotationSystem == ARS);
 
     for (int i = 0; i < 7; i++){
 

@@ -1496,7 +1496,7 @@ void startText() {
             const int goalHeight = 4;
             aprint("  START", 10, 17);
             aprint("Rules: ", 12, goalHeight);
-            aprintColor(" Normal    Classic ", 5, goalHeight + 2, 1);
+            aprintColor(" Normal     Classic ", 5, goalHeight + 2, 1);
 
             for (int i = 0; i < 5; i++) {
                 posprintf(buff,"%d.",i+1);
@@ -1521,8 +1521,8 @@ void startText() {
                     aprint("]", 12, goalHeight + 2);
                     break;
                 case 1:
-                    aprint("[", 15, goalHeight + 2);
-                    aprint("]", 23, goalHeight + 2);
+                    aprint("[", 16, goalHeight + 2);
+                    aprint("]", 24, goalHeight + 2);
                     break;
                 }
             } else if (selection == 1) {
@@ -1534,7 +1534,7 @@ void startText() {
                 aprint("Normal", 6, goalHeight + 2);
                 break;
             case 1:
-                aprint("Classic", 16, goalHeight + 2);
+                aprint("Classic", 17, goalHeight + 2);
                 break;
             }
         } else if (toStart == -1) {
