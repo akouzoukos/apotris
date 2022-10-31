@@ -387,6 +387,12 @@ void Game::update() {
     if(dropLockTimer)
         dropLockTimer--;
 
+    if(zoneTimer){
+        zoneTimer--;
+        if(zoneTimer == 0)
+            endZone();
+    }
+
     if (clearLock)
         return;
 
@@ -662,7 +668,9 @@ void Game::place() {
     } else{
         if(gameMode == COMBO && comboCounter)
             lost = 1;
-        comboCounter = 0;
+
+        if(!zoneTimer)
+            comboCounter = 0;
 
         int targetHeight = 9;
         if(pawn.big)
@@ -775,7 +783,7 @@ int Game::clear(Drop drop) {
             if (x < 0)
                 backCount = 2;
             else
-                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
+                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
             break;
         case 2:
             frontCount += (board[y + offset][x] != 0) + (board[y + offset][x + offset] != 0);
@@ -797,17 +805,46 @@ int Game::clear(Drop drop) {
 
     //check for lines to clear
     int garbageToRemove = 0;
+    int zonedBefore = zonedLines;
     for (int i = 0; i < lengthY; i++) {
-        int toClear = 1;
+        bool toClear = true;
         for (int j = 0; j < lengthX; j++)
             if (board[i][j] == 0)
-                toClear = 0;
+                toClear = false;
 
         if (toClear) {
-            linesToClear.push_back(i);
-            clearCount++;
-            if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
-                garbageToRemove++;
+            if(!zoneTimer){
+                linesToClear.push_back(i);
+                clearCount++;
+                if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
+                    garbageToRemove++;
+            }else{
+                if(i >= lengthY-zonedLines)
+                    break;
+
+                for(int ii = i; ii < lengthY-1-zonedLines; ii++)
+                    for (int j = 0; j < lengthX; j++)
+                        board[ii][j] = board[ii+1][j];
+
+                zonedLines++;
+
+                for (int j = 0; j < lengthX; j++)
+                    board[lengthY-zonedLines][j] = 9;
+
+                if(i < lengthY - 1)
+                    i--;
+            }
+        }
+    }
+
+     if(zonedLines) {
+        if (zonedLines > zonedBefore) {
+            comboCounter++;
+            sounds.clear = 1;
+        }
+
+        if (zonedLines >= 8 && sounds.zone != -1) {
+            sounds.zone = 2;
         }
     }
 
@@ -850,6 +887,12 @@ int Game::clear(Drop drop) {
     int prevLevel = level;
     if(gameMode == MARATHON){
         level = ((int)linesCleared / 10) + 1;
+        if(subMode && !zonedLines){
+            zoneCharge += clearCount;
+
+            if(zoneCharge > 32)
+                zoneCharge = 32;
+        }
     }else if(gameMode == BLITZ){
         for(int i = 0; i < 15; i++){
             if(linesCleared < blitzLevels[i]){
@@ -938,28 +981,30 @@ int Game::clear(Drop drop) {
 
     //calculate score
     int add = 0;
-    if(isTSpin == 0){
-        //if no t-spin
-        if(gameMode != CLASSIC){
-            add += scoring[clearCount - 1][0] * prevLevel;
-            isDifficult = scoring[clearCount - 1][1];
-            attack = scoring[clearCount - 1][2];
-        } else
-            add += classicScoring[clearCount-1] * (level+1);
+    if(clearCount <= 4){
+        if(isTSpin == 0){
+            //if no t-spin
+            if(gameMode != CLASSIC){
+                add += scoring[clearCount - 1][0] * prevLevel;
+                isDifficult = scoring[clearCount - 1][1];
+                attack = scoring[clearCount - 1][2];
+            } else
+                add += classicScoring[clearCount-1] * (level+1);
 
-        statTracker.clears[clearCount-1]++;
-    }else if(isTSpin == 1){
-        //if t-spin mini
-        add += scoring[clearCount + 4][0] * prevLevel;
-        isDifficult = scoring[clearCount + 4][1];
-        attack = scoring[clearCount + 4][2];
-        statTracker.tspins++;
-    }else if(isTSpin == 2){
-        //if t-spin
-        add += scoring[clearCount  + 7][0] * prevLevel;
-        attack = scoring[clearCount + 7][2];
-        isDifficult = true;
-        statTracker.tspins++;
+            statTracker.clears[clearCount-1]++;
+        }else if(isTSpin == 1){
+            //if t-spin mini
+            add += scoring[clearCount + 4][0] * prevLevel;
+            isDifficult = scoring[clearCount + 4][1];
+            attack = scoring[clearCount + 4][2];
+            statTracker.tspins++;
+        }else if(isTSpin == 2){
+            //if t-spin
+            add += scoring[clearCount  + 7][0] * prevLevel;
+            attack = scoring[clearCount + 7][2];
+            isDifficult = true;
+            statTracker.tspins++;
+        }
     }
 
     if(clearCount && gameMode == MASTER && !disappearing){
@@ -990,7 +1035,7 @@ int Game::clear(Drop drop) {
     add += scoring[16][0] * level * comboCounter;
     attack += comboTable[comboCounter];
 
-    if (isPerfectClear && gameMode != CLASSIC){
+    if (isPerfectClear && gameMode != CLASSIC && clearCount <= 4){
         if(gameMode != BLITZ)
             add += scoring[clearCount - 1 + 11][0] * level;
         else
@@ -1112,8 +1157,12 @@ void Game::next() {
 
     if (check || !checkRotation(0, 0, pawn.rotation) || gameMode == CLASSIC){
         pawn.y-=1;
-        if (!checkRotation(0, 0, pawn.rotation))
-            lost = 1;
+        if (!checkRotation(0, 0, pawn.rotation)){
+            if(zoneTimer)
+                endZone();
+            else
+                lost = 1;
+        }
     }
 
     lastMoveDx = 0;
@@ -1401,9 +1450,11 @@ void Game::removeClearLock() {
 
     linesToClear = std::list<int>();
 
-    if(!entryDelay)
+    if(!entryDelay && !zonedLines)
         next();
+
     refresh = 1;
+    zonedLines = 0;
 }
 
 void Game::resetSounds(){
@@ -1738,7 +1789,7 @@ void Game::setSubMode(int sm){
 }
 
 void Game::setSpeed(){
-    if (gameMode == MARATHON)
+    if (gameMode == MARATHON && !(subMode && zoneTimer))
         speed = gravity[(level < 19) ? level - 1 : 18];
     else if(gameMode == BLITZ)
         speed = blitzGravity[(level < 15) ? level - 1 : 14];
@@ -1833,4 +1884,22 @@ void Game::updateDisappear(){
 
 void Game::removeEventLock(){
     eventLock = false;
+}
+
+void Game::activateZone(){
+    // if(zoneCharge < 8)
+    //     return;
+    zoneCharge = 32;
+
+    zoneTimer = (float) 37.5 * zoneCharge;
+
+    zoneCharge = 0;
+
+    sounds.zone = 1;
+}
+
+void Game::endZone(){
+    zoneTimer = 0;
+    sounds.zone = -1;
+    clear(Drop());
 }

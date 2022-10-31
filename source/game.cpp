@@ -81,6 +81,8 @@ std::list<PlaceEffect> placeEffectList;
 
 int eventPauseTimer = 0;
 
+static Settings previousSettings;
+
 // Bot *testBot;
 
 void checkSounds() {
@@ -207,6 +209,20 @@ void checkSounds() {
 
     if(game->sounds.disappear){
         disappear();
+    }
+
+    if (game->sounds.zone == 1) {
+        previousSettings = savefile->settings;
+        savefile->settings.colors = 4;
+        savefile->settings.lightMode = false;
+        setPalette();
+    } else if (game->sounds.zone == 2) {
+        savefile->settings.lightMode = true;
+        setPalette();
+    } else if (game->sounds.zone == -1) {
+        savefile->settings = previousSettings;
+        log(std::to_string(previousSettings.colors));
+        setPalette();
     }
 
     game->resetSounds();
@@ -670,6 +686,10 @@ void control() {
             playAgain = true;
     }else{
         restartTimer = 0;
+    }
+
+    if(key_is_down(KEY_SELECT) && game->gameMode == MARATHON && subMode && !game->zoneTimer){
+        game->activateZone();
     }
 }
 

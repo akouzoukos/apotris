@@ -180,6 +180,7 @@ namespace Tetris
         int finesse = 0;
         int section = 0;
         int disappear = 0;
+        int zone = 0;
 
         SoundFlags() {}
         SoundFlags(const SoundFlags& oldFlags){
@@ -193,6 +194,7 @@ namespace Tetris
             finesse = oldFlags.finesse;
             section = oldFlags.section;
             disappear = oldFlags.disappear;
+            zone = oldFlags.zone;
         }
     };
 
@@ -249,6 +251,7 @@ namespace Tetris
         int checkITouching(int,int);
         void rotatePlace(int,int,int,int);
         void updateDisappear();
+        void endZone();
 
         int bigBag[35];
 
@@ -376,6 +379,9 @@ namespace Tetris
         Stats statTracker;
 
         int subMode = 0;
+        int zoneCharge = 0;
+        int zoneTimer = 0;
+        int zonedLines = 0;
 
         int grade = 0;
         int coolCount = 0;
@@ -429,6 +435,7 @@ namespace Tetris
         void setSpeed();
         void setRotationSystem(int);
         void removeEventLock();
+        void activateZone();
 
         Game(){
             seed = initSeed = qran();

@@ -699,6 +699,15 @@ void setPalette(){
             memcpy16(&pal_bg_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
             memcpy16(&pal_obj_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
         }
+
+        if(!savefile->settings.lightMode){
+            memset16(&pal_bg_mem[8], 0x7fff,1);
+            memset16(&pal_obj_mem[8], 0x7fff,1);
+        }else{
+            memset16(&pal_bg_mem[8], 0x0421,1);
+            memset16(&pal_obj_mem[8], 0x0421,1);
+        }
+
     }else if(savefile->settings.colors == 5){
         for(int i = 0; i < 8; i++){
             memcpy16(&pal_bg_mem[i*16+1], &arsPalette[0][i],4);

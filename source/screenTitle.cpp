@@ -803,6 +803,9 @@ void startScreen() {
                         initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
                         // initialLevel = 990;
 
+                        if(toStart == MARATHON)
+                            subMode = 1;
+
                         previousOptionMax = options;
 
                         //START GAME
