@@ -13,6 +13,9 @@
 
 #include "classic_pal_bin.h"
 #include "logging.h"
+#include "tonc_core.h"
+#include "tonc_memdef.h"
+#include "tonc_oam.h"
 
 using namespace Tetris;
 
@@ -28,6 +31,7 @@ void showBar(int, int, int, int);
 void showBestMove();
 bool checkDiagonal(int);
 void showFinesse();
+void showSpeedMeter(int);
 
 void hideMinos();
 
@@ -333,11 +337,44 @@ void showPawn() {
 
     int n = game->pawn.current;
 
+    int blend = 0;
+
+    if(game->maxLockTimer > 1)
+        blend += 16-(game->lockTimer * 16) / game->maxLockTimer;
+
+    if (!savefile->settings.lightMode){
+        if(savefile->settings.colors == 2)
+            clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[11 * 16], 8, blend);
+        else if(savefile->settings.colors == 3){
+            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+        }else if(savefile->settings.colors == 4){
+            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+        }else if(savefile->settings.colors == 5){
+            clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+        }else if(savefile->settings.colors == 6){
+            clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+        } else
+            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[11 * 16], 8, blend);
+    }else{
+        if(savefile->settings.colors == 2)
+            clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)classic_pal_bin, 8, int2fx(blend) >> 5);
+        else if(savefile->settings.colors == 3){
+            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, int2fx(blend) >> 5);
+        }else if(savefile->settings.colors == 4){
+            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&monoPalette[1][0], 8, int2fx(blend) >> 5);
+        }else if(savefile->settings.colors == 5){
+            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[0][n], 4, int2fx(blend) >> 5);
+        }else if(savefile->settings.colors == 6){
+            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[1][n], 4, int2fx(blend) >> 5);
+        }else
+            clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, int2fx(blend) >> 5);
+    }
+
     if(!game->pawn.big){
-        obj_set_attr(pawnSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * 7, n, 2));
+        obj_set_attr(pawnSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * 7, 11, 2));
         obj_set_pos(pawnSprite, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->pawn.y - 20) * 8 + shake * savefile->settings.shake);
     }else{
-        obj_set_attr(pawnSprite, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(31), ATTR2_BUILD(16 * 7, n, 2));
+        obj_set_attr(pawnSprite, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(31), ATTR2_BUILD(16 * 7, 11, 2));
         obj_aff_identity(&obj_aff_buffer[31]);
         obj_aff_scale(&obj_aff_buffer[31], 1<<7, 1<<7);
         obj_set_pos(pawnSprite, (10 + game->pawn.x*2) * 8 + push * savefile->settings.shake, (game->pawn.y*2 - 20) * 8 + shake * savefile->settings.shake);
@@ -346,7 +383,7 @@ void showPawn() {
 
 void showShadow() {
     pawnShadow = &obj_buffer[1];
-    if (game->clearLock || game->gameMode == CLASSIC || game->pawn.current == -1) {
+    if (game->clearLock || game->pawn.current == -1 || game->gameMode == CLASSIC || (game->gameMode == MASTER && game->level >= 100) ) {
         obj_hide(pawnShadow);
         return;
     }
@@ -384,22 +421,30 @@ void showShadow() {
 
     if (!savefile->settings.lightMode){
         if(savefile->settings.colors == 2)
-            clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
+            clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
         else if(savefile->settings.colors == 3){
             clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
         }else if(savefile->settings.colors == 4){
             clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
+        }else if(savefile->settings.colors == 5){
+            clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+        }else if(savefile->settings.colors == 6){
+            clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         } else
-            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 16, (14) * bld);
+            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
     }else{
         if(savefile->settings.colors == 2)
-            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 16, float2fx(0.25));
+            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 8, float2fx(0.25));
         else if(savefile->settings.colors == 3){
-            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 4, float2fx(0.25));
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, float2fx(0.25));
         }else if(savefile->settings.colors == 4){
-            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 8, float2fx(0.25));
+        }else if(savefile->settings.colors == 5){
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[0][n], 4, float2fx(0.25));
+        }else if(savefile->settings.colors == 6){
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[1][n], 4, float2fx(0.25));
         }else
-            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 16, float2fx(0.25));
+            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, float2fx(0.25));
     }
 
     if(!game->pawn.big){
@@ -433,14 +478,16 @@ void showHold() {
     int add = !(game->held == 0 || game->held == 3);
     int palette = (game->canHold)? game->held : 7;
 
-    if (savefile->settings.skin < 7) {
+    int yoffset = - (6 * !(game->rotationSystem == SRS));
+
+    if (savefile->settings.skin < 7 && game->rotationSystem == SRS) {
         obj_unhide(holdSprite, 0);
         obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
         obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0));
     } else {
         obj_unhide(holdSprite, ATTR0_AFF);
-        obj_set_attr(holdSprite, ATTR0_WIDE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
+        obj_set_attr(holdSprite, ATTR0_SQUARE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(16 * game->held, palette, 3);
         FIXED size;
         if(savefile->settings.skin < 9)
@@ -449,7 +496,7 @@ void showHold() {
             size = 349;//~1.4
 
         obj_aff_scale(&obj_aff_buffer[5], size, size);
-        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0) - 3);
+        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0 && game->rotationSystem != ARS) - 3 + yoffset);
     }
 }
 
@@ -458,6 +505,8 @@ void showQueue() {
 
     if(game->gameMode == CLASSIC)
         maxQueue = 1;
+    else if(game->gameMode == MASTER)
+        maxQueue = (maxQueue < 3)? maxQueue : 3;
 
     for (int i = 0; i < maxQueue; i++)
         queueSprites[i] = &obj_buffer[3 + i];
@@ -511,11 +560,13 @@ void showQueue() {
             else
                 size = 349;//~1.4
             obj_aff_scale(&obj_aff_buffer[k], size, size);
-            obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push - 4, (3 + (k * 3)) * 6 - 3 * (n == 0) - 4 + yoffset);
+            obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push - 4, (3 + (k * 3)) * 6 - 3 * (n == 0 && game->rotationSystem != ARS) - 4 + yoffset);
         }
 
         if(q != game->queue.end())
             ++q;
+        else
+            break;
     }
 }
 
@@ -619,7 +670,7 @@ void showTimer() {
 }
 
 void showText() {
-    if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == CLASSIC || game->gameMode == MASTER) {
+    if (game->gameMode == MARATHON || game->gameMode == ULTRA || game->gameMode == BLITZ || game->gameMode == CLASSIC) {
 
         aprint("Score", 3, 3);
 
@@ -645,9 +696,21 @@ void showText() {
         aprint("Pieces", 2, 14);
 
         aprintf(game->pieceCounter, 4, 15);
+    } else if (game->gameMode == MASTER){
+        aprint("Level", 3, 14);
+
+        std::string str = std::to_string(game->level);
+
+         aprint(str, 7-str.size(), 16);
+
+        showSpeedMeter((int)game->speed);
+
+        aprintf(((game->level / 100)+1) * 100, 4, 18);
+
+        aprint(GameInfo::masterGrades[game->grade + game->coolCount],5,3);
     }
 
-    if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1)){
+    if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1) && game->gameMode != MASTER){
         aprint("Lines", 2, 17);
         if (game->gameMode == DIG)
             aprintf(game->garbageCleared, 4, 18);
@@ -672,7 +735,7 @@ void showText() {
 
         aprint(str,2,18);
 
-    } else {
+    } else if(game->gameMode == BATTLE || (game->gameMode == SPRINT && subMode == 1)){
         aprint("Attack", 2, 17);
         aprintf(game->linesSent, 4, 18);
     }
@@ -775,6 +838,9 @@ void gameLoop(){
 
     showHold();
     showQueue();
+
+    if(game->gameMode == MASTER)
+        showSpeedMeter((int)game->speed);
 
     oam_copy(oam_mem, obj_buffer, 128);
 
@@ -1260,39 +1326,52 @@ void showPlaceEffect(){
         switch(it->piece){
         case 0:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n],size);
-            if(game->gameMode == CLASSIC){
+            if(game->rotationSystem == NRS){
                 if(r % 2 == 1)
                     r = 1;
                 else
                     r = 2;
+            }else if(game->rotationSystem == ARS){
+                if(r % 2 == 1)
+                    r = 1;
+                else
+                    r = 0;
             }
             break;
         case 1:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
             xoffset = yoffset = -4;
-            if(game->gameMode == CLASSIC)
+
+            if (game->rotationSystem == ARS && r == 2)
+                yoffset += 8;
+
+            if(game->rotationSystem == NRS || game->rotationSystem == ARS)
                 r = (r+2) % 4;
+
             break;
         case 2:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
-            xoffset = -4;
-            yoffset = -4;
+            xoffset = yoffset = -4;
             flip = true;
-            if(game->gameMode == CLASSIC)
+
+            if (game->rotationSystem == ARS && r == 2)
+                yoffset += 8;
+
+            if(game->rotationSystem == NRS || game-> rotationSystem == ARS)
                 r = (r+2) % 4;
             break;
         case 3:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+6],size);
-            yoffset = -4 + (game->gameMode == CLASSIC) * 8;
+            yoffset = -4 + (game->rotationSystem == NRS || game-> rotationSystem == ARS) * 8;
             r = 0;
             break;
         case 4:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
             xoffset = -4;
             yoffset = -4;
-            if(game->gameMode == CLASSIC){
+            if(game->rotationSystem == NRS || game-> rotationSystem == ARS){
                 if(r % 2 == 1)
-                    r = 1;
+                    r = 3;
                 else
                     r = 2;
             }
@@ -1300,7 +1379,11 @@ void showPlaceEffect(){
         case 5:
             memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+12],size);
             xoffset = yoffset = -4;
-            if(game->gameMode == CLASSIC)
+
+            if (game->rotationSystem == ARS && r == 2)
+                yoffset += 8;
+
+            if(game->rotationSystem == NRS || game-> rotationSystem == ARS)
                 r = (r+2) % 4;
             break;
         case 6:
@@ -1308,7 +1391,7 @@ void showPlaceEffect(){
             xoffset = -4;
             yoffset = -4;
             flip = true;
-            if(game->gameMode == CLASSIC){
+            if(game->rotationSystem == NRS || game-> rotationSystem == ARS){
                 if(r % 2 == 1)
                     r = 1;
                 else
@@ -1381,4 +1464,45 @@ void hideMinos(){
 
     for(int i = 0; i < 5; i++)
         obj_hide(queueSprites[i]);
+
+    for(int i = 0; i < 3; i++)
+        obj_hide(&obj_buffer[19+i]);
+
+    obj_hide(&obj_buffer[22]);
+}
+
+void showSpeedMeter(int fill){
+    const int maxLength = 20;
+
+    fill *= 2;
+
+    OBJ_ATTR * sprite = &obj_buffer[22];
+
+    //set palette
+    memset16(&pal_obj_mem[13*16+1],0x03e0,1); //green
+    memset16(&pal_obj_mem[13*16+2],0x001f,1); //red
+
+    TILE *dest;
+    for(int x = 0; x < 4; x++){
+        dest = (TILE *) &tile_mem[4][256 + x];
+        for(int y = 0; y < 8; y++){
+            dest->data[y] = 0;
+        }
+    }
+
+    if(fill > maxLength)
+        fill = maxLength;
+
+    for(int x = 0; x < maxLength; x++){
+        dest = (TILE *) &tile_mem[4][256 + x / 8];
+        int c = (1 + (x < fill)) << ((x%8) * 4);
+        for(int y = 0; y < 2; y++){
+            dest->data[y] |= c;
+        }
+    }
+
+    obj_set_attr(sprite, ATTR0_WIDE, ATTR1_SIZE(1), ATTR2_BUILD(256, 13, 0));
+    obj_set_pos(sprite,35, 139);
+    obj_unhide(sprite, 0);
+
 }
