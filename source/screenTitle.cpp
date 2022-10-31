@@ -374,11 +374,11 @@ void startScreen() {
                     } else if (selection == 8) {//Master
                         options = 2;
                         n = MASTER;
-                    } else if (selection == 8) {//2p Battle
+                    } else if (selection == 9) {//2p Battle
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 9) {//Training
+                    } else if (selection == 10) {//Training
                         options = 2;
                         n = -4;
                         level = 0;
