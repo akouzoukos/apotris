@@ -765,6 +765,9 @@ int getClassicPalette(){
 
 void buildMini(TILE * customSkin){
     memset32(&tile_mem[4][9*16],0,8*8*7);
+
+    int add = (game->gameMode == CLASSIC);
+
     for (int i = 0; i < 7; i++){
 
         TILE * t;
@@ -773,7 +776,7 @@ void buildMini(TILE * customSkin){
 
         for(int y = 0; y < 2; y++){
             for(int x = 0; x < 4; x++){
-                if(!p[y][x])
+                if(!p[y+add][x])
                     continue;
 
                 for(int ii = 0; ii < 6; ii++){

@@ -112,7 +112,7 @@ const int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,
 
 static int selection = 0;
 int goalSelection = 0;
-static int level = 1;
+int level = 1;
 static int toStart = 0;
 static bool onSettings = false;
 int subMode = 0;
@@ -380,6 +380,7 @@ void startScreen() {
                     } else if (selection == 9) {//Training
                         options = 2;
                         n = -4;
+                        level = 0;
 
                         // sfx(SFX_MENUCONFIRM);
                         // delete game;

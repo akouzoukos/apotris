@@ -465,7 +465,7 @@ void showQueue() {
     }
 
     int startX = 22 * 8 + 1;
-    int yoffset = 3 * (maxQueue == 1) - (5 * (game->gameMode == CLASSIC));
+    int yoffset = 4 * (maxQueue == 1);
 
     std::list<int>::iterator q = game->queue.begin();
     for (int k = 0; k < 5; k++){
@@ -478,7 +478,7 @@ void showQueue() {
         int n = *q;
 
         int add = !(n == 0 || n == 3);
-        if ((savefile->settings.skin < 7) && game->gameMode != CLASSIC) {
+        if (savefile->settings.skin < 7) {
             obj_unhide(queueSprites[k], 0);
             obj_set_attr(queueSprites[k], ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(n));
             queueSprites[k]->attr2 = ATTR2_BUILD(16 * 9 + 8 * n, n, 3);

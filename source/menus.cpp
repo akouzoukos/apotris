@@ -349,7 +349,7 @@ int endScreen() {
             if (selection == 0) {
                 shake = 0;
 
- if (!multiplayer) {
+                if (!multiplayer) {
                     sfx(SFX_MENUCONFIRM);
                     playAgain = true;
                     break;
@@ -371,6 +371,8 @@ int endScreen() {
             } else if (selection == 2){
                 sfx(SFX_MENUCANCEL);
                 REG_BLDCNT = prevBld;
+                goalSelection = 0;
+                level = 1;
                 return 1;
             }
         }
