@@ -26,6 +26,9 @@
 
 #include "tetromino.hpp"
 #include "tonc_bios.h"
+#include "tonc_memdef.h"
+#include "tonc_oam.h"
+#include "tonc_types.h"
 
 using namespace Tetris;
 

@@ -1902,4 +1902,7 @@ void Game::endZone(){
     zoneTimer = 0;
     sounds.zone = -1;
     clear(Drop());
+
+    if(comboCounter > 1)
+        comboCounter = 1;
 }

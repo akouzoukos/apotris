@@ -1,5 +1,6 @@
 #include "def.h"
 #include "soundbank.h"
+#include "sprite36tiles_bin.h"
 #include "sprites.h"
 #include "tetrisEngine.h"
 #include "tetromino.hpp"
@@ -15,6 +16,7 @@
 #include "logging.h"
 #include "posprintf.h"
 #include "tonc_core.h"
+#include "tonc_memmap.h"
 
 using namespace Tetris;
 
@@ -130,7 +132,9 @@ void checkSounds() {
         int soundEffect = -1;
 
         clearTypeText = "";
-        if (game->previousClear.isPerfectClear == 1) {
+        if(game->zoneTimer){
+
+        } else if (game->previousClear.isPerfectClear == 1) {
             soundEffect = SFX_PERFECTCLEAR;
             clearTypeText = "perfect clear";
             effectList.push_back(Effect(0));
@@ -150,6 +154,20 @@ void checkSounds() {
         } else if (game->previousClear.isTSpin == 1) {
             soundEffect = SFX_TSPINMINI;
             clearTypeText = "t-spin mini";
+        } else if (game->previousClear.linesCleared > 4) {
+            int n = game->previousClear.linesCleared;
+            if(n < 8)
+                clearTypeText = "quad";
+            else if(n < 12)
+                clearTypeText = "octoris";
+            else if(n < 16)
+                clearTypeText = "dodecatris";
+            else if(n < 18)
+                clearTypeText = "decahexatris";
+            else if(n < 20)
+                clearTypeText = "perfectris";
+            else
+                clearTypeText = "ultimatris";
         } else if (game->previousClear.linesCleared == 4) {
             if (game->previousClear.isBackToBack == 1)
                 soundEffect = SFX_BACKTOBACKQUAD;
@@ -712,6 +730,8 @@ void showTimer() {
         clearSmallText();
         showPPS();
     }
+
+    showZoneMeter();
 }
 
 void showText() {
@@ -822,7 +842,7 @@ void showFinesse(){
 
 void showClearText() {
 
-    if(game->gameMode != CLASSIC){
+    if(game->gameMode != CLASSIC && !game->zoneTimer){
         if (game->comboCounter > 1) {
             aprint("Combo x", 21, clearTextHeight - 1);
 
@@ -848,7 +868,7 @@ void showClearText() {
         std::string text = (*index).text;
         if (index->timer++ > maxClearTextTimer) {
             index = floatingList.erase(index);
-            aprint("          ", 10, 0);
+            aprint("            ", 9, 0);
         } else {
             int height = 0;
             if (index->timer < 2 * maxClearTextTimer / 3)
@@ -858,18 +878,23 @@ void showClearText() {
             if (text.size() <= 10) {
                 aprint(text, 15 - text.size() / 2, 15 - height);
             } else {
-                aprint("          ", 10, 15 - height);
 
                 std::size_t pos = text.find(" ");
-                std::string part1 = text.substr(0, pos);
-                std::string part2 = text.substr(pos + 1);
 
-                if (15 - height - 1 > 0)
-                    aprint(part1, 15 - part1.size() / 2, 15 - height - 1);
-                aprint(part2, 15 - part2.size() / 2, 15 - height);
+                if(pos != std::string::npos){
+                    aprint("            ", 9, 15 - height);
+                    std::string part1 = text.substr(0, pos);
+                    std::string part2 = text.substr(pos + 1);
+
+                    if (15 - height - 1 > 0)
+                        aprint(part1, 15 - part1.size() / 2, 15 - height - 1);
+                    aprint(part2, 15 - part2.size() / 2, 15 - height);
+                }else{
+                    aprint(text, 15 - text.size() / 2, 15 - height);
+                }
             }
-            aprint("          ", 10, 15 - height + 1);
-            std::advance(index, 1);
+            aprint("            ", 9, 15 - height + 1);
+            ++index;
         }
     }
 }
@@ -879,6 +904,9 @@ void gameLoop(){
     clearSmallText();
     setSmallTextArea(100, 3, 7, 9, 10);
     gameSeconds = 0;
+
+    memcpy16(&tile_mem[4][256+3],sprite36tiles_bin,sprite36tiles_bin_size/2);
+
     update();
 
     oam_init(obj_buffer, 128);
@@ -1604,4 +1632,42 @@ INLINE int getBoard(int x, int y){
         return 0;
 
     return game->board[y][x];
+}
+
+void showZoneMeter(){
+    if(!(game->gameMode == MARATHON && subMode))
+        return;
+
+    OBJ_ATTR * sprite = &obj_buffer[23];
+
+    obj_set_attr(sprite, ATTR0_SQUARE, ATTR1_SIZE(2),ATTR2_BUILD(256 + 3, 15, 0));
+    obj_set_pos(sprite, 8, 74);
+    obj_unhide(sprite,0);
+
+    const int color = 0x7fff;
+    const int anticolor = 0x0421;
+    const int disabled = 0x5294;
+
+    int n;
+    if(!game->zoneTimer){
+        n = game->zoneCharge / 3;
+        if(game->zoneCharge == 32)
+            n = 12;
+
+        if(n <= 2){
+            for(int i = 0; i < n; i++)
+                memset16(&pal_obj_mem[15*16 + 4 + i], disabled , 1);
+            return;
+        }
+    }else{
+        n = game->zoneTimer / 100 + 1;
+    }
+
+    for(int i = 0; i < 12; i++){
+
+        if(i < n)
+            memset16(&pal_obj_mem[15*16 + 4 + i], color , 1);
+        else
+            memset16(&pal_obj_mem[15*16 + 4 + i], anticolor , 1);
+    }
 }
