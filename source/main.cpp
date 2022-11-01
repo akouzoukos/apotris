@@ -87,6 +87,7 @@ void onVBlank(void) {
         canDraw = 0;
 
         control();
+        checkSounds();
         showPawn();
         showShadow();
 
@@ -97,7 +98,6 @@ void onVBlank(void) {
         screenShake();
         showClearText();
         showPlaceEffect();
-        checkSounds();
 
         oam_copy(oam_mem, obj_buffer, 32);
         obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
@@ -280,6 +280,8 @@ void reset() {
     placeEffectList.clear();
     rumbleTimer = 0;
     rumble_set_state(RumbleState(rumble_stop));
+
+    resetZonePalette();
 
     memset32(&se_mem[25], 0x0000, 32 * 20);
     memset32(&se_mem[26], 0x0000, 32 * 20);

@@ -291,6 +291,7 @@ extern void maxModInit();
 extern void drawUIFrame(int,int,int,int);
 extern void buildMini(TILE *);
 extern void showZoneMeter();
+extern void resetZonePalette();
 
 extern std::string timeToString(int);
 

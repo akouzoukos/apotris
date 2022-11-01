@@ -17,6 +17,7 @@
 #include "posprintf.h"
 #include "tonc_core.h"
 #include "tonc_memmap.h"
+#include "tonc_video.h"
 
 using namespace Tetris;
 
@@ -36,6 +37,8 @@ void showSpeedMeter(int);
 void hideMinos();
 void disappear();
 INLINE int getBoard(int,int);
+void zoneFlash();
+void resetZonePalette();
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -83,8 +86,12 @@ std::list<PlaceEffect> placeEffectList;
 
 int eventPauseTimer = 0;
 
-static Settings previousSettings;
+static Settings *previousSettings = nullptr;
 
+#define flashTimerMax 16
+static int flashTimer = 0;
+
+COLOR * previousPalette = nullptr;
 // Bot *testBot;
 
 void checkSounds() {
@@ -115,19 +122,23 @@ void checkSounds() {
 
     if (game->sounds.clear) {
 
-        int speed = game->comboCounter - 1;
-        if (speed > 10)
-            speed = 10;
+        if(game->previousClear.linesCleared <= 4){
+            int speed = game->comboCounter - 1;
+            if (speed > 10)
+                speed = 10;
 
-        mm_sound_effect clear = {
-            {SFX_LEVELUP},
-            (mm_hword)((1.0 + (float)speed / 10) * (1 << 10)),
-            0,
-            (u8)(255 * (float) savefile->settings.sfxVolume / 10),
-            128,
-        };
+            mm_sound_effect clear = {
+                {SFX_LEVELUP},
+                (mm_hword)((1.0 + (float)speed / 10) * (1 << 10)),
+                0,
+                (u8)(255 * (float) savefile->settings.sfxVolume / 10),
+                128,
+            };
 
-        mmEffectEx(&clear);
+            mmEffectEx(&clear);
+        }else{
+            sfx(SFX_MULTICLEAR);
+        }
 
         int soundEffect = -1;
 
@@ -230,16 +241,24 @@ void checkSounds() {
     }
 
     if (game->sounds.zone == 1) {
-        previousSettings = savefile->settings;
+        if(previousSettings != nullptr)
+            delete previousSettings;
+
+        previousSettings = new Settings();
+
+        *previousSettings = savefile->settings;
+
         savefile->settings.colors = 4;
         savefile->settings.lightMode = false;
         setPalette();
+        flashTimer = flashTimerMax;
+
+        sfx(SFX_ZONESTART);
     } else if (game->sounds.zone == 2) {
         savefile->settings.lightMode = true;
         setPalette();
     } else if (game->sounds.zone == -1) {
-        savefile->settings = previousSettings;
-        log(std::to_string(previousSettings.colors));
+        resetZonePalette();
         setPalette();
     }
 
@@ -482,9 +501,9 @@ void showShadow() {
         if(savefile->settings.colors == 2)
             clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
         else if(savefile->settings.colors == 3){
-            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
+            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         }else if(savefile->settings.colors == 4){
-            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+(savefile->settings.shadow == 4)], 4, (14) * bld);
+            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         }else if(savefile->settings.colors == 5){
             clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         }else if(savefile->settings.colors == 6){
@@ -982,6 +1001,9 @@ void gameLoop(){
 
         canDraw = true;
         VBlankIntrWait();
+
+        if(flashTimer)
+            zoneFlash();
 
         rumble_update();
         if (clearTimer == maxClearTimer || (game->gameMode == SURVIVAL && clearTimer)) {
@@ -1670,4 +1692,26 @@ void showZoneMeter(){
         else
             memset16(&pal_obj_mem[15*16 + 4 + i], anticolor , 1);
     }
+}
+
+void zoneFlash(){
+    if(flashTimer == flashTimerMax){
+        if(previousPalette != nullptr)
+            delete previousPalette;
+        previousPalette = new COLOR [512];
+        memcpy16(&previousPalette[0], pal_bg_mem, 512);
+    }
+
+    flashTimer--;
+
+    int n = ((float)flashTimer/flashTimerMax) * 31;
+
+    clr_fade_fast(previousPalette, 0x7fff, pal_bg_mem, 512, n);
+}
+
+void resetZonePalette(){
+    if(previousSettings == nullptr)
+        return;
+
+    savefile->settings = *previousSettings;
 }

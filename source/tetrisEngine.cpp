@@ -479,7 +479,7 @@ void Game::update() {
 
     if(gracePeriod){
         gracePeriod--;
-    }else
+    }else if(!zoneTimer)
         speedCounter += speed;
 
     int n = (int)speedCounter;
@@ -1889,6 +1889,11 @@ void Game::removeEventLock(){
 void Game::activateZone(){
     // if(zoneCharge < 8)
     //     return;
+
+    previousClear.isTSpin = 0;
+    previousClear.isBackToBack = 0;
+    previousClear.isPerfectClear = 0;
+
     zoneCharge = 32;
 
     zoneTimer = (float) 37.5 * zoneCharge;

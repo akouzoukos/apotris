@@ -12,6 +12,7 @@
 #include "logging.h"
 #include "sprites.h"
 #include "classic_pal_bin.h"
+#include "tonc_core.h"
 
 void drawUIFrame(int, int, int, int);
 void fallingBlocks();
@@ -170,6 +171,8 @@ void startScreen() {
         refreshText = true;
     }else{
         showTitleSprites();
+
+        memset32(&tile_mem[4][256], 0x0000 , MAX_WORD_SPRITES * 12 * 8);
 
         for (int i = 0; i < MAX_WORD_SPRITES; i++)
             wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);

@@ -34,6 +34,9 @@ void audioSettings(){
     selection = 0;
     refreshText = true;
 
+    bool previous = savefile->settings.cycleSongs;
+    savefile->settings.cycleSongs = false;
+
     while (1) {
         VBlankIntrWait();
 
@@ -48,6 +51,8 @@ void audioSettings(){
         if(audioControl())
             break;
     }
+
+    savefile->settings.cycleSongs = previous;
 }
 
 bool audioControl(){
