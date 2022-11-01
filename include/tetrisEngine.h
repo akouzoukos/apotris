@@ -24,6 +24,7 @@ namespace Tetris
         SURVIVAL,
         CLASSIC,
         MASTER,
+        TRAINING,
     };
 
     enum RotationSystems{
@@ -252,6 +253,7 @@ namespace Tetris
         void rotatePlace(int,int,int,int);
         void updateDisappear();
         void endZone();
+        void clearBoard();
 
         int bigBag[35];
 

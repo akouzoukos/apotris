@@ -382,9 +382,9 @@ void startScreen() {
                         linkConnection->activate();
 
                     } else if (selection == 10) {//Training
-                        options = 2;
-                        n = -4;
-                        level = 0;
+                        options = 3;
+                        n = TRAINING;
+                        level = 1;
 
                         // sfx(SFX_MENUCONFIRM);
                         // delete game;
@@ -644,8 +644,47 @@ void startScreen() {
                         refreshText = true;
                     }
                 }
-            } else if (toStart == -4) {
-                if (selection == 0) {
+            } else if (toStart == TRAINING) {
+                if(selection == 0){
+                    if (key == KEY_RIGHT && level < 20) {
+                        level++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && level > 1) {
+                        level--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key_is_down(KEY_LEFT)) {
+                        if (dasHor < maxDas) {
+                            dasHor++;
+                        } else if (level > 1) {
+                            if (arr++ > maxArr) {
+                                arr = 0;
+                                level--;
+                                sfx(SFX_MENUMOVE);
+                                refreshText = true;
+                            }
+                        }
+                    } else if (key_is_down(KEY_RIGHT)) {
+                        if (dasHor < maxDas) {
+                            dasHor++;
+                        } else if (level < 20) {
+                            if (arr++ > maxArr) {
+                                arr = 0;
+                                level++;
+                                sfx(SFX_MENUMOVE);
+                                refreshText = true;
+                            }
+                        }
+                    } else {
+                        dasHor = 0;
+                    }
+
+                }else if (selection == 1) {
                     if (key == KEY_LEFT || key == KEY_RIGHT) {
                         goalSelection = !goalSelection;
                         sfx(SFX_MENUMOVE);
@@ -780,7 +819,7 @@ void startScreen() {
                 }
             }
 
-            if ((key == KEY_A || key == KEY_START) && (toStart >= 0 || toStart == -4)) {
+            if ((key == KEY_A || key == KEY_START) && (toStart >= 0)) {
                 if (selection != options - 1 && toStart != -2 && !(toStart == CLASSIC && !subMode && selection == options - 2)) {
                     selection = options - 1;
 
@@ -792,8 +831,7 @@ void startScreen() {
                 } else {
                     if (toStart != -1 && toStart != -2) {
                         bool training = false;
-                        if(toStart == -4){
-                            toStart = SPRINT;
+                        if(toStart == TRAINING){
                             training = true;
                         }
 
@@ -877,6 +915,9 @@ void startScreen() {
                             break;
                         case MASTER:
                             // game->setRotationSystem(ARS);
+                            break;
+                        case TRAINING:
+                            goal = 0;
                             break;
                         }
                         game->setGoal(goal);
@@ -1586,13 +1627,19 @@ void startText() {
             } else {
                 aprint("Connected!", 10, 6);
             }
-        } else if (toStart == -4) {
+        } else if (toStart == TRAINING) {
             aprintColor("Training",titleX,titleY,1);
 
-            int goalHeight = 9;
+            const int goalHeight = 10;
+            const int levelHeight = 4;
+
             aprint("START", 12, 17);
+            aprint("Level: ", 12, levelHeight);
             aprint("Finesse Training: ", 3, goalHeight);
-            // aprintColor(" 3    5    10 ", 8, goalHeight + 2, 1);
+            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
+
+            const std::string levelText = std::to_string(level);
+            aprint(levelText, 27 - levelText.length(), levelHeight + 2);
 
             if(goalSelection == 0){
                 aprint(" OFF ", 3 + 18, goalHeight);
@@ -1602,23 +1649,20 @@ void startText() {
 
             aprint(" ", 10, 17);
             if (selection == 0) {
+                aprint("<", 2, levelHeight + 2);
+                aprint(">", 23, levelHeight + 2);
+            }else if (selection == 1) {
                 aprint("[", 3 + 18, goalHeight);
                 aprint("]", 3 + 21 + (!goalSelection), goalHeight);
-            } else if (selection == 1) {
+            } else if (selection == 2) {
                 aprint(">", 10, 17);
             }
 
-            // switch (goalSelection) {
-            // case 0:
-            //     aprint("3", 9, goalHeight + 2);
-            //     break;
-            // case 1:
-            //     aprint("5", 14, goalHeight + 2);
-            //     break;
-            // case 2:
-            //     aprint("10", 19, goalHeight + 2);
-            //     break;
-            // }
+            // show level cursor
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight + 2) * 32 + 2 + level;
+
+            *dest = 0x5061;
 
         }
     }

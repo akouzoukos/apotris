@@ -292,6 +292,7 @@ extern void drawUIFrame(int,int,int,int);
 extern void buildMini(TILE *);
 extern void showZoneMeter();
 extern void resetZonePalette();
+extern void showBestMove();
 
 extern std::string timeToString(int);
 

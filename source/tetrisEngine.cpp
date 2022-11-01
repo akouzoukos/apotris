@@ -1160,6 +1160,8 @@ void Game::next() {
         if (!checkRotation(0, 0, pawn.rotation)){
             if(zoneTimer)
                 endZone();
+            else if(gameMode == TRAINING)
+                clearBoard();
             else
                 lost = 1;
         }
@@ -1789,7 +1791,7 @@ void Game::setSubMode(int sm){
 }
 
 void Game::setSpeed(){
-    if (gameMode == MARATHON && !(subMode && zoneTimer))
+    if ((gameMode == MARATHON || gameMode == TRAINING) && !(subMode && zoneTimer))
         speed = gravity[(level < 19) ? level - 1 : 18];
     else if(gameMode == BLITZ)
         speed = blitzGravity[(level < 15) ? level - 1 : 14];
@@ -1910,4 +1912,12 @@ void Game::endZone(){
 
     if(comboCounter > 1)
         comboCounter = 1;
+}
+
+void Game::clearBoard(){
+    for(int i = 0; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            board[i][j] = 0;
+        }
+    }
 }

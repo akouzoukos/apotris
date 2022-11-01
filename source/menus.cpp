@@ -255,13 +255,13 @@ int endScreen() {
 
             str = modeStrings[game->gameMode-1];
 
-            if(game->gameMode == SPRINT && game->goal == 0)
+            if(game->gameMode == TRAINING)
                 str = "Training";
 
             aprintColor(str,30-str.size(),counter++,0);
 
             str = "";
-            if(game->gameMode == SPRINT && game->goal == 0){
+            if(game->gameMode == TRAINING){
                 if(game->trainingMode)
                     str = "Finesse";
             }else{
@@ -576,12 +576,14 @@ int pauseMenu(){
 
     hideMinos();
     obj_hide(&obj_buffer[23]); //hide meter
+    for(int i = 0; i < 3; i++)
+        obj_hide(&obj_buffer[16+i]);
 
     oam_copy(oam_mem, obj_buffer, 128);
 
     while (1) {
         if (!onStates){
-            if(game->goal == 0 && game->gameMode == SPRINT)
+            if(game->gameMode == TRAINING)
                 maxSelection = 5;
             else
                 maxSelection = 4;
@@ -605,7 +607,7 @@ int pauseMenu(){
             aprint("Resume", 12, optionsHeight + optionsCounter++ * 2);
             aprint("Restart", 12, optionsHeight + optionsCounter++ * 2);
 
-            if(game->goal == 0 && game->gameMode == SPRINT)
+            if(game->gameMode == TRAINING)
                 aprint("Saves", 12, optionsHeight + optionsCounter++ * 2);
 
             aprint("Sleep", 12, optionsHeight + optionsCounter++ * 2);
@@ -613,7 +615,7 @@ int pauseMenu(){
 
             if (key == KEY_A) {
                 int n = selection;
-                if(!(game->goal == 0 && game->gameMode == SPRINT) && selection >= 2)
+                if(!(game->gameMode == TRAINING) && selection >= 2)
                     n++;
 
                 if (n == 0) {
@@ -741,6 +743,7 @@ int pauseMenu(){
     REG_BLDCNT = prevBld;
     memset16(&se_mem[25], 0 , 32 * 20);
     showBackground();
+    showBestMove();
 
     return 0;
 }

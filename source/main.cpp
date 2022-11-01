@@ -218,9 +218,11 @@ int main(void) {
             startScreen();
         }else{
             playAgain = false;
+
             int goal = game->goal;
             int training = game->trainingMode;
             int rs = game->rotationSystem;
+
             delete game;
             game = new Game(game->gameMode,bigMode);
             game->setGoal(goal);

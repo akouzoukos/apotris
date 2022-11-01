@@ -731,7 +731,7 @@ void control() {
 }
 
 void showTimer() {
-    if (!(game->gameMode == SPRINT && game->goal == 0)) {
+    if (!(game->gameMode == TRAINING)) {
 
         std::string timer = timeToString(gameSeconds);
         aprint(timer, 1 - (timer.size() > 8), 1);
@@ -768,14 +768,8 @@ void showText() {
             aprintf(game->level, 4, 15);
         }
 
-    } else if (game->gameMode == SPRINT) {
-        // if (savefile->settings.finesse) {
-        //     aprint("Finesse", 1, 14);
-        //     aprintf(game->finesse, 4, 15);
-        // }
-        if (game->goal == 0) {
-            aprint("Training", 1, 1);
-        }
+    } else if (game->gameMode == TRAINING) {
+        aprint("Training", 1, 1);
     } else if (game->gameMode == DIG && subMode) {
         aprint("Pieces", 2, 14);
 
@@ -943,7 +937,7 @@ void gameLoop(){
 
     countdown();
 
-    if (!(game->gameMode == SPRINT && game->goal == 0)) {
+    if (!(game->gameMode == TRAINING)) {
         playSongRandom(1);
     }
 
