@@ -271,5 +271,6 @@ void setDefaults(Save *save, int depth){
 
     if(depth < 6){
         save->settings.diagonalType = save->settings.noDiagonals;
+        save->settings.delaySoftDrop = true;
     }
 }

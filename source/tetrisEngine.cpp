@@ -400,7 +400,7 @@ void Game::update() {
     }
 
     if (das == maxDas && !(left && right)) {
-        if (--arrCounter <= 0) {
+        if (arr >= 0 && --arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
                 if(gameMode == CLASSIC && down)
                     continue;
@@ -411,6 +411,14 @@ void Game::update() {
                     moveRight();
             }
             arrCounter = arr;
+        }else if(arr < 0){
+            int dir = (left)? -1 : 1;
+            while(checkRotation(dir, 0, pawn.rotation)){
+                if(left)
+                    moveLeft();
+                else if(right)
+                    moveRight();
+            }
         }
     }
 
@@ -422,13 +430,22 @@ void Game::update() {
     }else
         softDropCounter = 0;
 
-    if (softDropCounter == maxDas) {
-        if(++softDropRepeatTimer >= softDropSpeed){
-            for(int i = 0; i < 1 + (softDropSpeed ==0); i++) // move piece twice if softDropSpeed is 0
+
+    if ((!delaySoftDrop && down) || softDropCounter == maxDas) {
+        if(softDropSpeed >= 0 && ++softDropRepeatTimer >= softDropSpeed){
+            int n = 1 + (softDropSpeed == 0); // move piece twice if softDropSpeed is 0
+
+            for(int i = 0; i < n; i++){
                 moveDown();
-            if (pawn.y != pawn.lowest)
-                score++;
+                if (pawn.y != pawn.lowest)
+                    score++;
+            }
             softDropRepeatTimer = 0;
+        }else if (softDropSpeed < 0){
+            int n = pawn.lowest - pawn.y;
+
+            pawn.y = pawn.lowest;
+            score+=n;
         }
     }
 }
@@ -1289,15 +1306,16 @@ Drop Game::calculateDrop(){
     return result;
 }
 
-void Game::setTuning(int newDas, int newArr, int newSfr, int newDropProtection, bool directionalDas){
+void Game::setTuning(Tuning newTune){
     if(gameMode == CLASSIC)
         return;
 
-    maxDas = newDas;
-    arr = newArr;
-    softDropSpeed = newSfr;
-    dropLockMax = newDropProtection;
-    directionCancel = directionalDas;
+    maxDas = newTune.das;
+    arr = newTune.arr;
+    softDropSpeed = newTune.sfr;
+    dropLockMax = newTune.dropProtection;
+    directionCancel = newTune.directionalDas;
+    delaySoftDrop = newTune.delaySoftDrop;
 }
 
 void Game::clearAttack(int id){

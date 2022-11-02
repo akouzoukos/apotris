@@ -634,7 +634,7 @@ int pauseMenu(){
                     if (saveExists) {
                         delete game;
                         game = new Game(*quickSave);
-                        game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->setTuning(getTuning());
                         game->pawn.big = bigMode;
                         update();
                         showBackground();

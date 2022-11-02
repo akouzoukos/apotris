@@ -78,8 +78,10 @@ typedef struct Settings{
     bool placeEffect;
     int rumble;
     int diagonalType;
+    bool delaySoftDrop;
 
-    int placeHolder[99];
+    int placeHolder[98];
+    bool placeHolder2 [3];
 
 }ALIGN(4) Settings;
 
@@ -285,6 +287,7 @@ extern void skinEditor();
 extern void maxModInit();
 extern void drawUIFrame(int,int,int,int);
 extern void buildMini(TILE *);
+extern Tetris::Tuning getTuning();
 
 extern std::string timeToString(int);
 

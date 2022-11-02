@@ -149,7 +149,7 @@ void startMultiplayerGame(int seed) {
     delete game;
     game = new Game(4, seed & 0x1fff,bigMode);
     game->setLevel(1);
-    game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+    game->setTuning(getTuning());
     game->setGoal(100);
     multiplayer = true;
     linkConnection->send(50);

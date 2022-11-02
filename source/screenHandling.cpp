@@ -8,26 +8,27 @@
 void handlingText();
 bool handlingControl();
 
-static int startX = 3;
-static int startY = 4;
-static int endX = 23;
-static int space = 2;
+static const int startX = 3;
+static const int startY = 3;
+static const int endX = 23;
+static const int space = 2;
 
 static int selection;
 
 static bool refreshText = true;
 
-static int maxDas = 16;
+static const int maxDas = 16;
 static int dasVer = 0;
 static int dasHor = 0;
 
-static int maxArr = 3;
+static const int maxArr = 3;
 static int arr = 0;
 
 static std::list<std::string> options = {
     "Auto Repeat Delay",
     "Auto Repeat Rate",
     "Soft Drop Speed",
+    "Delay Soft Drop",
     "Drop Protection",
     "Directional Delay",
     "Disable Diagonals"
@@ -72,23 +73,25 @@ bool handlingControl(){
                     savefile->settings.das = 16;
             }
         } else if (selection == 1) {
-            if (key_hit(KEY_RIGHT) && savefile->settings.arr > 0)
+            if (key_hit(KEY_RIGHT) && savefile->settings.arr > -1)
                 savefile->settings.arr--;
             else if (key_hit(KEY_LEFT) && savefile->settings.arr < 3)
                 savefile->settings.arr++;
         } else if (selection == 2) {
-            if (key_hit(KEY_RIGHT) && savefile->settings.sfr > 0)
+            if (key_hit(KEY_RIGHT) && savefile->settings.sfr > -1)
                 savefile->settings.sfr--;
             else if (key_hit(KEY_LEFT) && savefile->settings.sfr < 3)
                 savefile->settings.sfr++;
         } else if (selection == 3) {
+            savefile->settings.delaySoftDrop = !savefile->settings.delaySoftDrop;
+        } else if (selection == 4) {
             if (key_hit(KEY_LEFT) && savefile->settings.dropProtectionFrames > 0)
                 savefile->settings.dropProtectionFrames--;
             else if (key_hit(KEY_RIGHT) && savefile->settings.dropProtectionFrames < 20)
                 savefile->settings.dropProtectionFrames++;
-        }else if (selection == 4){
-            savefile->settings.directionalDas = !savefile->settings.directionalDas;
         }else if (selection == 5){
+            savefile->settings.directionalDas = !savefile->settings.directionalDas;
+        }else if (selection == 6){
             if (key_hit(KEY_LEFT) && savefile->settings.diagonalType > 0)
                 savefile->settings.diagonalType--;
             else if (key_hit(KEY_RIGHT) && savefile->settings.diagonalType < 2)
@@ -150,7 +153,7 @@ bool handlingControl(){
         dasVer = 0;
     }
 
-    if(selection == 3){
+    if(selection == 4){
         if (key_is_down(KEY_LEFT)) {
             if (dasHor < maxDas) {
                 dasHor++;
@@ -216,8 +219,10 @@ void handlingText(){
     else if (savefile->settings.das == 16)
         aprint("SLOW", endX, startY);
 
-    if (savefile->settings.arr == 0)
-        aprint("V.FAST", endX, startY + space * 1);
+    if (savefile->settings.arr == -1)
+        aprint("INSTANT", endX - 1, startY + space * 1);
+    else if (savefile->settings.arr == 0)
+        aprint("V.FAST", endX - 1, startY + space * 1);
     else if (savefile->settings.arr == 1)
         aprint("FAST", endX, startY + space * 1);
     else if (savefile->settings.arr == 2)
@@ -225,8 +230,10 @@ void handlingText(){
     else if (savefile->settings.arr == 3)
         aprint("SLOW", endX, startY + space * 1);
 
-    if (savefile->settings.sfr == 0)
-        aprint("V.FAST", endX, startY + space * 2);
+    if (savefile->settings.sfr == -1)
+        aprint("INSTANT", endX - 1, startY + space * 2);
+    else if (savefile->settings.sfr == 0)
+        aprint("V.FAST", endX -1, startY + space * 2);
     else if (savefile->settings.sfr == 1)
         aprint("FAST", endX, startY + space * 2);
     else if (savefile->settings.sfr == 2)
@@ -234,12 +241,17 @@ void handlingText(){
     else if (savefile->settings.sfr == 3)
         aprint("SLOW", endX, startY + space * 2);
 
-    aprintf(savefile->settings.dropProtectionFrames,endX,startY + space * 3);
+    if (savefile->settings.delaySoftDrop)
+        aprint("ON", endX, startY + space * 3);
+    else
+        aprint("OFF", endX, startY + space * 3);
+
+    aprintf(savefile->settings.dropProtectionFrames,endX,startY + space * 4);
 
     if (savefile->settings.directionalDas)
-        aprint("ON", endX, startY + space * 4);
+        aprint("ON", endX, startY + space * 5);
     else
-        aprint("OFF", endX, startY + space * 4);
+        aprint("OFF", endX, startY + space * 5);
 
     std::string diagonalString;
     switch(savefile->settings.diagonalType){
@@ -248,7 +260,7 @@ void handlingText(){
     case 2: diagonalString = "STRICT"; break;
     }
 
-    aprint(diagonalString, endX, startY + space * 5);
+    aprint(diagonalString, endX, startY + space * 6);
 
     //show cursor
     if (selection == 0) {
@@ -258,23 +270,26 @@ void handlingText(){
             aprint("<", endX - 1, startY);
     } else if (selection == 1) {
         if (savefile->settings.arr < 3)
-            aprint("<", endX - 1, startY + space * selection);
-        if (savefile->settings.arr > 0)
-            aprint(">", endX + 3 + (savefile->settings.arr != 2), startY + space * selection);
+            aprint("<", endX - 1 - (savefile->settings.arr <= 0), startY + space * selection);
+        if (savefile->settings.arr > - 1)
+            aprint(">", endX + 3 + (savefile->settings.arr != 2) + (savefile->settings.arr <= 0), startY + space * selection);
     } else if (selection == 2) {
         if (savefile->settings.sfr < 3)
-            aprint("<", endX - 1, startY + space * selection);
-        if (savefile->settings.sfr > 0)
-            aprint(">", endX + 3 + (savefile->settings.sfr != 2), startY + space * selection);
+            aprint("<", endX - 1 - (savefile->settings.sfr <= 0), startY + space * selection);
+        if (savefile->settings.sfr > - 1)
+            aprint(">", endX + 3 + (savefile->settings.sfr != 2) + (savefile->settings.sfr <= 0), startY + space * selection);
     } else if (selection == 3) {
+        aprint("[", endX - 1, startY + space * selection);
+        aprint("]", endX + 2 + (!savefile->settings.delaySoftDrop), startY + space * selection);
+    } else if (selection == 4) {
         if (savefile->settings.dropProtectionFrames > 0)
             aprint("<", endX - 1, startY + space * selection);
         if (savefile->settings.dropProtectionFrames < 20)
             aprint(">", endX + 1 + (savefile->settings.dropProtectionFrames > 9), startY + space * selection);
-    } else if (selection == 4) {
+    } else if (selection == 5) {
         aprint("[", endX - 1, startY + space * selection);
         aprint("]", endX + 2 + (!savefile->settings.directionalDas), startY + space * selection);
-    } else if (selection == 5) {
+    } else if (selection == 6) {
         if(savefile->settings.diagonalType != 0)
             aprint("<", endX - 1, startY + space * selection);
         if(savefile->settings.diagonalType != 2)

@@ -202,6 +202,16 @@ namespace Tetris
         }
     };
 
+    class Tuning{
+    public:
+            int das = 8;
+            int arr = 2;
+            int sfr = 2;
+            int dropProtection = 8;
+            bool directionalDas = false;
+            bool delaySoftDrop = true;
+    };
+
     class Game {
     private:
         void fillBag();
@@ -273,6 +283,8 @@ namespace Tetris
 
         int initialRotate = 0;
 
+        bool delaySoftDrop = true;
+
     public:
         int lengthX = 10;
         int lengthY = 40;
@@ -342,7 +354,7 @@ namespace Tetris
         void setLevel(int);
         void setGoal(int);
         Drop getDrop();
-        void setTuning(int,int,int,int,bool);
+        void setTuning(Tuning);
         void clearAttack(int);
         void setWin();
         void addToGarbageQueue(int,int);

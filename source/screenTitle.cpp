@@ -790,7 +790,7 @@ void startScreen() {
                         delete game;
                         game = new Game(toStart,bigMode);
                         game->setLevel(initialLevel);
-                        game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->setTuning(getTuning());
                         game->bTypeHeight = goalSelection;
                         game->setSubMode(subMode);
                         mode = goalSelection;

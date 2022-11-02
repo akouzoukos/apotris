@@ -221,7 +221,7 @@ int main(void) {
             game = new Game(game->gameMode,bigMode);
             game->setGoal(goal);
             game->setLevel(initialLevel);
-            game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+            game->setTuning(getTuning());
             game->setTrainingMode(training);
             game->pawn.big = bigMode;
             game->bTypeHeight = goalSelection;
@@ -790,4 +790,17 @@ void buildMini(TILE * customSkin){
             delete p[i];
         delete p;
     }
+}
+
+Tuning getTuning(){
+    Tuning t = {
+        t.das = savefile->settings.das,
+        t.arr = savefile->settings.arr,
+        t.sfr = savefile->settings.sfr,
+        t.dropProtection = savefile->settings.dropProtectionFrames,
+        t.directionalDas = savefile->settings.directionalDas,
+        t.delaySoftDrop = savefile->settings.delaySoftDrop,
+    };
+
+    return t;
 }
