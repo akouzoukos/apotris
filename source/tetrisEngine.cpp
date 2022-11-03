@@ -185,29 +185,33 @@ void Game::rotateTwice() {
     }
 }
 
-void Game::moveLeft() {
+bool Game::moveLeft() {
     if (checkRotation(-1, 0, pawn.rotation)) {
         pawn.x--;
         sounds.shift = 1;
         lastMoveRotation = 0;
         lockCheck();
+        return true;
     }else{
         pushDir = -1;
         if(gameMode == CLASSIC)
             das = maxDas;
+        return false;
     }
 }
 
-void Game::moveRight() {
+bool Game::moveRight() {
     if (checkRotation(1, 0, pawn.rotation)) {
         pawn.x++;
         sounds.shift = 1;
         lastMoveRotation = 0;
         lockCheck();
+        return true;
     }else{
         pushDir = 1;
         if(gameMode == CLASSIC)
             das = maxDas;
+        return false;
     }
 }
 
@@ -412,12 +416,12 @@ void Game::update() {
             }
             arrCounter = arr;
         }else if(arr < 0){
-            int dir = (left)? -1 : 1;
-            while(checkRotation(dir, 0, pawn.rotation)){
+            bool c = true;
+            while(c){
                 if(left)
-                    moveLeft();
+                    c = moveLeft();
                 else if(right)
-                    moveRight();
+                    c =moveRight();
             }
         }
     }

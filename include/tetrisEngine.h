@@ -217,8 +217,8 @@ namespace Tetris
         void fillBag();
         void fillQueue(int);
         void fillQueueSeed(int,int);
-        void moveLeft();
-        void moveRight();
+        bool moveLeft();
+        bool moveRight();
         void moveDown();
         int clear(Drop);
         void lockCheck();
