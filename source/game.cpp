@@ -167,18 +167,25 @@ void checkSounds() {
             clearTypeText = "t-spin mini";
         } else if (game->previousClear.linesCleared > 4) {
             int n = game->previousClear.linesCleared;
-            if(n < 8)
+            if(n < 8){
                 clearTypeText = "quad";
-            else if(n < 12)
+                soundEffect = SFX_QUAD;
+            }else if(n < 12){
                 clearTypeText = "octoris";
-            else if(n < 16)
+                soundEffect = SFX_OCTORIS;
+            }else if(n < 16){
                 clearTypeText = "dodecatris";
-            else if(n < 18)
+                soundEffect = SFX_DODECATRIS;
+            }else if(n < 18){
                 clearTypeText = "decahexatris";
-            else if(n < 20)
+                soundEffect = SFX_DECAHEXATRIS;
+            }else if(n < 20){
                 clearTypeText = "perfectris";
-            else
+                soundEffect = SFX_PERFECTRIS;
+            }else{
                 clearTypeText = "ultimatris";
+                soundEffect = SFX_ULTIMATRIS;
+ }
         } else if (game->previousClear.linesCleared == 4) {
             if (game->previousClear.isBackToBack == 1)
                 soundEffect = SFX_BACKTOBACKQUAD;

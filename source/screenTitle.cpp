@@ -13,6 +13,9 @@
 #include "sprites.h"
 #include "classic_pal_bin.h"
 #include "tonc_core.h"
+#include "tonc_memdef.h"
+#include "tonc_memmap.h"
+#include "tonc_oam.h"
 
 void drawUIFrame(int, int, int, int);
 void fallingBlocks();
@@ -21,6 +24,8 @@ void settingsText();
 void toggleBigMode();
 std::string timeToStringHours(int frames);
 void resetScoreboard(int,int,int);
+
+static OBJ_ATTR * levelCursor = &obj_buffer[32];
 
 using namespace Tetris;
 
@@ -155,6 +160,9 @@ void startScreen() {
     playSongRandom(0);
 
     clearText();
+
+    obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(4, 5, 0));
+    obj_hide(levelCursor);
 
     if(goToOptions){
         goToOptions = false;
@@ -346,7 +354,7 @@ void startScreen() {
                 } else {
                     if (selection == 0) {//marathon
                         n = MARATHON;
-                        options = 3;
+                        options = 4;
                         if(level < 1)
                             level = 1;
                     } else if (selection == 1) {//sprint
@@ -475,6 +483,18 @@ void startScreen() {
 
             if (toStart == MARATHON) {
                 if (selection == 0) {
+                    if (key == KEY_RIGHT && subMode < 1) {
+                        subMode++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && subMode > 0) {
+                        subMode--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+                } else if (selection == 1) {
                     if (key == KEY_RIGHT && level < 20) {
                         level++;
                         sfx(SFX_MENUMOVE);
@@ -512,7 +532,7 @@ void startScreen() {
                     } else {
                         dasHor = 0;
                     }
-                } else if (selection == 1) {
+                } else if (selection == 2) {
                     if (key == KEY_RIGHT && goalSelection < 3) {
                         goalSelection++;
                         sfx(SFX_MENUMOVE);
@@ -844,9 +864,6 @@ void startScreen() {
                         initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
                         // initialLevel = 990;
 
-                        if(toStart == MARATHON)
-                            subMode = 1;
-
                         previousOptionMax = options;
 
                         //START GAME
@@ -1079,66 +1096,71 @@ void startText() {
     } else {
         if (toStart == MARATHON) {//Marathon Options
             aprintColor("Marathon",titleX,titleY,1);
-            const int levelHeight = 3;
-            const int goalHeight = 7;
+            const int levelHeight = 6;
+            const int goalHeight = 8;
+            const int modeHeight = 4;
 
-            aprint("Level: ", 12, levelHeight);
-            aprint("Lines: ", 12, goalHeight);
+            const int linesStart = 7;
+
+            aprint("Level: ", 2, levelHeight);
+            aprint(" ", 25, levelHeight);
+            aprint("Lines:            ", linesStart, goalHeight);
             aprint("START", 12, 17);
 
-            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
-            aprintColor(" 150   200   300   Endless ", 1, goalHeight + 2, 1);
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight) * 32 + 9;
+            for(int i = 0; i < 16; i++){
+                *dest++ = 102 + (i % 3) + 0xe000;
+            }
 
-            const std::string levelText = std::to_string(level);
-            aprint(levelText, 27 - levelText.length(), levelHeight + 2);
+            aprint("Type:",4,modeHeight);
+
+            std::string levelText = std::to_string(level);
+            if(level < 10)
+                levelText = " " + levelText;
+            aprint(levelText, 26 , levelHeight);
+
+            std::string goalText = "";
+            switch (goalSelection) {
+                case 0: goalText += "150"; break;
+                case 1: goalText += "200"; break;
+                case 2: goalText += "300"; break;
+                case 3: goalText += "Endless"; break;
+            }
+
+            if(subMode){
+                aprint(" Zone ",19,modeHeight);
+                aprintColor(" Normal ",10,modeHeight,1);
+            } else{
+                aprint(" Normal ",10,modeHeight);
+                aprintColor(" Zone ",19,modeHeight,1);
+            }
 
             aprint(" ", 10, 17);
             if (selection == 0) {
-                aprint("<", 2, levelHeight + 2);
-                aprint(">", 23, levelHeight + 2);
-            } else if (selection == 1) {
-                switch (goalSelection) {
-                case 0:
-                    aprint("[", 1, goalHeight + 2);
-                    aprint("]", 5, goalHeight + 2);
-                    break;
-                case 1:
-                    aprint("[", 7, goalHeight + 2);
-                    aprint("]", 11, goalHeight + 2);
-                    break;
-                case 2:
-                    aprint("[", 13, goalHeight + 2);
-                    aprint("]", 17, goalHeight + 2);
-                    break;
-                case 3:
-                    aprint("[", 19, goalHeight + 2);
-                    aprint("]", 27, goalHeight + 2);
-                    break;
+                if(subMode){
+                    aprint("[",19,modeHeight);
+                    aprint("]",24,modeHeight);
+                }else{
+                    aprint("[",10,modeHeight);
+                    aprint("]",17,modeHeight);
                 }
+            } else if (selection == 1) {
+                aprint("<", 8, levelHeight);
+                aprint(">", 25, levelHeight);
             } else if (selection == 2) {
+                if(goalSelection > 0)
+                    goalText = "<" + goalText;
+                if(goalSelection < 3)
+                    goalText += ">";
+            } else if (selection == 3) {
                 aprint(">", 10, 17);
             }
 
-            switch (goalSelection) {
-            case 0:
-                aprint("150", 2, goalHeight + 2);
-                break;
-            case 1:
-                aprint("200", 8, goalHeight + 2);
-                break;
-            case 2:
-                aprint("300", 14, goalHeight + 2);
-                break;
-            case 3:
-                aprint("Endless", 20, goalHeight + 2);
-                break;
-            }
+            aprint(goalText,14 + (goalSelection == 0 || selection != 1),goalHeight);
 
-            // show level cursor
-            u16* dest = (u16*)se_mem[29];
-            dest += (levelHeight + 2) * 32 + 2 + level;
-
-            *dest = 0x5061;
+            obj_set_pos(levelCursor, 9 * 8 + 6 * level - 4, levelHeight * 8 );
+            obj_unhide(levelCursor,0);
 
             for (int i = 0; i < 5; i++) {
                 posprintf(buff,"%d.",i+1);
@@ -1665,6 +1687,7 @@ void startText() {
             *dest = 0x5061;
 
         }
+
     }
 }
 
