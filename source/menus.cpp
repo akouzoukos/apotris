@@ -557,6 +557,7 @@ int pauseMenu(){
     memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
     hideMinos();
+    obj_hide(&obj_buffer[24]); //hide finesse combo counter
 
     oam_copy(oam_mem, obj_buffer, 128);
 

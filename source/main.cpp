@@ -237,6 +237,10 @@ void update() {
     showText();
     showTimer();
     showClearText();
+
+    if(proMode){
+        showFinesseCombo();
+    }
 }
 
 std::string timeToString(int frames) {

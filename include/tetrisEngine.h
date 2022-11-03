@@ -334,6 +334,8 @@ namespace Tetris
 
         int subMode = 0;
 
+        int finesseStreak = 0;
+
         int checkRotation(int, int, int);
         void rotateCW();
         void rotateCCW();

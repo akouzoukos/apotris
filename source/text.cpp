@@ -125,6 +125,48 @@ void aprints(std::string str, int x, int y, int colorIndex){//x and y are pixel
 	}
 }
 
+void aprintsSprite(std::string str, int x, int y, int tileId){//x and y are pixel
+	if(textArea == nullptr)
+		return;
+	TILE* dest2;
+
+    //width of current line, acts like a cursor position so that
+    //text is drawn on the next line if w is greater than text area width
+	int w = 0;
+
+	for(int i = 0; i < (int) str.length(); i++){
+		if(str[i] == '\n'){
+			w = 0;
+			y += 8;
+			continue;
+		}else if(str[i] == ' '){
+			w += 4;
+			continue;
+		}
+
+		u16 character = font3x5[str[i]-32];
+
+        //least significant byte determines if the character should be
+        //drawn 1 pixel down (for characters like q g j)
+		int drop = character & 1;
+
+		int counter = 0;
+		for(int j = 0; j < 5; j++){
+			for(int k = 0; k < 3; k++){
+				dest2 = (TILE *) &tile_mem[4][tileId+((y+j+drop)/8)+(x+w+k)/8];
+
+                //figure out if pixel at j,k should be drawn
+                int draw = (character >> (15-counter)) & 1;
+
+				if(draw)
+					dest2->data[(y+j+drop)%8] |= 2 << (((x+w+k)%8)*4);
+				counter++;
+			}
+		}
+		w+=4;
+	}
+}
+
 const u16 fontTiles[1552] __attribute__((aligned(4)))=
 {
 	0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,0x0000,

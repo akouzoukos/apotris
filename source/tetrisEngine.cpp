@@ -17,7 +17,6 @@ int Game::checkRotation(int dx, int dy, int r) {
         if(total >= 4)
             break;
 
-
         for (int j = 0; j < 4; j++) {
             if (pawn.board[r][i][j] == 0)
                 continue;
@@ -90,7 +89,7 @@ void Game::rotateCW() {
             if(i == 4 && pawn.current == 5)
                 specialTspin = true;
             
-            moveHistory.push_back(4);
+            moveHistory.push_front(4);
 
             return;
         }else
@@ -133,7 +132,7 @@ void Game::rotateCCW() {
             if(i == 4 && pawn.current == 5)
                 specialTspin = true;
             
-            moveHistory.push_back(5);
+            moveHistory.push_front(5);
 
             return;
         }else
@@ -174,7 +173,7 @@ void Game::rotateTwice() {
             pawn.setBlock(gameMode == CLASSIC);
             sounds.rotate = 1;
 
-            moveHistory.push_back(7);
+            moveHistory.push_front(6);
 
             lastMoveDx = dx;
             lastMoveDy = dy;
@@ -186,6 +185,15 @@ void Game::rotateTwice() {
 }
 
 bool Game::moveLeft() {
+    if(das != maxDas)
+        moveHistory.push_back(0);
+    else if(!(moveHistory.size() > 0 && moveHistory.back() == 2)){
+        if(moveHistory.size() > 0 && moveHistory.back() == 0)
+            moveHistory.pop_back();
+
+        moveHistory.push_back(2);
+    }
+
     if (checkRotation(-1, 0, pawn.rotation)) {
         pawn.x--;
         sounds.shift = 1;
@@ -201,6 +209,15 @@ bool Game::moveLeft() {
 }
 
 bool Game::moveRight() {
+    if(das != maxDas)
+        moveHistory.push_back(1);
+    else if(!(moveHistory.size() > 0 && moveHistory.back() == 3)){
+        if(moveHistory.size() > 0 && moveHistory.back() == 1)
+            moveHistory.pop_back();
+
+        moveHistory.push_back(3);
+    }
+
     if (checkRotation(1, 0, pawn.rotation)) {
         pawn.x++;
         sounds.shift = 1;
@@ -250,7 +267,7 @@ void Game::hardDrop() {
     }
 
     std::list<int> bestFinesse = getBestFinesse(pawn.current,pawn.x+offset,pawn.rotation);
-    previousBest = bestFinesse;//for debugging
+    previousBest = bestFinesse;
 
     int difference = 0;
     bool correct = false;
@@ -270,6 +287,7 @@ void Game::hardDrop() {
 
     if(!correct && !softDrop){
         finesseFaults += difference;
+        finesseStreak = 0;
 
         if(trainingMode){
             canHold = true;
@@ -291,6 +309,8 @@ void Game::hardDrop() {
 
             return;
         }
+    }else{
+        finesseStreak++;
     }
 
     pawn.y = pawn.lowest;
@@ -421,7 +441,7 @@ void Game::update() {
                 if(left)
                     c = moveLeft();
                 else if(right)
-                    c =moveRight();
+                    c = moveRight();
             }
         }
     }
@@ -433,7 +453,6 @@ void Game::update() {
             softDropCounter++;
     }else
         softDropCounter = 0;
-
 
     if ((!delaySoftDrop && down) || softDropCounter == maxDas) {
         if(softDropSpeed >= 0 && ++softDropRepeatTimer >= softDropSpeed){
@@ -452,6 +471,9 @@ void Game::update() {
             score+=n;
         }
     }
+
+    while((int)moveHistory.size() > 10)
+        moveHistory.pop_front();
 }
 
 int Game::lowest() {
@@ -638,9 +660,6 @@ void Game::place() {
     pieceCounter++;
 
     moveHistory.clear();
-
-    if(das == maxDas)
-        moveHistory.push_back(2+(right));
 }
 
 int Game::clear(Drop drop) {
@@ -1001,9 +1020,6 @@ void Game::hold() {
 
     statTracker.holds++;
 
-    if(das == maxDas)
-        moveHistory.push_back(2+(right));
-
     initialHold = false;
 }
 
@@ -1034,7 +1050,7 @@ void Game::lockCheck() {
 void Game::keyLeft(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-            left = dir;
+        left = dir;
         return;
     }
 
@@ -1053,11 +1069,6 @@ void Game::keyLeft(int dir) {
     if(!dir){
         pushDir = 0;
 
-        if(das == maxDas)
-            moveHistory.push_back(2);
-        else
-            moveHistory.push_back(0);
-
         if(directionCancel && gameMode != CLASSIC){
             das = 0;
             arrCounter = 0;
@@ -1068,7 +1079,7 @@ void Game::keyLeft(int dir) {
 void Game::keyRight(int dir) {
     moveCounter++;
     if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-            right = dir;
+        right = dir;
         return;
     }
 
@@ -1086,12 +1097,6 @@ void Game::keyRight(int dir) {
 
     if(!dir){
         pushDir = 0;
-
-        if(das == maxDas)
-            moveHistory.push_back(3);
-        else
-            moveHistory.push_back(1);
-
         if(directionCancel && gameMode != CLASSIC){
             das = 0;
             arrCounter = 0;

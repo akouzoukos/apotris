@@ -286,6 +286,7 @@ extern void maxModInit();
 extern void drawUIFrame(int,int,int,int);
 extern void buildMini(TILE *);
 extern Tetris::Tuning getTuning();
+extern void showFinesseCombo();
 
 extern std::string timeToString(int);
 

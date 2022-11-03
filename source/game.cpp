@@ -99,6 +99,7 @@ void checkSounds() {
     if (game->sounds.finesse){
         if(game->trainingMode)
             showBestMove();
+
         sfx(SFX_MENUCANCEL);
     }
 
@@ -404,7 +405,7 @@ void showHold() {
     if(game->gameMode != CLASSIC){
         obj_unhide(holdFrameSprite, 0);
         obj_set_attr(holdFrameSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(512, 8, 3));
-        obj_set_pos(holdFrameSprite, 4 * 8 + 5 + (push < 0) * push, 9 * 8 - 2);
+        obj_set_pos(holdFrameSprite, 4 * 8 + 7 + (push < 0) * push, 9 * 8 - 2);
     }else{
         obj_hide(holdFrameSprite);
     }
@@ -421,7 +422,7 @@ void showHold() {
         obj_unhide(holdSprite, 0);
         obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
-        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0));
+        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 3 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0));
     } else {
         obj_unhide(holdSprite, ATTR0_AFF);
         obj_set_attr(holdSprite, ATTR0_WIDE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
@@ -433,7 +434,7 @@ void showHold() {
             size = 349;//~1.4
 
         obj_aff_scale(&obj_aff_buffer[5], size, size);
-        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0) - 3);
+        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 3 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0) - 3);
     }
 }
 
@@ -1363,4 +1364,22 @@ void hideMinos(){
 
     for(int i = 0; i < 5; i++)
         obj_hide(queueSprites[i]);
+}
+
+void showFinesseCombo(){
+    OBJ_ATTR * sprite = &obj_buffer[24];
+
+    if(game->finesseStreak < 3){
+        obj_hide(sprite);
+        return;
+    }
+
+    obj_set_attr(sprite, ATTR0_WIDE, ATTR1_SIZE(0),ATTR2_BUILD(275, 15, 0));
+    obj_set_pos(sprite, 52, 104);
+    obj_unhide(sprite,0);
+
+    memset32(&tile_mem[4][275],0x0000, 8 * 2);
+
+    std::string text = "x" + std::to_string(game->finesseStreak);
+    aprintsSprite(text,0,0,275);
 }
