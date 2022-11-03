@@ -37,7 +37,7 @@ void loadSave() {
     savefile = new Save();
     loadFromSram();
 
-    if (savefile->newGame == 0x50) {
+    if (savefile->newGame == 0x4f) {
         savefile->newGame = SAVE_TAG;
 
         setDefaults(savefile,5);

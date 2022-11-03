@@ -211,7 +211,7 @@ void handlingText(){
     }
 
     if (savefile->settings.das == 8)
-        aprint("V.FAST", endX, startY);
+        aprint("V.FAST", endX - 1, startY);
     else if (savefile->settings.das == 9)
         aprint("FAST", endX, startY);
     else if (savefile->settings.das == 11)
@@ -267,7 +267,7 @@ void handlingText(){
         if (savefile->settings.das > 8)
             aprint(">", endX + 3 + (savefile->settings.das != 11), startY);
         if (savefile->settings.das < 16)
-            aprint("<", endX - 1, startY);
+            aprint("<", endX - 1 - (savefile->settings.das == 8), startY);
     } else if (selection == 1) {
         if (savefile->settings.arr < 3)
             aprint("<", endX - 1 - (savefile->settings.arr <= 0), startY + space * selection);

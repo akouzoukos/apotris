@@ -81,8 +81,6 @@ typedef struct Settings{
     bool delaySoftDrop;
 
     int placeHolder[98];
-    bool placeHolder2 [3];
-
 }ALIGN(4) Settings;
 
 typedef struct Test{
