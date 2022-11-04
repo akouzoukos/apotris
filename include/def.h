@@ -82,9 +82,10 @@ typedef struct Settings{
     bool resetHold;
     bool placeEffect;
     int rumble;
+    int diagonalType;
+    bool delaySoftDrop;
 
-    int placeHolder[100];
-
+    int placeHolder[98];
 }ALIGN(4) Settings;
 
 typedef struct Test{
@@ -214,7 +215,7 @@ public:
 };
 
 #define TRAINING_MESSAGE_MAX 300
-#define MAX_SKINS 11
+#define MAX_SKINS 13
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
 #define MAX_COLORS 7
@@ -293,6 +294,8 @@ extern void buildMini(TILE *);
 extern void showZoneMeter();
 extern void resetZonePalette();
 extern void showBestMove();
+extern Tetris::Tuning getTuning();
+extern void showFinesseCombo();
 
 extern std::string timeToString(int);
 

@@ -12,6 +12,10 @@ namespace Tetris
     #define MAX_DISAPPEAR 300
     #define CREDITS_LENGTH 3240 //54 seconds * 60
 
+    extern const u16 connectedConversion[24];
+    extern const u16 connectedFix[3][24];
+    extern int** getShape(int piece,int rotation,int rotationSystem);
+
     enum Modes{
         NO_MODE,
         MARATHON,
@@ -232,13 +236,23 @@ namespace Tetris
         }
     };
 
+    class Tuning{
+    public:
+            int das = 8;
+            int arr = 2;
+            int sfr = 2;
+            int dropProtection = 8;
+            bool directionalDas = false;
+            bool delaySoftDrop = true;
+    };
+
     class Game {
     private:
         void fillBag();
         void fillQueue(int);
         void fillQueueSeed(int,int);
-        void moveLeft();
-        void moveRight();
+        bool moveLeft();
+        bool moveRight();
         void moveDown();
         int clear(Drop);
         void lockCheck();
@@ -254,6 +268,7 @@ namespace Tetris
         void updateDisappear();
         void endZone();
         void clearBoard();
+        void fixConnected();
 
         int bigBag[35];
 
@@ -327,6 +342,7 @@ namespace Tetris
 
         int pieceDrought[7];
         int eventTimer = 0;
+        bool delaySoftDrop = true;
 
     public:
         const int lengthX = 10;
@@ -402,6 +418,8 @@ namespace Tetris
 
         bool eventLock = false;
 
+        int finesseStreak = 0;
+
         int checkRotation(int, int, int);
         void rotateCW();
         void rotateCCW();
@@ -411,7 +429,6 @@ namespace Tetris
         int lowest();
         Color color(int);
         void hold();
-        int** getShape(int,int);
         void keyLeft(int);
         void keyRight(int);
         void keyDown(int);
@@ -422,7 +439,7 @@ namespace Tetris
         void setLevel(int);
         void setGoal(int);
         Drop getDrop();
-        void setTuning(int,int,int,int,bool);
+        void setTuning(Tuning);
         void clearAttack(int);
         void setWin();
         void addToGarbageQueue(int,int);

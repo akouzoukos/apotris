@@ -117,6 +117,7 @@ void checkSounds() {
     if (game->sounds.finesse){
         if(game->trainingMode)
             showBestMove();
+
         sfx(SFX_MENUCANCEL);
     }
 
@@ -372,10 +373,15 @@ void showBackground() {
             } else{
                 int offset = 1;
 
+                int n = (game->board[i][j] - 1) & 0xf;
+                int r = (game->board[i][j]) >> 4;
+
                 if(savefile->settings.skin == 7 || savefile->settings.skin == 8)
                     offset = 48 + (game->board[i][j]-1);
+                else if(savefile->settings.skin == 11 || savefile->settings.skin == 12)
+                    offset = 128 + connectedConversion[r];
 
-                *dest++ = (offset + (((u32)(game->board[i][j] - 1)) << 12));
+                *dest++ = (offset + ((n) << 12));
             }
             if (game->clearLock && i == *l2c) {
                 dest--;
@@ -410,8 +416,13 @@ void showPawn() {
 
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (game->pawn.board[game->pawn.rotation][i][j] > 0){
-                if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
+            int n = game->pawn.board[game->pawn.rotation][i][j];
+            if (n > 0){
+                if(savefile->settings.skin == 11)
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite38tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                else if(savefile->settings.skin == 12)
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite39tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
                 else
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], classicTiles[savefile->settings.skin-7][game->pawn.current], sprite1tiles_bin_size / 2);
@@ -550,7 +561,7 @@ void showHold() {
     if(game->gameMode != CLASSIC){
         obj_unhide(holdFrameSprite, 0);
         obj_set_attr(holdFrameSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(512, 8, 3));
-        obj_set_pos(holdFrameSprite, 4 * 8 + 5 + (push < 0) * push, 9 * 8 - 2);
+        obj_set_pos(holdFrameSprite, 4 * 8 + 7 + (push < 0) * push, 9 * 8 - 2);
     }else{
         obj_hide(holdFrameSprite);
     }
@@ -569,7 +580,7 @@ void showHold() {
         obj_unhide(holdSprite, 0);
         obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
-        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0));
+        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 3 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0));
     } else {
         obj_unhide(holdSprite, ATTR0_AFF);
         obj_set_attr(holdSprite, ATTR0_SQUARE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
@@ -581,7 +592,7 @@ void showHold() {
             size = 349;//~1.4
 
         obj_aff_scale(&obj_aff_buffer[5], size, size);
-        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 1 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0 && game->rotationSystem != ARS) - 3 + yoffset);
+        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 3 - 4 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0 && game->rotationSystem != ARS) - 3 + yoffset);
     }
 }
 
@@ -706,7 +717,7 @@ void control() {
     if (key_released(k.moveLeft)){
         game->keyLeft(0);
 
-        if(savefile->settings.noDiagonals){
+        if(savefile->settings.diagonalType == 1){
             if(key_is_down(KEY_UP))
                 game->keyDrop();
             else if(key_is_down(KEY_DOWN))
@@ -717,7 +728,7 @@ void control() {
     if (key_released(k.moveRight)){
         game->keyRight(0);
 
-        if(savefile->settings.noDiagonals){
+        if(savefile->settings.diagonalType == 1){
             if(key_is_down(KEY_UP))
                 game->keyDrop();
             else if(key_is_down(KEY_DOWN))
@@ -1408,7 +1419,7 @@ void showBestMove(){
 }
 
 bool checkDiagonal(int key){
-    if(!savefile->settings.noDiagonals)
+    if(!savefile->settings.diagonalType)
         return false;
     return ((key == KEY_DOWN || key == KEY_UP) && (key_is_down(KEY_LEFT) || key_is_down(KEY_RIGHT)));
 }
@@ -1715,4 +1726,22 @@ void resetZonePalette(){
         return;
 
     savefile->settings = *previousSettings;
+}
+
+void showFinesseCombo(){
+    OBJ_ATTR * sprite = &obj_buffer[24];
+
+    if(game->finesseStreak < 3){
+        obj_hide(sprite);
+        return;
+    }
+
+    obj_set_attr(sprite, ATTR0_WIDE, ATTR1_SIZE(0),ATTR2_BUILD(275, 15, 0));
+    obj_set_pos(sprite, 52, 104);
+    obj_unhide(sprite,0);
+
+    memset32(&tile_mem[4][275],0x0000, 8 * 2);
+
+    std::string text = "x" + std::to_string(game->finesseStreak);
+    aprintsSprite(text,0,0,275);
 }

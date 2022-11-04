@@ -510,11 +510,11 @@ void graphicTest() {
 
         oam_copy(oam_mem, obj_buffer, 128);
     }
+
+    reset();
+
     REG_DISPCNT |= DCNT_BG3;
     irq_enable(II_HBLANK);
-    memset32(&se_mem[25], 0x0000, 32 * 10);
-    memset32(&se_mem[26], 0x0000, 32 * 10);
-    memset32(&se_mem[27], 0x0000, 32 * 10);
     REG_BLDCNT = prevBld;
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
 }

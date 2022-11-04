@@ -795,7 +795,7 @@ namespace GameInfo{
         5,5,5,5,5, 5,5,5,5,5
     };
 
-    //Left: 0, Right: 1, Das Left: 2, Das Right: 3, CW: 4, CCW: 5, Drop: 6, 180: 7
+    //Left: 0, Right: 1, Das Left: 2, Das Right: 3, CW: 4, CCW: 5, Drop: 7, 180: 6
     const int finesse[7][4][10][4]={
         {//I
             {//0

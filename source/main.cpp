@@ -229,7 +229,7 @@ int main(void) {
             game = new Game(game->gameMode,bigMode);
             game->setGoal(goal);
             game->setLevel(initialLevel);
-            game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+            game->setTuning(getTuning());
             game->setTrainingMode(training);
             game->pawn.big = bigMode;
             game->bTypeHeight = goalSelection;
@@ -246,6 +246,10 @@ void update() {
     showText();
     showTimer();
     showClearText();
+
+    if(proMode){
+        showFinesseCombo();
+    }
 }
 
 std::string timeToString(int frames) {
@@ -489,6 +493,16 @@ void setSkin() {
     case 10:
         blockSprite = (u8*)sprite28tiles_bin;
         break;
+    case 11:
+        blockSprite = (u8*)&sprite38tiles_bin[12*32];
+
+        memcpy32(&tile_mem[0][128],sprite38tiles_bin,sprite38tiles_bin_size/4);
+        break;
+    case 12:
+        blockSprite = (u8*)&sprite39tiles_bin[12*32];
+
+        memcpy32(&tile_mem[0][128],sprite39tiles_bin,sprite39tiles_bin_size/4);
+        break;
     default:
         if(savefile->settings.skin < 0){
             int n = savefile->settings.skin;
@@ -518,11 +532,16 @@ void setSkin() {
 
     int** board;
     for (int i = 0; i < 7; i++) {
-        board = game->getShape(i, 0);
+        board = getShape(i, 0, game->gameMode == CLASSIC);
+
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
-                    if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
+                    if(savefile->settings.skin == 11)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite38tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                    else if(savefile->settings.skin == 12)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite39tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                    else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
                     else
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], classicTiles[savefile->settings.skin-7][i], sprite1tiles_bin_size / 2);
@@ -808,7 +827,7 @@ void buildMini(TILE * customSkin){
     for (int i = 0; i < 7; i++){
 
         TILE * t;
-        int** p = game->getShape(i, 0);
+        int** p = getShape(i, 0, game->gameMode == CLASSIC);
         int tileStart = 9 * 16 + i * 8;
 
         for(int y = 0; y < 2; y++){
@@ -830,4 +849,17 @@ void buildMini(TILE * customSkin){
             delete p[i];
         delete p;
     }
+}
+
+Tuning getTuning(){
+    Tuning t = {
+        t.das = savefile->settings.das,
+        t.arr = savefile->settings.arr,
+        t.sfr = savefile->settings.sfr,
+        t.dropProtection = savefile->settings.dropProtectionFrames,
+        t.directionalDas = savefile->settings.directionalDas,
+        t.delaySoftDrop = savefile->settings.delaySoftDrop,
+    };
+
+    return t;
 }

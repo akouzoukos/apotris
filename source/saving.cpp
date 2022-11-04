@@ -38,8 +38,11 @@ void loadSave() {
     loadFromSram();
 
     if (savefile->newGame == 0x4f) {
+
         setDefaults(savefile,5);
     }else if (savefile->newGame == 0x4e) {
+        savefile->newGame = SAVE_TAG;
+
         setDefaults(savefile,4);
     }else if (savefile->newGame == 0x4d) {
         Save* temp = new Save();
@@ -267,6 +270,9 @@ void setDefaults(Save *save, int depth){
                 save->master[i].grade[j] = -1;
             }
         }
+
+        save->settings.diagonalType = save->settings.noDiagonals;
+        save->settings.delaySoftDrop = true;
     }
 }
 

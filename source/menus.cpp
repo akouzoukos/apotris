@@ -566,16 +566,16 @@ int pauseMenu(){
     int optionsHeight = 10;
     int optionsCounter = 0;
 
-    // for (int i = 0; i < 20; i++)
-    //     aprint("          ", 10, i);
     clearText();
 
     int prevBld = REG_BLDCNT;
     REG_BLDCNT = (1 << 6) + (0b1111 << 9) + (1);
     memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
+    //hide Sprites
     hideMinos();
     obj_hide(&obj_buffer[23]); //hide meter
+    obj_hide(&obj_buffer[24]); //hide finesse combo counter
     for(int i = 0; i < 3; i++)
         obj_hide(&obj_buffer[16+i]);
 
@@ -655,7 +655,7 @@ int pauseMenu(){
                     if (saveExists) {
                         delete game;
                         game = new Game(*quickSave);
-                        game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->setTuning(getTuning());
                         game->pawn.big = bigMode;
                         update();
                         showBackground();

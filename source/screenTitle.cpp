@@ -870,7 +870,7 @@ void startScreen() {
                         delete game;
                         game = new Game(toStart,bigMode);
                         game->setLevel(initialLevel);
-                        game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->setTuning(getTuning());
                         game->bTypeHeight = goalSelection;
                         game->setSubMode(subMode);
                         mode = goalSelection;
@@ -1085,7 +1085,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.3.1", 0, 19);
+        aprint("v3.4.0a0", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
@@ -1786,7 +1786,7 @@ void fallingBlocks() {
     if (bgSpawnBlock > bgSpawnBlockMax) {
 
         int n = qran() % 7;
-        int** p = game->getShape(n, qran() % 4);
+        int** p = Tetris::getShape(n, qran() % 4,0);
 
         bool found = false;
 
