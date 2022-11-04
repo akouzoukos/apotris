@@ -7,6 +7,11 @@
 
 namespace Tetris
 {
+
+    extern const u16 connectedConversion[24];
+    extern const u16 connectedFix[3][24];
+    extern int** getShape(int piece,int rotation,int gameMode);
+
     enum Modes{
         NO_MODE,
         MARATHON,
@@ -226,6 +231,7 @@ namespace Tetris
         void place();
         void generateGarbage(int,int);
         Drop calculateDrop();
+        void fixConnected();
 
         std::list<int> bag;
 
@@ -345,7 +351,6 @@ namespace Tetris
         int lowest();
         Color color(int);
         void hold();
-        int** getShape(int,int);
         void keyLeft(int);
         void keyRight(int);
         void keyDown(int);

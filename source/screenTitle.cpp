@@ -1644,7 +1644,7 @@ void fallingBlocks() {
     if (bgSpawnBlock > bgSpawnBlockMax) {
 
         int n = qran() % 7;
-        int** p = game->getShape(n, qran() % 4);
+        int** p = Tetris::getShape(n, qran() % 4,0);
 
         bool found = false;
 

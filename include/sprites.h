@@ -28,6 +28,8 @@
 #include "../build/sprite27tiles_bin.h"
 #include "../build/sprite28tiles_bin.h"
 #include "../build/sprite29tiles_bin.h"
+#include "../build/sprite37tiles_bin.h"
+#include "../build/sprite38tiles_bin.h"
 
 #include "../build/title1tiles_bin.h"
 #include "../build/title2tiles_bin.h"

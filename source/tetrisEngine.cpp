@@ -2,11 +2,14 @@
 #include "tetrisEngine.h"
 #include <iostream>
 #include <string>
+#include <tuple>
 #include "tonc.h"
 #include "logging.h"
 
 using namespace Tetris;
 using namespace GameInfo;
+
+int getNbr(int**,int,int);
 
 int Game::checkRotation(int dx, int dy, int r) {
     int x = dx + pawn.x;
@@ -46,15 +49,42 @@ int Game::checkRotation(int dx, int dy, int r) {
 
 void Pawn::setBlock(bool alt) {
     for (int i= 0; i < 4; i++){
-        for (int j = 0; j < 4; j++){
-            for (int k = 0; k < 4; k++){
-                if(!alt)
-                    board[i][j][k] = tetraminos[current][i][j][k];
-                else
-                    board[i][j][k] = classic[current][i][j][k];
+        int ** shape = getShape(current,i,alt);
+
+        for(int iy = 0; iy < 4; iy++){
+            for(int ix = 0; ix < 4; ix++){
+                board[i][iy][ix] = shape[iy][ix];
             }
         }
+
+        for(int j = 0; j < 4; j++)
+            delete[] shape[j];
+        delete[] shape;
     }
+}
+
+int getNbr(int **board, int x, int y){
+    int count = 0;
+
+    if(y - 1 >= 0 && board[y-1][x])
+        count++;
+    if(y + 1 <= 3 && board[y+1][x])
+        count++;
+    if(x - 1 >= 0 && board[y][x-1])
+        count++;
+    if(x + 1 <= 3 && board[y][x+1])
+        count++;
+
+    if(y - 1 >= 0 && board[y-1][x] && x - 1 >= 0 && board[y][x-1] && board[y-1][x-1])
+        count++;
+    if(y - 1 >= 0 && board[y-1][x] && x + 1 <= 3 && board[y][x+1] && board[y-1][x+1])
+        count++;
+    if(y + 1 <= 3 && board[y+1][x] && x - 1 >= 0 && board[y][x-1] && board[y+1][x-1])
+        count++;
+    if(y + 1 <= 3 && board[y+1][x] && x + 1 <= 3 && board[y][x+1] && board[y+1][x+1])
+        count++;
+
+    return count;
 }
 
 void Game::rotateCW() {
@@ -536,7 +566,7 @@ void Game::place() {
                 if (y > lengthY - 1 || x > lengthX)
                     continue;
 
-                board[y][x] = pawn.current + 1;
+                board[y][x] = pawn.current + pawn.board[pawn.rotation][i][j];
             }else{
                 x *=2;
                 y *=2;
@@ -761,6 +791,8 @@ int Game::clear(Drop drop) {
 
     if (clearCount == 0)
         return 0;
+
+    fixConnected();
 
     //check for level up
     int prevLevel = level;
@@ -1023,17 +1055,67 @@ void Game::hold() {
     initialHold = false;
 }
 
-int** Game::getShape(int n,int r) {
+int** Tetris::getShape(int n,int r, int mode) {
     int** result = 0;    
     result = new int*[4];
 
     for (int i = 0; i < 4; i++){
         result[i] = new int[4];
         for (int j = 0; j < 4; j++){
-            if(gameMode != CLASSIC)
+            if(mode != CLASSIC)
                 result[i][j] = tetraminos[n][r][i][j];
             else
                 result[i][j] = classic[n][r][i][j];
+        }
+    }
+
+    for(int iy = 0; iy < 4; iy++){
+        for(int ix = 0; ix < 4; ix++){
+            if(!result[iy][ix])
+                continue;
+
+            int n = getNbr(result, ix, iy);
+
+            if(n == 1){
+                if(iy > 0 && result[iy-1][ix])
+                    result[iy][ix] += 1 << 4;
+                else if(iy < 3 && result[iy+1][ix])
+                    result[iy][ix] += 2 << 4;
+                else if(ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 3 << 4;
+                else if(ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 4 << 4;
+            }else if(n == 2){
+                if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix])
+                    result[iy][ix] += 5 << 4;
+                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 6 << 4;
+                else if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 7 << 4;
+                else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 8 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 9 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 10 << 4;
+            }else if(n == 3){
+                if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1] && result[iy+1][ix+1])
+                    result[iy][ix] += 11 << 4;
+                else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1] && result[iy+1][ix-1])
+                    result[iy][ix] += 12 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1] && result[iy-1][ix+1])
+                    result[iy][ix] += 13 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1] && result[iy-1][ix-1])
+                    result[iy][ix] += 14 << 4;
+                else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 15 << 4;
+                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy < 3 && result[iy+1][ix])
+                    result[iy][ix] += 16 << 4;
+                else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 17 << 4;
+                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy > 0 && result[iy-1][ix])
+                    result[iy][ix] += 18 << 4;
+            }
         }
     }
 
@@ -1128,6 +1210,7 @@ void Game::removeClearLock() {
     if(!clearLock)
         return;
     clearLock = 0;
+
     std::list<int>::iterator index = linesToClear.begin();
 
     for (int i = 0; i < (int)linesToClear.size(); i++) {
@@ -1258,7 +1341,7 @@ Drop Game::calculateDrop(){
     for(int i = 0; i < 4; i++){
         bool found = false;
         for(int j = 0; j < 4; j++){
-            if(pawn.board[pawn.rotation][j][i] == 1){
+            if(pawn.board[pawn.rotation][j][i] != 0){
                 found = true;
                 break;
             }
@@ -1279,7 +1362,7 @@ Drop Game::calculateDrop(){
     for(int i = 3; i >=0; i--){
         bool found = false;
         for(int j = 0; j < 4; j++){
-            if(pawn.board[pawn.rotation][i][j] == 1){
+            if(pawn.board[pawn.rotation][i][j] != 0){
                 found = true;
                 break;
             }
@@ -1450,3 +1533,76 @@ void Game::setSubMode(int sm){
         goal = 25;
     }
 }
+
+void Game::fixConnected(){
+    std::list<std::tuple<int,int>> fixList;
+
+    for(auto const& line : linesToClear){
+        bool found = false;
+        if(!fixList.empty()){
+            int n = std::get<0>(fixList.back());
+            if(n == line){
+                fixList.pop_back();
+                found = true;
+            }else if (n == line-1){
+                std::get<1>(fixList.back())++;
+                found = true;
+            }
+        }
+
+        if(!found && line > 0){
+            fixList.push_back(std::make_tuple(line-1,0));
+        }
+
+        if(line < lengthY-1){
+            fixList.push_back(std::make_tuple(line+1,1));
+        }
+    }
+
+    for(auto const & line : fixList){
+        int iy = std::get<0>(line);
+        int type = std::get<1>(line);
+        for(int ix = 0; ix < lengthX; ix++){
+            int n = board[iy][ix];
+            board[iy][ix] = (n & 0xf) + (connectedFix[type][n >> 4] << 4);
+        }
+    }
+}
+
+const u16 Tetris::connectedConversion[24]={
+12,
+8,0,15,13,
+4,14,
+16,17,20,21,
+1,3,9,11,
+19,22,23,18,
+0,0,0,0,0
+};
+
+const u16 Tetris::connectedFix[3][24] = {
+{
+0,
+1,0,3,4,
+1,6,4,3,
+9,10,4,3,
+13,14,9,6,
+10,18,
+0,0,0,0,0,
+},{
+0,
+0,2,3,4,
+2,6,7,8,
+4,3,11,12,
+4,3,7,16,
+8,6,
+0,0,0,0,0,
+},{
+0,
+0,0,3,4,
+0,6,4,3,
+4,3,4,3,
+4,3,4,6,
+3,6,
+0,0,0,0,0
+},
+};

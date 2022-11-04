@@ -269,10 +269,15 @@ void showBackground() {
             } else{
                 int offset = 1;
 
+                int n = (game->board[i][j] - 1) & 0xf;
+                int r = (game->board[i][j]) >> 4;
+
                 if(savefile->settings.skin == 7 || savefile->settings.skin == 8)
                     offset = 48 + (game->board[i][j]-1);
+                else if(savefile->settings.skin == 11 || savefile->settings.skin == 12)
+                    offset = 128 + connectedConversion[r];
 
-                *dest++ = (offset + (((u32)(game->board[i][j] - 1)) << 12));
+                *dest++ = (offset + ((n) << 12));
             }
             if (game->clearLock && i == *l2c) {
                 dest--;
@@ -306,8 +311,13 @@ void showPawn() {
 
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (game->pawn.board[game->pawn.rotation][i][j] > 0){
-                if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
+            int n = game->pawn.board[game->pawn.rotation][i][j];
+            if (n > 0){
+                if(savefile->settings.skin == 11)
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite37tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                else if(savefile->settings.skin == 12)
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite38tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
                 else
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], classicTiles[savefile->settings.skin-7][game->pawn.current], sprite1tiles_bin_size / 2);
