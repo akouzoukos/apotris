@@ -149,7 +149,7 @@ void initialize(){
     mmInitDefault((mm_addr)soundbank_bin, 12);
     mmSetEventHandler((mm_callback)myEventHandler);
 
-    logInitMgba();
+    // logInitMgba();
 
     initRumble();
 
@@ -205,6 +205,8 @@ void initialize(){
 }
 
 int main(void) {
+    logInitMgba();
+
     if(ENABLE_FLASH_SAVE)
         flash_init();
 
@@ -684,7 +686,6 @@ void diagnose() {
 
     // str += std::to_string(profileResults[0]);
 
-    // log(str);
 }
 
 void setPalette(){

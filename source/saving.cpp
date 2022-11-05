@@ -3,11 +3,33 @@
 #include "tonc.h"
 #include "sprite1tiles_bin.h"
 #include "sprites.h"
+#include "tonc_core.h"
+#include <string>
+#include "logging.h"
+
+class SaveChange{
+public:
+    int saveId;
+    int location;
+    int size;
+
+    SaveChange(int _id, int _location, int _size){
+        saveId = _id;
+        location = _location;
+        size = _size;
+    }
+};
 
 void setDefaultKeys();
 void addStats();
 void resetSkins(Save * save);
 void setDefaults(Save * save, int depth);
+void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize);
+
+const std::list<SaveChange> saveChanges = {
+SaveChange(0x50,132,20 * 4),//add zone + buffer to keys
+SaveChange(0x50,3120,4096),// add zone + buffer to scoreboards
+};
 
 void saveToSram() {
     addStats();
@@ -38,8 +60,19 @@ void loadSave() {
     loadFromSram();
 
     if (savefile->newGame == 0x4f) {
+        const int oldSize = 3876;
+        Save* temp = new Save();
+        u8* tmp = (u8*)temp;
 
-        setDefaults(savefile,5);
+        u8* sf = (u8*)savefile;
+
+        applySaveChanges(tmp, sf, 0x4f, sizeof(Save), oldSize);
+
+        setDefaults(temp,5);
+
+        memcpy32(savefile, temp, sizeof(Save) / 4);
+
+        delete temp;
     }else if (savefile->newGame == 0x4e) {
         savefile->newGame = SAVE_TAG;
 
@@ -255,7 +288,7 @@ void setDefaults(Save *save, int depth){
             for (int j = 0; j < 5; j++)
                 save->classic[i].highscores[j].score = 0;
 
-        save->stats.timePlayed = 0;
+        // save->stats.timePlayed = 0;
         save->stats.gamesStarted = 0;
         save->stats.gamesCompleted = 0;
         save->stats.gamesLost = 0;
@@ -276,5 +309,54 @@ void setDefaults(Save *save, int depth){
     }
 }
 
+bool compareVersion(const SaveChange & first,const SaveChange & second){
+    return first.saveId < second.saveId;
+}
 
-//TODO: marathon zone saving
+bool compareLocation(const SaveChange & first,const SaveChange & second){
+    return first.location < second.location;
+}
+
+void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize){
+
+    const int diff = newSize - oldSize;
+
+    std::list<SaveChange> sorted = saveChanges;
+
+    //sort by descending location addresses
+    sorted.sort(compareLocation);
+    sorted.reverse();
+
+    //sort by ascending save id
+    sorted.sort(compareVersion);
+
+    int sum = 0;
+    SaveChange previous = SaveChange(0,0,0);
+    for(auto const & change : sorted){
+        if(change.saveId <= version)
+            continue;
+
+        if(previous.saveId != 0 && previous.saveId != change.saveId){
+            memcpy16(newSave,oldSave,previous.location / 2);
+
+            memcpy16(oldSave,newSave,newSize/2);
+
+            previous.location = 0;
+        }
+
+        int count = 0;
+        if(previous.location == 0)
+            count = oldSize-change.location;
+        else
+            count = previous.location - (change.location);
+
+        memcpy16(&newSave[change.location + diff - sum],&oldSave[change.location], (count)/2);
+
+        previous = change;
+        sum += previous.size;
+    }
+
+    if(previous.saveId != 0){
+        memcpy16(newSave,oldSave,previous.location / 2);
+    }
+}

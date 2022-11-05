@@ -47,6 +47,9 @@ typedef struct Keys{
     int softDrop;
     int hardDrop;
     int hold;
+    int zone;
+
+    int placeHolder[19];
 }ALIGN(4) Keys;
 
 typedef struct Settings{
@@ -103,12 +106,12 @@ typedef struct Test3{
     int t2[30];//22
 }ALIGN(4) Test3;
 
-typedef struct Stats{
+typedef struct TotalStats{
     int timePlayed;
     int gamesStarted;
     int gamesCompleted;
     int gamesLost;
-}ALIGN(4) Stats;
+}ALIGN(4) TotalStats;
 
 typedef struct Skin{
     TILE board;
@@ -136,10 +139,11 @@ typedef struct Save{
     Scoreboard digEfficiency[3];
     Scoreboard classic[2];
     Gradeboard master[2];
+    Scoreboard zone[4];
 
-    int placeHolder[56];
+    int placeHolder[1000];
 
-    Stats stats;
+    TotalStats stats;
 
     int placeHolder2[100];
 
