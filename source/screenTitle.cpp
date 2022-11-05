@@ -92,7 +92,7 @@ public:
 WordSprite* wordSprites[MAX_WORD_SPRITES];
 int titleFloat = 0;
 OBJ_ATTR* titleSprites[2];
-u8 backgroundArray[30][30];
+u16 backgroundArray[30][30];
 int bgSpawnBlock = 0;
 int bgSpawnBlockMax = 20;
 int gravity = 0;
@@ -1773,10 +1773,15 @@ void fallingBlocks() {
             if (!backgroundArray[i][j])
                 *dest++ = 2 * (!savefile->settings.lightMode);
             else{
-                if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
-                    *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+                int n = (backgroundArray[i][j] - 1) & 0xf;
+                int r = backgroundArray[i][j] >> 4;
+
+                if(savefile->settings.skin == 11 || savefile->settings.skin == 12)
+                    *dest++ = 128 + connectedConversion[r] + ((n) << 12);
+                else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
+                    *dest++ = (1 + ((n) << 12));
                 else{
-                    *dest++ = (48 + backgroundArray[i][j] - 1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+                    *dest++ = (48 + n + ((n) << 12));
                 }
             }
         }
@@ -1786,7 +1791,7 @@ void fallingBlocks() {
     if (bgSpawnBlock > bgSpawnBlockMax) {
 
         int n = qran() % 7;
-        int** p = Tetris::getShape(n, qran() % 4,0);
+        int** p = Tetris::getShape(n, qran() % 4,SRS);
 
         bool found = false;
 
@@ -1802,7 +1807,7 @@ void fallingBlocks() {
                 for (i = 0; i < 4; i++)
                     for (j = 0; j < 4; j++)
                         if (p[i][j])
-                            backgroundArray[i][j + x] = n + 1;
+                            backgroundArray[i][j + x] = n + p[i][j];
         }else{
             int x = (qran() % 13) * 2;
 
@@ -1830,8 +1835,8 @@ void fallingBlocks() {
         }
 
         for(i = 0; i < 4; i++)
-            delete p[i];
-        delete p;
+            delete[] p[i];
+        delete[] p;
 
         bgSpawnBlock = 0;
     }

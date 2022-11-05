@@ -546,7 +546,8 @@ void showStats(bool moreStats, std::string time, std::string pps) {
 
     aprints("PPS: " + pps, 0, 7*counter++, 2);
 
-    aprints("Finesse: " + std::to_string(game->finesseFaults), 0, 7*counter++, 2);
+    if(game->rotationSystem == SRS)
+        aprints("Finesse: " + std::to_string(game->finesseFaults), 0, 7*counter++, 2);
 
     aprints("Singles: " + std::to_string(game->statTracker.clears[0]), 0, 7*counter++, 2);
     aprints("Doubles: " + std::to_string(game->statTracker.clears[1]), 0, 7*counter++, 2);

@@ -532,7 +532,7 @@ void setSkin() {
 
     int** board;
     for (int i = 0; i < 7; i++) {
-        board = getShape(i, 0, game->gameMode == CLASSIC);
+        board = getShape(i, 0, game->rotationSystem);
 
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
@@ -827,7 +827,7 @@ void buildMini(TILE * customSkin){
     for (int i = 0; i < 7; i++){
 
         TILE * t;
-        int** p = getShape(i, 0, game->gameMode == CLASSIC);
+        int** p = getShape(i, 0, game->rotationSystem);
         int tileStart = 9 * 16 + i * 8;
 
         for(int y = 0; y < 2; y++){

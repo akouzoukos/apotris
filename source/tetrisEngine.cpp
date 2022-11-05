@@ -456,7 +456,7 @@ void Game::update() {
         return;
 
     if (das == maxDas && !(left && right)) {
-        if (--arrCounter <= 0) {
+        if (arr >= 0 && --arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
                 if(gameMode == CLASSIC && down)
                     continue;
@@ -467,6 +467,14 @@ void Game::update() {
                     moveRight();
             }
             arrCounter = arr;
+        }else if(arr < 0){
+            bool c = true;
+            while(c){
+                if(left)
+                    c = moveLeft();
+                else if(right)
+                    c = moveRight();
+            }
         }
     }
     
@@ -547,38 +555,6 @@ void Game::update() {
 
         if (lockTimer == 0 && rotationSystem != NRS)
             place();
-    }
-
-    if (!(left || right)){
-        if(gameMode != CLASSIC){
-            das = 0;
-            arrCounter = 0;
-        }
-    }else if (das < maxDas){
-        das++;
-    }
-
-    if (das == maxDas && !(left && right)) {
-        if (arr >= 0 && --arrCounter <= 0) {
-            for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
-                if(gameMode == CLASSIC && down)
-                    continue;
-
-                if (left)
-                    moveLeft();
-                else if(right)
-                    moveRight();
-            }
-            arrCounter = arr;
-        }else if(arr < 0){
-            bool c = true;
-            while(c){
-                if(left)
-                    c = moveLeft();
-                else if(right)
-                    c = moveRight();
-            }
-        }
     }
 
     if (down) {

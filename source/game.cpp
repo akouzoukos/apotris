@@ -576,7 +576,7 @@ void showHold() {
 
     int yoffset = - (6 * !(game->rotationSystem == SRS));
 
-    if (savefile->settings.skin < 7 && game->rotationSystem == SRS) {
+    if (savefile->settings.skin < 7) {
         obj_unhide(holdSprite, 0);
         obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
@@ -626,7 +626,7 @@ void showQueue() {
     }
 
     int startX = 22 * 8 + 1;
-    int yoffset = 4 * (maxQueue == 1);
+    int yoffset = 4 * (maxQueue == 1) - (5 * (game->rotationSystem != SRS));
 
     std::list<int>::iterator q = game->queue.begin();
     for (int k = 0; k < 5; k++){
@@ -1731,7 +1731,7 @@ void resetZonePalette(){
 void showFinesseCombo(){
     OBJ_ATTR * sprite = &obj_buffer[24];
 
-    if(game->finesseStreak < 3){
+    if(game->rotationSystem != SRS || game->finesseStreak < 3){
         obj_hide(sprite);
         return;
     }
