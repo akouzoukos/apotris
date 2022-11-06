@@ -744,7 +744,9 @@ int pauseMenu(){
     REG_BLDCNT = prevBld;
     memset16(&se_mem[25], 0 , 32 * 20);
     showBackground();
-    showBestMove();
+
+    if(game->trainingMode)
+        showBestMove();
 
     return 0;
 }

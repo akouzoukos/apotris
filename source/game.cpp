@@ -741,7 +741,7 @@ void control() {
         restartTimer = 0;
     }
 
-    if(key_is_down(KEY_SELECT) && game->gameMode == MARATHON && subMode && !game->zoneTimer){
+    if(key_is_down(k.zone) && game->gameMode == MARATHON && subMode && !game->zoneTimer){
         game->activateZone();
     }
 }

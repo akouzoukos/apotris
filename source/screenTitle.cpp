@@ -359,6 +359,9 @@ void startScreen() {
                         options = 4;
                         if(level < 1)
                             level = 1;
+
+                        obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
+                        memcpy16(&tile_mem[4][16*7],blockSprite,16);
                     } else if (selection == 1) {//sprint
                         n = SPRINT;
                         options = 3;
