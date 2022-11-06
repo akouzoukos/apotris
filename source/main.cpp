@@ -192,7 +192,6 @@ void initialize(){
         memcpy16(&tile_mem[5][128+i], moveSpriteTiles[i], 16);
 
     memcpy16(&tile_mem[2][0], fontTiles, fontTilesLen / 2);
-    memcpy16(&tile_mem[2][102], sprite37tiles_bin, sprite37tiles_bin_size / 2);
 
     //load tetriminoes into tile memory for menu screen animation
 

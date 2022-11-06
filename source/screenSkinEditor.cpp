@@ -323,7 +323,7 @@ void skinEditor(){
         board.setBoard(customSkin,0);
         refreshSkin();
 
-        setSmallTextArea(100, 0, 10, 10, 20);
+        setSmallTextArea(110, 0, 10, 10, 20);
         clearText();
         aprints("Press SELECT",2,64,2);
         aprints("for help",2,72,2);
@@ -788,7 +788,7 @@ void showMini(){
 
 void helpScreen(){
     sfx(SFX_MENUCONFIRM);
-    setSmallTextArea(100, 8, 1, 24, 21);
+    setSmallTextArea(110, 8, 1, 24, 21);
     clearText();
 
     const int startX = 2;
@@ -842,7 +842,7 @@ void helpScreen(){
 
     REG_DISPCNT |= DCNT_BG0;
     REG_DISPCNT |= DCNT_BG3;
-    setSmallTextArea(100, 0, 10, 10, 20);
+    setSmallTextArea(110, 0, 10, 10, 20);
     clearText();
     aprints("Press SELECT",2,64,2);
     aprints("for help",2,72,2);

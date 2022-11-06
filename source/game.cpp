@@ -933,7 +933,7 @@ void showClearText() {
 void gameLoop(){
     setSkin();
     clearSmallText();
-    setSmallTextArea(100, 3, 7, 9, 10);
+    setSmallTextArea(110, 3, 7, 9, 10);
     gameSeconds = 0;
 
     memcpy16(&tile_mem[4][256+3],sprite36tiles_bin,sprite36tiles_bin_size/2);

@@ -168,7 +168,7 @@ void songListMenu() {
 
 int endScreen() {
     clearSmallText();
-    setSmallTextArea(100, 1, 1, 10, 20);
+    setSmallTextArea(110, 1, 1, 10, 20);
 
     mmStop();
 
@@ -757,17 +757,29 @@ int onRecord() {
 
     for (int i = 0; i < 5; i++) {
         if (game->gameMode == MARATHON) {
-            if (game->score < savefile->marathon[mode].highscores[i].score)
-                continue;
+            if(subMode == 0){
+                if (game->score < savefile->marathon[mode].highscores[i].score)
+                    continue;
 
-            for (int j = 3; j >= i; j--)
-                savefile->marathon[mode].highscores[j + 1] = savefile->marathon[mode].highscores[j];
+                for (int j = 3; j >= i; j--)
+                    savefile->marathon[mode].highscores[j + 1] = savefile->marathon[mode].highscores[j];
 
-            std::string name = nameInput(i);
+                std::string name = nameInput(i);
 
-            savefile->marathon[mode].highscores[i].score = game->score;
-            strncpy(savefile->marathon[mode].highscores[i].name, name.c_str(), 9);
+                savefile->marathon[mode].highscores[i].score = game->score;
+                strncpy(savefile->marathon[mode].highscores[i].name, name.c_str(), 9);
+            }else{
+                if (game->score < savefile->zone[mode].highscores[i].score)
+                    continue;
 
+                for (int j = 3; j >= i; j--)
+                    savefile->zone[mode].highscores[j + 1] = savefile->zone[mode].highscores[j];
+
+                std::string name = nameInput(i);
+
+                savefile->zone[mode].highscores[i].score = game->score;
+                strncpy(savefile->zone[mode].highscores[i].name, name.c_str(), 9);
+            }
         } else if (game->gameMode == SPRINT && game->won == 1) {
             if(subMode == 0){
                 if (gameSeconds > savefile->sprint[mode].times[i].frames && savefile->sprint[mode].times[i].frames)

@@ -152,6 +152,8 @@ void startScreen() {
     REG_DISPCNT &= ~DCNT_BG3;
     drawUIFrame(0, 0, 30, 20);
 
+    memcpy16(&tile_mem[2][102], sprite37tiles_bin, sprite37tiles_bin_size / 2);
+
     setSkin();
     setLightMode();
 
@@ -161,7 +163,8 @@ void startScreen() {
 
     clearText();
 
-    obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(4, 5, 0));
+    memcpy16(&tile_mem[4][16*7],blockSprite,16);
+    obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
     obj_hide(levelCursor);
 
     if(goToOptions){
@@ -223,6 +226,7 @@ void startScreen() {
 
             fallingBlocks();
             showTitleSprites();
+            obj_hide(levelCursor);
 
             if (savefile->settings.lightMode)
                 memset16(pal_bg_mem, 0x5ad6, 1);//background gray
@@ -233,8 +237,6 @@ void startScreen() {
             startX = 12;
             startY = 11;
 
-            // std::list<std::string>::iterator index = menuOptions.begin();
-            // for (int i = 0; i < (int)menuOptions.size(); i++) {
             int i = 0;
             for(auto const & option : menuOptions){
                 int x = (startX - 5 * onPlay) * 8;
@@ -1151,29 +1153,43 @@ void startText() {
             } else if (selection == 2) {
                 if(goalSelection > 0)
                     goalText = "<" + goalText;
-                if(goalSelection < 3)
+                else if(goalSelection < 3)
                     goalText += ">";
             } else if (selection == 3) {
                 aprint(">", 10, 17);
             }
 
-            aprint(goalText,14 + (goalSelection == 0 || selection != 1),goalHeight);
+            aprint(goalText,14 + (goalSelection == 0 || selection != 2),goalHeight);
 
             obj_set_pos(levelCursor, 9 * 8 + 6 * level - 4, levelHeight * 8 );
             obj_unhide(levelCursor,0);
 
             for (int i = 0; i < 5; i++) {
-                posprintf(buff,"%d.",i+1);
-                aprint(buff,3,11+i);
+                if(!subMode){
+                    posprintf(buff,"%d.",i+1);
+                    aprint(buff,3,11+i);
 
-                aprint("                       ", 5, 11 + i);
-                if (savefile->marathon[goalSelection].highscores[i].score == 0)
-                    continue;
+                    aprint("                       ", 5, 11 + i);
+                    if (savefile->marathon[goalSelection].highscores[i].score == 0)
+                        continue;
 
-                aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
-                std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
+                    aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
+                    std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
 
-                aprint(score, 25 - (int)score.length(), 11 + i);
+                    aprint(score, 25 - (int)score.length(), 11 + i);
+                }else{
+                    posprintf(buff,"%d.",i+1);
+                    aprint(buff,3,11+i);
+
+                    aprint("                       ", 5, 11 + i);
+                    if (savefile->zone[goalSelection].highscores[i].score == 0)
+                        continue;
+
+                    aprint(savefile->zone[goalSelection].highscores[i].name, 6, 11 + i);
+                    std::string score = std::to_string(savefile->zone[goalSelection].highscores[i].score);
+
+                    aprint(score, 25 - (int)score.length(), 11 + i);
+                }
             }
 
         } else if (toStart == SPRINT) {//Sprint Options
@@ -1968,8 +1984,13 @@ void resetScoreboard(int mode, int goal, int subMode){
 
     switch(mode){
     case MARATHON:
-        for (int j = 0; j < 5; j++)
-            savefile->marathon[goal].highscores[j].score = 0;
+        if(!subMode){
+            for (int j = 0; j < 5; j++)
+                savefile->marathon[goal].highscores[j].score = 0;
+        }else{
+            for (int j = 0; j < 5; j++)
+                savefile->zone[goal].highscores[j].score = 0;
+        }
         break;
     case SPRINT:
         if(!subMode){
