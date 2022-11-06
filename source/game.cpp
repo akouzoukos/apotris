@@ -304,8 +304,6 @@ void showBackground() {
 
         for (int j = 0; j < 10; j++) {
             if (!game->board[i][j] || (game->clearLock && i == *l2c && showEdges) || (game->disappearing && game->disappearTimers[i][j] == 1)) {
-            // if (!game->board[i][j] || (game->clearLock && i == *l2c && showEdges)) {
-                // if (!showEdges || (game->disappearing && game->disappearTimers[i][j] == 1)) {
                 if (!showEdges) {
                     *dest++ = 0;
                     continue;

@@ -8,6 +8,14 @@
 
 using namespace Tetris;
 
+void showLabels();
+
+static const int startX = 5;
+static const int endX = 24;
+
+static const int startY = 2;
+static const int options = 14;
+
 void graphicTest() {
     irq_disable(II_HBLANK);
     setPalette();
@@ -30,17 +38,13 @@ void graphicTest() {
     bool showOptions = true;
     bool showGame = true;
 
-    int startX = 5;
-    int endX = 24;
-
-    int startY = 2;
-    int options = 14;
     int selection = 0;
 
-    int maxDas = 16;
+    const int maxDas = 16;
     int dasVer = 0;
+    int dasHor = 0;
 
-    int maxArr = 3;
+    const int maxArr = 3;
     int arr = 0;
 
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
@@ -51,6 +55,8 @@ void graphicTest() {
     memset16(&se_mem[27], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
     showBackground();
+    showLabels();
+
     while (1) {
         VBlankIntrWait();
         drawGrid();
@@ -66,14 +72,6 @@ void graphicTest() {
 
         aprint("R: Toggle", 0, 18);
         aprint("Options", 3, 19);
-
-        if(selection == 8){
-            if(!game->clearLock)
-                game->demoClear();
-        }else{
-            if(game->clearLock)
-                game->demoFill();
-        }
 
         if (key_hit(KEY_START) || key_hit(KEY_A)) {
             sfx(SFX_MENUCONFIRM);
@@ -104,6 +102,7 @@ void graphicTest() {
                 aprint("Options", 3, 19);
             }else{
                 REG_DISPCNT |= DCNT_BG3;
+                showLabels();
             }
         }
 
@@ -147,6 +146,37 @@ void graphicTest() {
             dasVer = 0;
         }
 
+        if(selection == 1){
+            if (key_is_down(KEY_LEFT)) {
+                if (dasHor < maxDas) {
+                    dasHor++;
+                } else if(savefile->settings.skin > - MAX_CUSTOM_SKINS){
+                    if (arr++ > maxArr) {
+                        arr = 0;
+                        savefile->settings.skin--;
+                        sfx(SFX_MENUMOVE);
+                    }
+                }
+            } else if (key_is_down(KEY_RIGHT)) {
+                if (dasHor < maxDas) {
+                    dasHor++;
+                } else if(savefile->settings.skin < MAX_SKINS-1){
+                    if (arr++ > maxArr) {
+                        arr = 0;
+                        savefile->settings.skin++;
+                        sfx(SFX_MENUMOVE);
+                    }
+                }
+            } else {
+                if(dasHor == maxDas){
+                    setSkin();
+                    showPawn();
+                    showShadow();
+                }
+                dasHor = 0;
+            }
+        }
+
         if (key_hit(KEY_LEFT) || key_hit(KEY_RIGHT)) {
             switch (selection) {
             case 0:
@@ -186,7 +216,8 @@ void graphicTest() {
                 }
 
                 setSkin();
-                // setLightMode();
+                showPawn();
+                showShadow();
                 break;
             case 2:
                 if (key_hit(KEY_LEFT)) {
@@ -339,23 +370,8 @@ void graphicTest() {
         if (showOptions) {
 
             aprint(" DONE ", 12, 16);
+
             int counter = 0;
-
-            aprint("Background", startX, startY + counter++);
-            aprint("Skin", startX, startY + counter++);
-            aprint("Ghost Piece", startX, startY + counter++);
-            aprint("Frame Color", startX, startY + counter++);
-            aprint("Palette", startX, startY + counter++);
-            aprint("Block Edges", startX, startY + counter++);
-            aprint("Light Mode", startX, startY + counter++);
-            aprint("Board Effects", startX, startY + counter++);
-            aprint("Clear Style", startX, startY + counter++);
-            aprint("Place Effect", startX, startY + counter++);
-            aprint("Screen Shake", startX, startY + counter++);
-            aprint("Clear Text", startX, startY + counter++);
-            aprint("Previews", startX, startY + counter++);
-
-            counter = 0;
 
             for (int i = 0; i < options; i++)
                 aprint("       ", endX - 2, startY + i);
@@ -498,12 +514,19 @@ void graphicTest() {
         }
 
         if (showGame) {
-            showBackground();
             showQueue();
             showPawn();
             showShadow();
-            showBackground();
             showHold();
+            showBackground();
+
+            if(selection == 8){
+                u16 *dest = (u16*) &se_mem[25];
+                for(int i = 0; i < game->lengthX; i++){
+                    dest[10+i+32*18] = 3 + savefile->settings.lightMode * 0x1000;
+                    dest[10+i+32*19] = 3 + savefile->settings.lightMode * 0x1000;
+                }
+            }
         } else {
             oam_init(obj_buffer, 128);
         }
@@ -530,5 +553,29 @@ void setClearEffect(){
     case 2:
         memcpy16(&tile_mem[0][3], sprite26tiles_bin, sprite25tiles_bin_size / 2);
         break;
+    }
+}
+
+static const std::list<std::string> labels = {
+    "Background",
+    "Skin",
+    "Ghost Piece",
+    "Frame Color",
+    "Palette",
+    "Block Edges",
+    "Light Mode",
+    "Board Effects",
+    "Clear Style",
+    "Place Effect",
+    "Screen Shake",
+    "Clear Text",
+    "Previews",
+};
+
+void showLabels(){
+    int counter = 0;
+
+    for(auto const& label : labels){
+        aprint(label,startX, startY + counter++);
     }
 }

@@ -24,7 +24,7 @@ void showKey(int key, int x, int y, bool selected);
 void changeInput(int selection);
 
 static int startX = 3;
-static int startY = 4;
+static int startY = 3;
 static int endX = 23;
 static int space = 1;
 
@@ -38,7 +38,7 @@ static int dasVer = 0;
 static int maxArr = 3;
 static int arr = 0;
 
-static std::list<std::string> options = {
+static const std::list<std::string> options = {
     "Move Left",
     "Move Right",
     "Rotate Left",
@@ -47,7 +47,7 @@ static std::list<std::string> options = {
     "Soft Drop",
     "Hard Drop",
     "Hold",
-    // "Training States",
+    "Activate Zone",
     "A+B to Hold",
     "Quick Reset",
     "Rumble",
@@ -57,6 +57,10 @@ static std::list<std::string> options = {
 void controlsSettings(){
     selection = 0;
     refreshText = true;
+
+    int i = 0;
+    for(auto const & option : options)
+        aprint(option,startX,startY+space*(i++));
 
     while (1) {
         VBlankIntrWait();
@@ -78,15 +82,15 @@ bool controlsControl(){
     if (key_hit(KEY_RIGHT) || key_hit(KEY_LEFT) || key_hit(KEY_A)) {
         sfx(SFX_MENUMOVE);
 
-        if (selection < 8){
+        if (selection < 9){
             changeInput(selection);
             refreshText = true;
             return false;
-        }else if (selection == 8) {
-            savefile->settings.abHold = !savefile->settings.abHold;
         }else if (selection == 9) {
-            savefile->settings.resetHold = !savefile->settings.resetHold;
+            savefile->settings.abHold = !savefile->settings.abHold;
         }else if (selection == 10) {
+            savefile->settings.resetHold = !savefile->settings.resetHold;
+        }else if (selection == 11) {
             if (key_hit(KEY_LEFT)) {
                 if (savefile->settings.rumble > 0) {
                     savefile->settings.rumble--;
@@ -97,7 +101,7 @@ bool controlsControl(){
                 }
             }
 
-        }else if (selection == 11) {
+        }else if (selection == 12) {
             setDefaultKeys();
         }
 
@@ -193,12 +197,6 @@ void controlsText(){
 
     aprint(" BACK ",12,17);
 
-    auto option = options.begin();
-    for(int i = 0; option != options.end(); i++){
-        aprint(*option,startX,startY+space*i);
-        option++;
-    }
-
     for(int i = 0; i < (int) options.size(); i++){
        aprint("           ",endX-6,startY+space*i);
     }
@@ -221,33 +219,35 @@ void controlsText(){
 
     showKey(k.hold, endX, startY+space*7, (selection == 7));
 
+    showKey(k.zone, endX, startY+space*8, (selection == 8));
+
     if(savefile->settings.abHold)
-        aprint("ON", endX-1, startY+space*8);
+        aprint("ON", endX-1, startY+space*9);
     else
-        aprint("OFF", endX-1, startY+space*8);
+        aprint("OFF", endX-1, startY+space*9);
 
     if(savefile->settings.resetHold)
-        aprint("HOLD", endX-1, startY+space*9);
+        aprint("HOLD", endX-1, startY+space*10);
     else
-        aprint("PRESS", endX-1, startY+space*9);
+        aprint("PRESS", endX-1, startY+space*10);
 
     std::string rumbleString = std::to_string(savefile->settings.rumble * 25) + "%";
 
-    aprint(rumbleString, endX+2-rumbleString.size(), startY + 10);
+    aprint(rumbleString, endX+2-rumbleString.size(), startY + 11);
 
     //show cursor
-    if (selection == 8) {
+    if (selection == 9) {
         aprint("[", endX - 2, startY + space * selection);
         aprint("]", endX + 1 + (!savefile->settings.abHold), startY + space * selection);
-    }else if (selection == 9) {
+    }else if (selection == 10) {
         aprint("[", endX - 2, startY + space * selection);
         aprint("]", endX + 3 + (!savefile->settings.resetHold), startY + space * selection);
-    } else if (selection == 10) {
+    } else if (selection == 11) {
         if (savefile->settings.rumble > 0)
             aprint("<", endX - 1 - (savefile->settings.rumble != 0) - (savefile->settings.rumble == 4), startY + selection);
         if (savefile->settings.rumble < 4)
             aprint(">", endX + 2, startY + selection);
-    } else if (selection == 11) {
+    } else if (selection == 12) {
         aprint("[", endX - 2, startY + space * selection);
         aprint("]", endX + 1, startY + space * selection);
     }else if (selection == (int) options.size()){
@@ -311,7 +311,7 @@ void changeInput(int selection){
         u16 key = key_hit(KEY_FULL);
 
         if(key != 0){
-            for(int i = 0; i < 8; i++){
+            for(int i = 0; i < 9; i++){
                 foundKeys.clear();
 
                 int k = keys[i];

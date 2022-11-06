@@ -6,6 +6,7 @@
 #include "tonc_core.h"
 #include <string>
 #include "logging.h"
+#include <algorithm>
 
 class SaveChange{
 public:
@@ -175,6 +176,7 @@ void setDefaultKeys(){
     k.softDrop = KEY_DOWN;
     k.hardDrop = KEY_UP;
     k.hold = KEY_R | KEY_L;
+    k.zone = KEY_SELECT;
 
     savefile->settings.keys = k;
 }
@@ -306,6 +308,21 @@ void setDefaults(Save *save, int depth){
 
         save->settings.diagonalType = save->settings.noDiagonals;
         save->settings.delaySoftDrop = true;
+
+        //check if select is already bound - if not, bind it to zone activation
+        int* keys = (int*) &save->settings.keys;
+
+        bool found = false;
+        for(int i = 0; i < 8; i++){
+            if(keys[i] == KEY_SELECT){
+                found = true;
+            }
+        }
+
+        if(!found)
+            save->settings.keys.zone = KEY_SELECT;
+        else
+            save->settings.keys.zone = 0;
     }
 }
 
