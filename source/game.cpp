@@ -16,6 +16,7 @@
 #include "logging.h"
 #include "posprintf.h"
 #include "tonc_core.h"
+#include "tonc_input.h"
 #include "tonc_memmap.h"
 #include "tonc_video.h"
 
@@ -376,7 +377,7 @@ void showBackground() {
 
                 if(savefile->settings.skin == 7 || savefile->settings.skin == 8)
                     offset = 48 + (game->board[i][j]-1);
-                else if(savefile->settings.skin == 11 || savefile->settings.skin == 12)
+                else if(savefile->settings.skin >= 11)
                     offset = 128 + connectedConversion[r];
 
                 *dest++ = (offset + ((n) << 12));
@@ -420,6 +421,8 @@ void showPawn() {
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite38tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
                 else if(savefile->settings.skin == 12)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite39tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                else if(savefile->settings.skin == 13)
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite40tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
                 else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
                 else
@@ -961,8 +964,10 @@ void gameLoop(){
         maxClearTimer = game->maxClearDelay;
     }else if(proMode){
         maxClearTimer = 1;
+        game->maxClearDelay = 1;
     }else{
         maxClearTimer = 20;
+        game->maxClearDelay = 20;
     }
 
     update();
@@ -1041,10 +1046,21 @@ void gameLoop(){
         }
 
         if (pause){
+            Keys k = savefile->settings.keys;
+
             if(pauseMenu()){
                 pause = false;
                 return;
             }
+
+            if(!key_is_down(k.moveLeft))
+                game->keyLeft(0);
+
+            if(!key_is_down(k.moveRight))
+                game->keyRight(0);
+
+            if(!key_is_down(k.softDrop))
+                game->keyDown(0);
         }
 
         if (playAgain) {

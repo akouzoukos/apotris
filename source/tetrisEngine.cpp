@@ -264,7 +264,7 @@ void Game::rotatePlace(int dir, int dx, int dy, int r){
     switch(dir){
         case -1: moveHistory.push_back(5); break;
         case  1: moveHistory.push_back(4); break;
-        case  2: moveHistory.push_back(7); break;
+        case  2: moveHistory.push_back(6); break;
     }
 
     lastMoveDx = dx;
@@ -698,29 +698,6 @@ void Game::place() {
             comboCounter++;
         else
             comboCounter = 1;
-
-        if(gameMode == COMBO){
-            if(!pawn.big){
-                for(int i = lengthY/2-1; i < lengthY; i++){
-                    if(board[i][0] != 0)
-                        break;
-                    for(int j = 0; j < 10; j++){
-                        if(j > 2 && j < 7)
-                            continue;
-                        board[i][j] = (i+comboCounter) % 7 + 1;
-                    }
-                }
-            }else{
-                for(int i = (lengthY/2-1)/2; i < lengthY/2; i++){
-                    if(board[i*2][0] != 0)
-                        break;
-                    board[i*2][0] = (i*2+comboCounter) % 7 + 1;
-                    board[i*2][1] = (i*2+comboCounter) % 7 + 1;
-                    board[i*2+1][0] = (i*2+comboCounter) % 7 + 1;
-                    board[i*2+1][1] = (i*2+comboCounter) % 7 + 1;
-                }
-            }
-        }
 
         if(gameMode == MASTER)
             entryDelay = lineAre;
@@ -1548,6 +1525,29 @@ void Game::removeClearLock() {
         ++index;
     }
 
+    if(gameMode == COMBO){
+        if(!pawn.big){
+            for(int i = lengthY/2-1; i < lengthY; i++){
+                if(board[i][0] != 0)
+                    break;
+                for(int j = 0; j < 10; j++){
+                    if(j > 2 && j < 7)
+                        continue;
+                    board[i][j] = (i+comboCounter) % 7 + 1;
+                }
+            }
+        }else{
+            for(int i = (lengthY/2-1)/2; i < lengthY/2; i++){
+                if(board[i*2][0] != 0)
+                    break;
+                board[i*2][0] = (i*2+comboCounter) % 7 + 1;
+                board[i*2][1] = (i*2+comboCounter) % 7 + 1;
+                board[i*2+1][0] = (i*2+comboCounter) % 7 + 1;
+                board[i*2+1][1] = (i*2+comboCounter) % 7 + 1;
+            }
+        }
+    }
+
     linesToClear = std::list<int>();
 
     if(!entryDelay && !zonedLines)
@@ -1739,6 +1739,7 @@ void Game::setTuning(Tuning newTune){
     dropLockMax = newTune.dropProtection;
     directionCancel = newTune.directionalDas;
     delaySoftDrop = newTune.delaySoftDrop;
+    maxClearDelay = 20;
 }
 
 void Game::setMasterTuning(){

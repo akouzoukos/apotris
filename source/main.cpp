@@ -504,6 +504,11 @@ void setSkin() {
 
         memcpy32(&tile_mem[0][128],sprite39tiles_bin,sprite39tiles_bin_size/4);
         break;
+    case 13:
+        blockSprite = (u8*)&sprite40tiles_bin[12*32];
+
+        memcpy32(&tile_mem[0][128],sprite40tiles_bin,sprite40tiles_bin_size/4);
+        break;
     default:
         if(savefile->settings.skin < 0){
             int n = savefile->settings.skin;
@@ -542,6 +547,8 @@ void setSkin() {
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite38tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin == 12)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite39tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                    else if(savefile->settings.skin == 13)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite40tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
                     else

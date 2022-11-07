@@ -26,6 +26,8 @@ bool showingStats = false;
 bool saveExists = false;
 Tetris::Game* quickSave;
 
+int igt = 0;
+
 const std::string modeStrings[9] = {
     "Marathon",
     "Sprint",
@@ -213,6 +215,12 @@ int endScreen() {
                 sfx(SFX_YOULOSE);
         }
     }
+
+    int sum = 0;
+    for(int i = 0; i < 4; i++)
+        sum += game->statTracker.clears[i];
+
+    igt = game->timer - ((game->maxClearDelay-1) * sum);
 
     playSongRandom(0);
 
@@ -538,6 +546,9 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     int g = game->gameMode;
 
     aprints("Time: " + time,0,7*counter++,2);
+    if(!subMode)
+        aprints("IGT: " + timeToString(igt),0,7*counter++,2);
+
     if(g == MARATHON || g == BLITZ || g == CLASSIC)
         aprints("Level: " + std::to_string(game->level),0,7*counter++,2);
 

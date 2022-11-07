@@ -219,7 +219,7 @@ public:
 };
 
 #define TRAINING_MESSAGE_MAX 300
-#define MAX_SKINS 13
+#define MAX_SKINS 14
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
 #define MAX_COLORS 7

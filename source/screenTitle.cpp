@@ -13,6 +13,7 @@
 #include "sprites.h"
 #include "classic_pal_bin.h"
 #include "tonc_core.h"
+#include "tonc_input.h"
 #include "tonc_memdef.h"
 #include "tonc_memmap.h"
 #include "tonc_oam.h"
@@ -860,7 +861,7 @@ void startScreen() {
                             training = true;
                         }
 
-                        if(key_is_down(KEY_R)){
+                        if(key_is_down(KEY_R) || key_is_down(KEY_L)){
                             proMode = true;
                         }else{
                             proMode = false;
