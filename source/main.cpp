@@ -28,13 +28,12 @@
 #include "tetromino.hpp"
 #include "tonc_bios.h"
 #include "tonc_memdef.h"
+#include "tonc_memmap.h"
 #include "tonc_oam.h"
 #include "tonc_types.h"
 
 using namespace Tetris;
 
-void control();
-void showTimer();
 mm_word myEventHandler();
 bool unlock_gbp();
 void initRumble();
@@ -79,6 +78,8 @@ bool rumble_enabled = false;
 
 bool rumbleInitialized = false;
 
+Scene * scene = nullptr;
+
 void onVBlank(void) {
 
     mmVBlank();
@@ -87,29 +88,7 @@ void onVBlank(void) {
     if (canDraw) {
         canDraw = 0;
 
-        control();
-        checkSounds();
-        showPawn();
-        showShadow();
-
-        showHold();
-        showQueue();
-
-        drawGrid();
-        screenShake();
-        showClearText();
-        showPlaceEffect();
-
-        oam_copy(oam_mem, obj_buffer, 32);
-        obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
-        if (game->refresh) {
-            update();
-            showBackground();
-            game->resetRefresh();
-        }else if (game->clearLock){
-            showBackground();
-        }
-        showTimer();
+        scene->draw();
     }
 
     frameCounter++;
@@ -239,17 +218,6 @@ int main(void) {
         }
 
         gameLoop();
-    }
-}
-
-void update() {
-    clearText();
-    showText();
-    showTimer();
-    showClearText();
-
-    if(proMode){
-        showFinesseCombo();
     }
 }
 
@@ -862,4 +830,12 @@ Tuning getTuning(){
     };
 
     return t;
+}
+
+void changeScene(Scene *newScene){
+    if(scene != nullptr){
+        delete scene;
+    }
+
+    scene = newScene;
 }

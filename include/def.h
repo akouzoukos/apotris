@@ -300,6 +300,7 @@ extern void resetZonePalette();
 extern void showBestMove();
 extern Tetris::Tuning getTuning();
 extern void showFinesseCombo();
+extern void showTimer();
 
 extern std::string timeToString(int);
 
@@ -374,3 +375,17 @@ extern TILE* customSkin;
 extern bool proMode;
 
 #define shakeMax 10
+
+class Scene{
+public:
+    virtual void draw();
+
+    Scene(){};
+    virtual ~Scene(){};
+};
+
+class GameScene : public Scene{
+    void draw();
+};
+
+extern void changeScene(Scene * newScene);

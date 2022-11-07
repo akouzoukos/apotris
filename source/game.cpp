@@ -39,6 +39,9 @@ void disappear();
 INLINE int getBoard(int,int);
 void zoneFlash();
 void resetZonePalette();
+void control();
+void showTimer();
+void update();
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -93,6 +96,43 @@ static int flashTimer = 0;
 
 COLOR * previousPalette = nullptr;
 // Bot *testBot;
+
+void GameScene::draw(){
+    control();
+    checkSounds();
+    showPawn();
+    showShadow();
+
+    showHold();
+    showQueue();
+
+    drawGrid();
+    screenShake();
+    showClearText();
+    showPlaceEffect();
+
+    oam_copy(oam_mem, obj_buffer, 32);
+    obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
+    if (game->refresh) {
+        update();
+        showBackground();
+        game->resetRefresh();
+    }else if (game->clearLock){
+        showBackground();
+    }
+    showTimer();
+}
+
+void update() {
+    clearText();
+    showText();
+    showTimer();
+    showClearText();
+
+    if(proMode){
+        showFinesseCombo();
+    }
+}
 
 void checkSounds() {
     if (game->sounds.hold)
@@ -929,6 +969,9 @@ void showClearText() {
 }
 
 void gameLoop(){
+    GameScene* s = new GameScene();
+    changeScene(s);
+
     setSkin();
     clearSmallText();
     setSmallTextArea(110, 3, 7, 9, 10);
