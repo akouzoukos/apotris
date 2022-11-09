@@ -25,6 +25,7 @@ void settingsText();
 void toggleBigMode();
 std::string timeToStringHours(int frames);
 void resetScoreboard(int,int,int);
+void drawBackgroundGrid();
 
 static OBJ_ATTR * levelCursor = &obj_buffer[32];
 
@@ -126,6 +127,8 @@ static bool onSettings = false;
 int subMode = 0;
 bool proMode = false;
 
+static bool gridDrawn = false;
+
 void startScreen() {
 
     int options = (int)menuOptions.size();
@@ -149,7 +152,6 @@ void startScreen() {
     selection = 0;
 
     VBlankIntrWait();
-    REG_DISPCNT &= ~DCNT_BG1;
     REG_DISPCNT &= ~DCNT_BG3;
     drawUIFrame(0, 0, 30, 20);
 
@@ -208,10 +210,8 @@ void startScreen() {
         if (refreshText) {
             refreshText = false;
             if (onSettings) {
-                REG_DISPCNT |= DCNT_BG1;
                 REG_DISPCNT |= DCNT_BG3;
             } else {
-                REG_DISPCNT &= ~DCNT_BG1;
                 REG_DISPCNT &= ~DCNT_BG3;
             }
 
@@ -258,8 +258,6 @@ void startScreen() {
 
             int offset = (int)menuOptions.size();
 
-            // index = gameOptions.begin();
-            // for (int i = 0; i < (int)gameOptions.size(); i++) {
             i = 0;
             for(auto const& option : gameOptions){
                 wordSprites[i + offset]->setText(option);
@@ -274,10 +272,6 @@ void startScreen() {
                     if(moving){
                         y=lerp((startY+(height+movingDirection)*space)*8,y,64*movingTimer);
                     }
-
-                    // FIXED scale = abs(fxdiv(int2fx(y),int2fx((startY+2)*space*8)));
-
-                    // scale = int2fx(1) + fxmul(scale,scale);
 
                     wordSprites[i + offset]->show(x, y, 15 - (selection != i));
 
@@ -355,6 +349,7 @@ void startScreen() {
                     }
 
                 } else {
+                    drawUIFrame(0, 0, 30, 20);
                     if (selection == 0) {//marathon
                         n = MARATHON;
                         options = 4;
@@ -476,6 +471,8 @@ void startScreen() {
             }
 
         } else {
+            gridDrawn = false;
+
             for (int i = 0; i < MAX_WORD_SPRITES; i++)
                 wordSprites[i]->hide();
 
@@ -1085,6 +1082,7 @@ void startScreen() {
 }
 
 void startText() {
+    clearText();
     char buff[5];
 
     const int titleX = 1;
@@ -1108,9 +1106,8 @@ void startText() {
 
             const int linesStart = 7;
 
-            aprint("Level: ", 2, levelHeight);
-            aprint(" ", 25, levelHeight);
-            aprint("Lines:            ", linesStart, goalHeight);
+            aprint("Level:", 2, levelHeight);
+            aprint("Lines:", linesStart, goalHeight);
             aprint("START", 12, 17);
 
             u16* dest = (u16*)se_mem[29];
@@ -1135,14 +1132,13 @@ void startText() {
             }
 
             if(subMode){
-                aprint(" Zone ",19,modeHeight);
-                aprintColor(" Normal ",10,modeHeight,1);
+                aprint("Zone",20,modeHeight);
+                aprintColor("Normal",11,modeHeight,1);
             } else{
-                aprint(" Normal ",10,modeHeight);
-                aprintColor(" Zone ",19,modeHeight,1);
+                aprint("Normal",11,modeHeight);
+                aprintColor("Zone",20,modeHeight,1);
             }
 
-            aprint(" ", 10, 17);
             if (selection == 0) {
                 if(subMode){
                     aprint("[",19,modeHeight);
@@ -1173,7 +1169,6 @@ void startText() {
                     posprintf(buff,"%d.",i+1);
                     aprint(buff,3,11+i);
 
-                    aprint("                       ", 5, 11 + i);
                     if (savefile->marathon[goalSelection].highscores[i].score == 0)
                         continue;
 
@@ -1185,7 +1180,6 @@ void startText() {
                     posprintf(buff,"%d.",i+1);
                     aprint(buff,3,11+i);
 
-                    aprint("                       ", 5, 11 + i);
                     if (savefile->zone[goalSelection].highscores[i].score == 0)
                         continue;
 
@@ -1770,6 +1764,9 @@ void showTitleSprites() {
 }
 
 void fallingBlocks() {
+    if(!gridDrawn)
+        drawBackgroundGrid();
+
     gravity++;
     bgSpawnBlock++;
 
@@ -1788,11 +1785,10 @@ void fallingBlocks() {
     }
 
     u16* dest = (u16*)se_mem[25];
+
     for (i = 4+6*bigMode; i < 24+6*bigMode; i++) {
         for (j = 0; j < 30; j++) {
-            if (!backgroundArray[i][j])
-                *dest++ = 2 * (!savefile->settings.lightMode);
-            else{
+            if (backgroundArray[i][j]){
                 int n = (backgroundArray[i][j] - 1) & 0xf;
                 int r = backgroundArray[i][j] >> 4;
 
@@ -1803,6 +1799,8 @@ void fallingBlocks() {
                 else{
                     *dest++ = (48 + n + ((n) << 12));
                 }
+            }else{
+                *dest++ = 0;
             }
         }
         dest += 2;
@@ -2044,4 +2042,17 @@ void resetScoreboard(int mode, int goal, int subMode){
 
     saveToSram();
     clearText();
+}
+
+void drawBackgroundGrid(){
+    gridDrawn = true;
+
+    u16 * dest = (u16*) &se_mem[26];
+
+    for(int i = 0; i < 20; i++){
+        for(int j = 0; j < 30; j++){
+            *dest++ = 2 * (!savefile->settings.lightMode);
+        }
+        dest+=2;
+    }
 }

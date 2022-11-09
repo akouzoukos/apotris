@@ -56,7 +56,6 @@ bool onStates = false;
 
 int clearTimer = 0;
 
-// #define maxClearTimer 20
 int maxClearTimer = 20;
 
 std::string clearTypeText = "";
