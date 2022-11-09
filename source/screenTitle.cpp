@@ -1796,7 +1796,7 @@ void fallingBlocks() {
                 int n = (backgroundArray[i][j] - 1) & 0xf;
                 int r = backgroundArray[i][j] >> 4;
 
-                if(savefile->settings.skin == 11 || savefile->settings.skin == 12)
+                if(savefile->settings.skin >= 11)
                     *dest++ = 128 + connectedConversion[r] + ((n) << 12);
                 else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     *dest++ = (1 + ((n) << 12));

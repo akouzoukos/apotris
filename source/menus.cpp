@@ -549,8 +549,12 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     if(!subMode)
         aprints("IGT: " + timeToString(igt),0,7*counter++,2);
 
-    if(g == MARATHON || g == BLITZ || g == CLASSIC)
-        aprints("Level: " + std::to_string(game->level),0,7*counter++,2);
+    if(g == MARATHON || g == BLITZ || g == CLASSIC){
+        if(g != BLITZ)
+            aprints("Start Level: " + std::to_string(game->initialLevel),0,7*counter++,2);
+
+        aprints("Final Level: " + std::to_string(game->level),0,7*counter++,2);
+    }
 
     aprints("Lines: " + std::to_string(game->linesCleared),0,7*counter++,2);
     aprints("Pieces: " + std::to_string(game->pieceCounter), 0, 7*counter++, 2);
@@ -669,13 +673,6 @@ int pauseMenu(){
                         game = new Game(*quickSave);
                         game->setTuning(getTuning());
                         game->pawn.big = bigMode;
-                        update();
-                        showBackground();
-                        showPawn();
-                        showShadow();
-                        showHold();
-                        showQueue();
-                        update();
                         floatingList.clear();
                         placeEffectList.clear();
                         clearGlow();
@@ -712,7 +709,6 @@ int pauseMenu(){
             clearText();
             update();
             pause = false;
-            onStates = false;
             mmResume();
             break;
         }

@@ -248,7 +248,7 @@ void update() {
     showTimer();
     showClearText();
 
-    if(proMode){
+    if(proMode && game->rotationSystem == SRS){
         showFinesseCombo();
     }
 }

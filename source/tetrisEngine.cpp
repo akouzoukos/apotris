@@ -262,9 +262,9 @@ void Game::rotatePlace(int dir, int dx, int dy, int r){
     sounds.rotate = 1;
 
     switch(dir){
-        case -1: moveHistory.push_back(5); break;
-        case  1: moveHistory.push_back(4); break;
-        case  2: moveHistory.push_back(6); break;
+        case -1: moveHistory.push_front(5); break;
+        case  1: moveHistory.push_front(4); break;
+        case  2: moveHistory.push_front(6); break;
     }
 
     lastMoveDx = dx;
@@ -348,7 +348,7 @@ void Game::hardDrop() {
     for(int j = 0; j < 4; j++){
         bool escape = false;
         for(int i = 0; i < 4; i++){
-            if(pawn.board[pawn.rotation][i][j] == 1){
+            if(pawn.board[pawn.rotation][i][j] != 0){
                 offset = j;
                 escape = true;
                 break;
@@ -550,7 +550,7 @@ void Game::update() {
         dropping = false;
         return;
     }else{
-        if (pawn.lowest == pawn.y)
+        if (pawn.lowest == pawn.y && !zoneTimer)
             lockTimer--;
 
         if (lockTimer == 0 && rotationSystem != NRS)
@@ -706,8 +706,7 @@ void Game::place() {
         if(gameMode == COMBO && comboCounter)
             lost = 1;
 
-        if(!zoneTimer)
-            comboCounter = 0;
+        comboCounter = 0;
 
         int targetHeight = 9;
         if(pawn.big)
@@ -839,6 +838,9 @@ int Game::clear(Drop drop) {
     //check for lines to clear
     int garbageToRemove = 0;
     int zonedBefore = zonedLines;
+
+    std::list<int> linesToMove;
+
     for (int i = 0; i < lengthY; i++) {
         bool toClear = true;
         for (int j = 0; j < lengthX; j++)
@@ -852,33 +854,43 @@ int Game::clear(Drop drop) {
                 if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
                     garbageToRemove++;
             }else{
-                if(i >= lengthY-zonedLines)
-                    break;
-
-                for(int ii = i; ii < lengthY-1-zonedLines; ii++)
-                    for (int j = 0; j < lengthX; j++)
-                        board[ii][j] = board[ii+1][j];
-
-                zonedLines++;
-
-                for (int j = 0; j < lengthX; j++)
-                    board[lengthY-zonedLines][j] = 9;
-
-                if(i < lengthY - 1)
-                    i--;
+                linesToMove.push_back(i);
             }
         }
     }
 
-     if(zonedLines) {
+    if(!linesToMove.empty()) {
+
+        fixConnected(linesToMove);
+
+        int offset = 0;
+        for(auto const& line : linesToMove){
+            int i = line - offset;
+            if(i >= lengthY-zonedLines)
+                break;
+
+            for(int ii = i; ii < lengthY-1-zonedLines; ii++)
+                for (int j = 0; j < lengthX; j++)
+                    board[ii][j] = board[ii+1][j];
+
+            zonedLines++;
+
+            for (int j = 0; j < lengthX; j++)
+                board[lengthY-zonedLines][j] = 9;
+
+            offset++;
+        }
+
         if (zonedLines > zonedBefore) {
-            comboCounter++;
             sounds.clear = 1;
+            clearCount = zonedLines - zonedBefore;
         }
 
         if (zonedLines >= 8 && sounds.zone != -1) {
             sounds.zone = 2;
         }
+
+        linesToMove.clear();
     }
 
     if(pawn.big)
@@ -916,7 +928,7 @@ int Game::clear(Drop drop) {
     if (clearCount == 0)
         return 0;
 
-    fixConnected();
+    fixConnected(linesToClear);
 
     //check for level up
     int prevLevel = level;
@@ -969,8 +981,6 @@ int Game::clear(Drop drop) {
             for(int i = 0; i < lengthY; i++)
                 for(int j = 0; j < lengthX; j++)
                     board[i][j] = 0;
-
-
         }
 
         int currentSectionLevel = level / 100 ;
@@ -1080,12 +1090,23 @@ int Game::clear(Drop drop) {
         statTracker.perfectClears++;
     }
 
-    score += add;
+    if(zoneTimer){
+        zoneScore += add;
+    } else if (zonedLines){
+        int n = (1 + fullZone + (zonedLines >= 8));
+        zoneScore = zoneScore * n;
+        log(std::to_string(zoneScore) + " " + std::to_string(n));
+        score += zoneScore;
+        zoneScore = 0;
+    } else
+        score += add;
 
     previousClear = Score(clearCount, add, comboCounter, isTSpin, isPerfectClear, isBackToBack, isDifficult, drop);
 
     sounds.clear = 1;
-    clearLock = 1;
+
+    if(!zoneTimer)
+        clearLock = 1;
     specialTspin = false;
 
     if(garbageQueue.size()){
@@ -1550,7 +1571,7 @@ void Game::removeClearLock() {
 
     linesToClear = std::list<int>();
 
-    if(!entryDelay && !zonedLines)
+    if(!entryDelay)
         next();
 
     refresh = 1;
@@ -1992,11 +2013,16 @@ void Game::activateZone(){
     // if(zoneCharge < 8)
     //     return;
 
+    zoneCharge += 31;
+
+    if(zoneCharge > 32)
+        zoneCharge = 32;
+
+    fullZone = (zoneCharge == 32);
+
     previousClear.isTSpin = 0;
     previousClear.isBackToBack = 0;
     previousClear.isPerfectClear = 0;
-
-    zoneCharge = 32;
 
     zoneTimer = (float) 37.5 * zoneCharge;
 
@@ -2009,9 +2035,6 @@ void Game::endZone(){
     zoneTimer = 0;
     sounds.zone = -1;
     clear(Drop());
-
-    if(comboCounter > 1)
-        comboCounter = 1;
 }
 
 void Game::clearBoard(){
@@ -2022,10 +2045,10 @@ void Game::clearBoard(){
     }
 }
 
-void Game::fixConnected(){
+void Game::fixConnected(std::list<int> sourceList){
     std::list<std::tuple<int,int>> fixList;
 
-    for(auto const& line : linesToClear){
+    for(auto const& line : sourceList){
         bool found = false;
         if(!fixList.empty()){
             int n = std::get<0>(fixList.back());

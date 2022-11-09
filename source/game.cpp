@@ -507,9 +507,9 @@ void showShadow() {
 
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (game->pawn.board[game->pawn.rotation][i][j] > 0)
+            if(game->pawn.board[game->pawn.rotation][i][j] > 0){
                 memcpy16(&tile_mem[4][16 * 8 + i * 4 + j], shadowTexture, sprite2tiles_bin_size / 2);
-            else
+            } else
                 memset16(&tile_mem[4][16 * 8 + i * 4 + j], 0, sprite2tiles_bin_size / 2);
         }
     }
@@ -545,10 +545,10 @@ void showShadow() {
     }
 
     if(!game->pawn.big){
-        obj_set_attr(pawnShadow, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * 8, 10, 2));
+        obj_set_attr(pawnShadow, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * (8 - (savefile->settings.shadow == 3)), 10, 2));
         obj_set_pos(pawnShadow, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->lowest() - 20) * 8 + shake * savefile->settings.shake);
     }else{
-        obj_set_attr(pawnShadow, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(30), ATTR2_BUILD(16 * 8, 10, 2));
+        obj_set_attr(pawnShadow, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(30), ATTR2_BUILD(16 * (8 - (savefile->settings.shadow == 3)), 10, 2));
         obj_aff_identity(&obj_aff_buffer[30]);
         obj_aff_scale(&obj_aff_buffer[30],1<<7,1<<7);
         obj_set_pos(pawnShadow, (10 + game->pawn.x*2) * 8 + push * savefile->settings.shake, (game->lowest()*2 - 20) * 8 + shake * savefile->settings.shake);
@@ -962,7 +962,7 @@ void gameLoop(){
 
     if(game->gameMode == MASTER){
         maxClearTimer = game->maxClearDelay;
-    }else if(proMode){
+    }else if(proMode && game->rotationSystem == SRS){
         maxClearTimer = 1;
         game->maxClearDelay = 1;
     }else{

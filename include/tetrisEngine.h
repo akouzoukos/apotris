@@ -268,7 +268,7 @@ namespace Tetris
         void updateDisappear();
         void endZone();
         void clearBoard();
-        void fixConnected();
+        void fixConnected(std::list<int>);
 
         int bigBag[35];
 
@@ -318,8 +318,6 @@ namespace Tetris
         int pieceHistory = -1;
 
         int gracePeriod = 0;
-
-        int initialLevel = 0;
 
         bool initialHold = false;
 
@@ -386,6 +384,7 @@ namespace Tetris
         bool trainingMode = false;
         int seed = 0;
         int initSeed = 0;
+        int initialLevel = 0;
 
         int entryDelay = 0;
         int areMax = 0;
@@ -400,6 +399,9 @@ namespace Tetris
         int zoneCharge = 0;
         int zoneTimer = 0;
         int zonedLines = 0;
+        int zoneClearCounter = 0;
+        int zoneScore = 0;
+        bool fullZone = false;
 
         int grade = 0;
         int coolCount = 0;
@@ -411,6 +413,7 @@ namespace Tetris
 
         u16 ** disappearTimers;
         int disappearing = 0;
+
 
         std::list<std::tuple<u8,u8>> toDisappear;
 
