@@ -98,7 +98,6 @@ void onVBlank(void) {
         scene->draw();
     }
 
-
     frameCounter++;
     mmFrame();
 
@@ -107,7 +106,7 @@ void onVBlank(void) {
 
 void onHBlank() {
     if(REG_VCOUNT < 160)
-        memcpy16(pal_bg_mem, &gradientTable[REG_VCOUNT],1);
+        pal_bg_mem[0] = gradientTable[REG_VCOUNT];
 }
 
 mm_word myEventHandler(mm_word msg, mm_word param){
