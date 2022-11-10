@@ -27,10 +27,13 @@
 
 #include "tetromino.hpp"
 #include "tonc_bios.h"
+#include "tonc_core.h"
+#include "tonc_input.h"
 #include "tonc_memdef.h"
 #include "tonc_memmap.h"
 #include "tonc_oam.h"
 #include "tonc_types.h"
+#include "tonc_video.h"
 
 using namespace Tetris;
 
@@ -80,10 +83,14 @@ bool rumbleInitialized = false;
 
 Scene * scene = nullptr;
 
+u16 gradientTable[SCREEN_HEIGHT + 1];
+
 void onVBlank(void) {
 
     mmVBlank();
     LINK_ISR_VBLANK();
+
+    REG_IME = 1;
 
     if (canDraw) {
         canDraw = 0;
@@ -91,17 +98,16 @@ void onVBlank(void) {
         scene->draw();
     }
 
+
     frameCounter++;
     mmFrame();
+
+    REG_IME = 0;
 }
 
 void onHBlank() {
-    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
-
     if(REG_VCOUNT < 160)
-        clr_fade((COLOR*)palette[n], GRADIENT_COLOR, pal_bg_mem, 1, (REG_VCOUNT / 20) * 2 + 16);
-    else
-        clr_fade((COLOR*)palette[n], GRADIENT_COLOR, pal_bg_mem, 1, 16);
+        memcpy16(pal_bg_mem, &gradientTable[REG_VCOUNT],1);
 }
 
 mm_word myEventHandler(mm_word msg, mm_word param){
@@ -180,6 +186,15 @@ void initialize(){
     // REG_BLDCNT = BLD_BUILD(BLD_BG1,BLD_BACKDROP,BLD_STD);
     REG_BLDCNT = (1 << 6) + (1 << 13) + (1 << 1);
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
+
+    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
+
+    for(int i = 0; i < SCREEN_HEIGHT; i++){
+        // clr_fade((COLOR *)palette[n], GRADIENT_COLOR, (COLOR *) &gradientTable[i], 1, (i / 20) * 2 + 16);
+        clr_fade((COLOR *)palette[n], GRADIENT_COLOR, (COLOR *) &gradientTable[i], 1, ((SCREEN_HEIGHT-1-i) / 20) * 2 + 16);
+    }
+
+    gradientTable[SCREEN_HEIGHT-1] = gradientTable[0];
 }
 
 int main(void) {
@@ -191,6 +206,15 @@ int main(void) {
     loadSave();
 
     initialize();
+
+    // while(1){
+    //     VBlankIntrWait();
+    //     key_poll();
+    //     if(key_hit(KEY_A))
+    //         break;
+
+    //     DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
+    // }
 
     //start screen animation
     while(1){
@@ -221,20 +245,6 @@ int main(void) {
     }
 }
 
-// <<<<<<< HEAD
-// void update() {
-//     clearText();
-//     showText();
-//     showTimer();
-//     showClearText();
-
-//     if(proMode && game->rotationSystem == SRS){
-//         showFinesseCombo();
-//     }
-// }
-
-// =======
-// >>>>>>> scenes
 std::string timeToString(int frames) {
     int t = (int)frames * 0.0167f;
     int millis = (int)(frames * 1.67f) % 100;

@@ -26,7 +26,7 @@ public:
 TextArea *textArea = nullptr;
 
 void aprint(std::string str, int x, int y){
-	profile_start();
+	// profile_start();
 
 	u16 * dest = (u16 * )se_mem[29];
 	dest+= 32*y+x;
@@ -37,19 +37,19 @@ void aprint(std::string str, int x, int y){
 		*dest++ = letter;
 	}
 
-	std::string result = std::to_string(profile_stop());
-	log("text: " + str + " " + result);
+	// std::string result = std::to_string(profile_stop());
+	// log("text: " + str + " " + result);
 }
 
-void aprintClear(int y){
-	profile_start();
+void aprintClearLine(int y){
+	// profile_start();
 
 	u16 * dest = (u16*)se_mem[29];
 
 	memset32(&dest[32*y],0,32);
 
-	std::string result = std::to_string(profile_stop());
-	log("clear line: " + result);
+	// std::string result = std::to_string(profile_stop());
+	// log("clear line: " + result);
 }
 
 void aprintf(int n, int x, int y){
@@ -68,12 +68,12 @@ void aprintColor(std::string str, int x, int y,int palette){
 }
 
 void clearText(){
-	profile_start();
+	// profile_start();
 
     memset32(&se_mem[29], 0, 32*20);
 
-	std::string result = std::to_string(profile_stop());
-	log("clear all: " + result);
+	// std::string result = std::to_string(profile_stop());
+	// log("clear all: " + result);
 
 	if(textArea == nullptr)
 		return;
@@ -88,8 +88,8 @@ void clearText(){
 		for(int j = textArea->startX; j <= textArea->endX; j++)
 			dest[i*32+j] = 0xf000 + textArea->tileId + counter++;
 
-	result = std::to_string(profile_stop());
-	log("clear small: " + result);
+	// result = std::to_string(profile_stop());
+	// log("clear small: " + result);
 }
 
 void setSmallTextArea(int tid, int startX,int startY,int endX,int endY){

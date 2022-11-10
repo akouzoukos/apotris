@@ -12,11 +12,6 @@
 #include "logging.h"
 #include "sprites.h"
 #include "classic_pal_bin.h"
-#include "tonc_core.h"
-#include "tonc_input.h"
-#include "tonc_memdef.h"
-#include "tonc_memmap.h"
-#include "tonc_oam.h"
 
 void drawUIFrame(int, int, int, int);
 void fallingBlocks();
@@ -129,11 +124,14 @@ bool proMode = false;
 
 static bool gridDrawn = false;
 
+bool refreshText = true;
+
 void startScreen() {
 
-    int options = (int)menuOptions.size();
+    TitleScene* s = new TitleScene();
+    changeScene(s);
 
-    bool refreshText = true;
+    int options = (int)menuOptions.size();
 
     int maxDas = 16;
     int dasHor = 0;
@@ -200,23 +198,13 @@ void startScreen() {
     }
 
     while (1) {
+
+        canDraw = true;
         VBlankIntrWait() ;
         if (!onSettings) {
             irq_disable(II_HBLANK);
         } else {
             irq_enable(II_HBLANK);
-        }
-
-        if (refreshText) {
-            refreshText = false;
-            if (onSettings) {
-                REG_DISPCNT |= DCNT_BG3;
-            } else {
-                REG_DISPCNT &= ~DCNT_BG3;
-            }
-
-            startText();
-
         }
 
         key_poll();
@@ -291,11 +279,11 @@ void startScreen() {
                 }
             }
 
-            for (int i = 0; i < 5; i++)
-                aprint(" ", startX - 2, startY + space * i);
+            // for (int i = 0; i < 5; i++)
+                // aprint(" ", startX - 2, startY + space * i);
             if (!onPlay) {
                 aprint(">", startX - 2, startY + space * selection);
-                aprint(" ", 15, startY);
+                // aprint(" ", 15, startY);
             } else {
                 aprint(">", 15, startY);
             }
@@ -336,6 +324,7 @@ void startScreen() {
                         options = (int)gameOptions.size();
                         movingHor = true;
                         movingDirection = 1;
+                        refreshText = true;
                     } else if (selection == 1) {
                         n = -1;
                         previousSettings = savefile->settings;
@@ -348,8 +337,18 @@ void startScreen() {
                         n = -2;
                     }
 
+                    if(selection != 0){
+                        drawUIFrame(0, 0, 30, 20);
+                    }
+
                 } else {
                     drawUIFrame(0, 0, 30, 20);
+
+                    moving = false;
+                    movingHor = false;
+                    movingTimer = 0;
+                    movingDirection = 0;
+
                     if (selection == 0) {//marathon
                         n = MARATHON;
                         options = 4;
@@ -467,6 +466,7 @@ void startScreen() {
                     movingHor = true;
                     movingDirection = -1;
                     sfx(SFX_MENUCANCEL);
+                    refreshText = true;
                 }
             }
 
@@ -1244,12 +1244,11 @@ void startText() {
             }
 
             for (int i = 0; i < 5; i++) {
+                aprintClearLine(11+i);
                 posprintf(buff,"%d.",i+1);
                 aprint(buff,3,11+i);
                 if(subMode == 0){
-                    aprint("               ", 5, 11 + i);
                     if (savefile->sprint[goalSelection].times[i].frames == 0){
-                        aprint("        ", 17, 11 + i);
                         continue;
                     }
 
@@ -1259,9 +1258,7 @@ void startText() {
                     aprint(time, 25 - (int)time.length(), 11 + i);
 
                 }else if(subMode == 1){
-                    aprint("               ", 5, 11 + i);
                     if (savefile->sprintAttack[goalSelection].times[i].frames == 0){
-                        aprint("        ", 17, 11 + i);
                         continue;
                     }
 
@@ -1585,7 +1582,8 @@ void startText() {
                 posprintf(buff,"%d.",i+1);
                 aprint(buff,3,11+i);
 
-                aprint("                       ", 5, 11 + i);
+                // aprint("                       ", 5, 11 + i);
+                aprintClearLine(11+i);
                 if (savefile->master[subMode].times[i].frames == 0)
                     continue;
 
@@ -1621,12 +1619,11 @@ void startText() {
                 break;
             }
         } else if (toStart == -1) {
+            clearText();
+            settingsText();
             const int startY = 5;
             const int space = 2;
             aprint(" SAVE ", 12, 17);
-
-            for(int i = 0; i < 5; i++)
-                aprint(" ",10,startY+i*space);
 
             if(selection != 5)
                 aprint(">", 10, startY+selection * space);
@@ -1635,6 +1632,7 @@ void startText() {
                 aprint("]",17,17);
             }
         } else if (toStart == -2) {
+            clearText();
             const int startX = 4;
             const int startY = 2;
 
@@ -2054,5 +2052,17 @@ void drawBackgroundGrid(){
             *dest++ = 2 * (!savefile->settings.lightMode);
         }
         dest+=2;
+    }
+}
+
+void TitleScene::draw(){
+    if(refreshText){
+        refreshText = false;
+        startText();
+        if (onSettings) {
+            REG_DISPCNT |= DCNT_BG3;
+        } else {
+            REG_DISPCNT &= ~DCNT_BG3;
+        }
     }
 }

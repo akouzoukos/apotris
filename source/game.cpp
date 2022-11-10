@@ -974,6 +974,8 @@ void gameLoop(){
     GameScene* s = new GameScene();
     changeScene(s);
 
+    irq_enable(II_HBLANK);
+
     setSkin();
     clearSmallText();
     setSmallTextArea(110, 3, 7, 9, 10);

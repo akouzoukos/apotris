@@ -388,4 +388,8 @@ class GameScene : public Scene{
     void draw();
 };
 
+class TitleScene : public Scene{
+    void draw();
+};
+
 extern void changeScene(Scene * newScene);
