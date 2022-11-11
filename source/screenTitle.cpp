@@ -172,6 +172,10 @@ void startScreen() {
     obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
     obj_hide(levelCursor);
 
+    memset32(&tile_mem[4][256], 0x0000 , MAX_WORD_SPRITES * 12 * 8);
+    for (int i = 0; i < MAX_WORD_SPRITES; i++)
+        wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);
+
     if(goToOptions){
         goToOptions = false;
         onSettings = true;
@@ -187,11 +191,6 @@ void startScreen() {
         refreshText = true;
     }else{
         showTitleSprites();
-
-        memset32(&tile_mem[4][256], 0x0000 , MAX_WORD_SPRITES * 12 * 8);
-
-        for (int i = 0; i < MAX_WORD_SPRITES; i++)
-            wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);
 
         //initialise background array
         memset16(backgroundArray, 0, 30 * 30);
