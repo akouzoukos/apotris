@@ -91,7 +91,8 @@ std::list<PlaceEffect> placeEffectList;
 
 int eventPauseTimer = 0;
 
-static Settings *previousSettings = nullptr;
+static bool holdingSave = false;
+static Settings previousSettings;
 
 #define flashTimerMax 16
 static int flashTimer = 0;
@@ -131,7 +132,9 @@ void update() {
     aprintClearArea(0, 0, 10, 6);
     aprintClearArea(0, 13, 10, 7);
 
-    showText();
+    if(!game->zoneTimer)
+        showText();
+
     showTimer();
     showClearText();
 
@@ -296,13 +299,12 @@ void checkSounds() {
     }
 
     if (game->sounds.zone == 1) {
-        if(previousSettings != nullptr)
-            delete previousSettings;
 
+        clearText();
         irq_disable(II_HBLANK);
-        previousSettings = new Settings();
 
-        *previousSettings = savefile->settings;
+        holdingSave = true;
+        previousSettings = savefile->settings;
 
         savefile->settings.colors = 4;
         setPalette();
@@ -310,7 +312,7 @@ void checkSounds() {
 
         sfx(SFX_ZONESTART);
     } else if (game->sounds.zone == 2) {
-        savefile->settings.lightMode = !savefile->settings.lightMode;
+        savefile->settings.lightMode = !previousSettings.lightMode;
         setPalette();
     } else if (game->sounds.zone == -1) {
         resetZonePalette();
@@ -1807,10 +1809,12 @@ void zoneFlash(){
 }
 
 void resetZonePalette(){
-    if(previousSettings == nullptr)
+    if(!holdingSave)
         return;
 
-    savefile->settings = *previousSettings;
+    holdingSave = false;
+
+    savefile->settings = previousSettings;
 }
 
 void showFinesseCombo(){

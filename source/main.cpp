@@ -638,15 +638,10 @@ void sleep() {
 
         if (key_hit(KEY_B)) {
             REG_DISPCNT = display_value;
-            update();
-            showPawn();
-            showHold();
-            showShadow();
-            showQueue();
-            showTimer();
+            clearText();
+            sfx(SFX_MENUCANCEL);
             return;
         }
-
     }
 
     irq_disable(II_VBLANK);
@@ -680,13 +675,6 @@ void sleep() {
     irq_delete(II_KEYPAD);
     irq_enable(II_VBLANK);
     irq_enable(II_HBLANK);
-
-    update();
-    showPawn();
-    showHold();
-    showShadow();
-    showQueue();
-    showTimer();
 }
 
 void diagnose() {

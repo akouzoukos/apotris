@@ -977,8 +977,8 @@ void startScreen() {
                     sfx(SFX_MENUCANCEL);
                     savefile->settings = previousSettings;
 
-                        for (int i = 0; i < MAX_CUSTOM_SKINS; i++)
-                            savefile->customSkins[i] = previousSkins[i];
+                    for (int i = 0; i < MAX_CUSTOM_SKINS; i++)
+                        savefile->customSkins[i] = previousSkins[i];
 
                     mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
                     setSkin();
@@ -1092,7 +1092,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.4.0b0", 0, 19);
+        aprint("v3.4.0b1", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
@@ -1156,7 +1156,7 @@ void startText() {
             } else if (selection == 2) {
                 if(goalSelection > 0)
                     goalText = "<" + goalText;
-                else if(goalSelection < 3)
+                if(goalSelection < 3)
                     goalText += ">";
             } else if (selection == 3) {
                 aprint(">", 10, 17);

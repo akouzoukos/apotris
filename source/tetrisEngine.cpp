@@ -906,7 +906,8 @@ int Game::clear(Drop drop) {
         if(pawn.big)
             clearCount/=2;
 
-        linesCleared+=clearCount;
+        if(!zoneTimer)
+            linesCleared+=clearCount;
 
         for (int j = 0; j < lengthY; j++) {
             bool skip = false;
