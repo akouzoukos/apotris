@@ -216,11 +216,12 @@ int endScreen() {
         }
     }
 
-    int sum = 0;
-    for(int i = 0; i < 4; i++)
-        sum += game->statTracker.clears[i];
+    // int sum = 0;
+    // for(int i = 0; i < 4; i++)
+    //     sum += game->statTracker.clears[i];
+    // igt = game->timer - ((game->maxClearDelay-1) * sum);
 
-    igt = game->timer - ((game->maxClearDelay-1) * sum);
+    igt = game->inGameTimer;
 
     playSongRandom(0);
 
@@ -491,8 +492,15 @@ void showScore(){
 
     } else if (game->gameMode == MASTER){
         int grade = game->grade + game->coolCount + (int) game->creditGrade;
+        if(grade > 34)
+            grade = 34;
 
         std::string gradeText = GameInfo::masterGrades[grade];
+
+        if(gradeText[0] == ' ')
+            gradeText.erase(0,1);
+
+        gradeText = "Grade: " + gradeText;
 
         if(game-> won && game->level < 500 && game->timer >= 25200) {
             aprint("TIME!", 13, 3);
@@ -573,6 +581,11 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     aprints("Max Streak: " + std::to_string(game->statTracker.maxStreak), 0, 7*counter++, 2);
     aprints("Max Combo: " + std::to_string(game->statTracker.maxCombo), 0, 7*counter++, 2);
     aprints("Times Held: " + std::to_string(game->statTracker.holds), 0, 7*counter++, 2);
+
+    if(game->gameMode == MASTER){
+        aprints("Section Cools: " + std::to_string(game->coolCount), 0, 7*counter++, 2);
+        aprints("Section Regrets: " + std::to_string(game->regretCount), 0, 7*counter++, 2);
+    }
 }
 
 int pauseMenu(){
@@ -891,6 +904,10 @@ int onRecord() {
             strncpy(savefile->classic[subMode].highscores[i].name, name.c_str(), 9);
         } else if (game->gameMode == MASTER) {
             int grade = game->grade + game->coolCount + (int) game->creditGrade;
+
+            if(grade > 34)
+                grade = 34;
+
             if (grade < savefile->master[subMode].grade[i] || (grade == savefile->master[subMode].grade[i] && gameSeconds > savefile->master[subMode].times[i].frames))
                 continue;
 

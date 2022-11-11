@@ -405,6 +405,7 @@ namespace Tetris
 
         int grade = 0;
         int coolCount = 0;
+        int regretCount = 0;
 
         int rotationSystem = SRS;
 
@@ -422,6 +423,8 @@ namespace Tetris
         bool eventLock = false;
 
         int finesseStreak = 0;
+
+        int inGameTimer = 0;
 
         int checkRotation(int, int, int);
         void rotateCW();
@@ -561,6 +564,7 @@ namespace Tetris
             sounds = SoundFlags(oldGame.sounds);
             previousClear = Score(oldGame.previousClear);
             timer = oldGame.timer;
+            inGameTimer = oldGame.inGameTimer;
             refresh = oldGame.refresh;
             won = oldGame.won;
             goal = oldGame.goal;

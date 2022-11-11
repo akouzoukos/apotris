@@ -19,6 +19,7 @@ static const int options = 15;
 
 void graphicTest() {
     setPalette();
+    setGradient(savefile->settings.backgroundGradient);
 
     if (savefile->settings.lightMode)
         memset16(pal_bg_mem, 0x5ad6, 1);//background gray

@@ -233,7 +233,7 @@ void checkSounds() {
             }else{
                 clearTypeText = "ultimatris";
                 soundEffect = SFX_ULTIMATRIS;
- }
+            }
         } else if (game->previousClear.linesCleared == 4) {
             if (game->previousClear.isBackToBack == 1)
                 soundEffect = SFX_BACKTOBACKQUAD;
@@ -305,13 +305,12 @@ void checkSounds() {
         *previousSettings = savefile->settings;
 
         savefile->settings.colors = 4;
-        savefile->settings.lightMode = false;
         setPalette();
         flashTimer = flashTimerMax;
 
         sfx(SFX_ZONESTART);
     } else if (game->sounds.zone == 2) {
-        savefile->settings.lightMode = true;
+        savefile->settings.lightMode = !savefile->settings.lightMode;
         setPalette();
     } else if (game->sounds.zone == -1) {
         resetZonePalette();
@@ -857,7 +856,11 @@ void showText() {
 
         aprintf(n, 4, 18);
 
-        aprint(GameInfo::masterGrades[game->grade + game->coolCount],5,3);
+        aprint("Grade",3,3);
+
+        str = GameInfo::masterGrades[game->grade + game->coolCount];
+
+        aprint(str,4 - (str.length() == 1),5);
     }
 
     if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1) && game->gameMode != MASTER){
@@ -1776,7 +1779,7 @@ void showZoneMeter(){
             return;
         }
     }else{
-        n = game->zoneTimer / 100 + 1;
+        n = game->zoneTimer / 100;
     }
 
     for(int i = 0; i < 12; i++){

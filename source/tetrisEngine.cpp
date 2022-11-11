@@ -436,6 +436,9 @@ void Game::update() {
     if (clearLock)
         return;
 
+    if(!disappearing)
+        inGameTimer++;
+
     if (entryDelay){
         entryDelay--;
     }
@@ -1002,6 +1005,7 @@ int Game::clear(Drop drop) {
                     internalGrade = newInternal;
                     grade--;
                     gradePoints = 0;
+                    regretCount++;
                 }
                 sounds.section = -1;
             }
@@ -1095,7 +1099,6 @@ int Game::clear(Drop drop) {
     } else if (zonedLines){
         int n = (1 + fullZone + (zonedLines >= 8));
         zoneScore = zoneScore * n;
-        log(std::to_string(zoneScore) + " " + std::to_string(n));
         score += zoneScore;
         zoneScore = 0;
     } else
@@ -2010,13 +2013,8 @@ void Game::removeEventLock(){
 }
 
 void Game::activateZone(){
-    // if(zoneCharge < 8)
-    //     return;
-
-    zoneCharge += 31;
-
-    if(zoneCharge > 32)
-        zoneCharge = 32;
+    if(zoneCharge < 8)
+        return;
 
     fullZone = (zoneCharge == 32);
 
