@@ -29,11 +29,14 @@
 #include "tonc_bios.h"
 #include "tonc_core.h"
 #include "tonc_input.h"
+#include "tonc_irq.h"
 #include "tonc_memdef.h"
 #include "tonc_memmap.h"
 #include "tonc_oam.h"
 #include "tonc_types.h"
 #include "tonc_video.h"
+
+#include "defaultGradient_bin.h"
 
 using namespace Tetris;
 
@@ -186,14 +189,7 @@ void initialize(){
     REG_BLDCNT = (1 << 6) + (1 << 13) + (1 << 1);
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
 
-    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
-
-    for(int i = 0; i < SCREEN_HEIGHT; i++){
-        // clr_fade((COLOR *)palette[n], GRADIENT_COLOR, (COLOR *) &gradientTable[i], 1, (i / 20) * 2 + 16);
-        clr_fade((COLOR *)palette[n], GRADIENT_COLOR, (COLOR *) &gradientTable[i], 1, ((SCREEN_HEIGHT-1-i) / 20) * 2 + 16);
-    }
-
-    gradientTable[SCREEN_HEIGHT-1] = gradientTable[0];
+    setGradient(GRADIENT_COLOR);
 }
 
 int main(void) {
@@ -206,13 +202,31 @@ int main(void) {
 
     initialize();
 
+    // int test = GRADIENT_COLOR;
+
+    // irq_enable(II_HBLANK);
+
     // while(1){
     //     VBlankIntrWait();
     //     key_poll();
     //     if(key_hit(KEY_A))
     //         break;
 
-    //     DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
+    //     setGradient(test);
+
+    //     if(key_is_down(KEY_UP)){
+    //         if(test > 0)
+    //             test--;
+    //     }
+
+    //     if(key_is_down(KEY_DOWN)){
+    //         if(test < 0x7fff)
+    //             test++;
+    //     }
+
+    //     if(key_hit(KEY_START))
+    //         log(std::to_string(test));
+    //     // DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
     // }
 
     //start screen animation
@@ -291,6 +305,12 @@ void reset() {
     for (int i = 0; i < 20; i++)
         for (int j = 0; j < 10; j++)
             glow[i][j] = 0;
+
+    int g = savefile->settings.backgroundGradient;
+    if(g == 0)
+        memcpy16(gradientTable,defaultGradient_bin,defaultGradient_bin_size/2);
+    else
+        setGradient(g);
 }
 
 std::string nameInput(int place) {
@@ -630,6 +650,7 @@ void sleep() {
     }
 
     irq_disable(II_VBLANK);
+    irq_disable(II_HBLANK);
     int stat_value = REG_SNDSTAT;
     int dsc_value = REG_SNDDSCNT;
     int dmg_value = REG_SNDDMGCNT;
@@ -658,6 +679,7 @@ void sleep() {
     irq_enable(II_SERIAL);
     irq_delete(II_KEYPAD);
     irq_enable(II_VBLANK);
+    irq_enable(II_HBLANK);
 
     update();
     showPawn();
@@ -868,4 +890,15 @@ void changeScene(Scene *newScene){
     }
 
     scene = newScene;
+}
+
+void setGradient(int color){
+
+    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
+
+    for(int i = 0; i < SCREEN_HEIGHT; i++){
+        clr_fade((COLOR *)palette[n], color, (COLOR *) &gradientTable[i], 1, ((SCREEN_HEIGHT-1-i) / 20) * 2 + 16);
+    }
+
+    gradientTable[SCREEN_HEIGHT-1] = gradientTable[0];
 }

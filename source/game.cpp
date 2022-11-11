@@ -15,8 +15,10 @@
 #include "classic_pal_bin.h"
 #include "logging.h"
 #include "posprintf.h"
+#include "tonc_bios.h"
 #include "tonc_core.h"
 #include "tonc_input.h"
+#include "tonc_irq.h"
 #include "tonc_memmap.h"
 #include "tonc_video.h"
 
@@ -119,18 +121,23 @@ void GameScene::draw(){
         game->resetRefresh();
     }else if (game->clearLock){
         showBackground();
+        showTimer();
+    }else{
+        showTimer();
     }
-    showTimer();
 }
 
 void update() {
-    clearText();
+    aprintClearArea(0, 0, 10, 6);
+    aprintClearArea(0, 13, 10, 7);
+
     showText();
     showTimer();
     showClearText();
 
     if(proMode){
         showFinesseCombo();
+        showPPS();
     }
 }
 
@@ -292,6 +299,7 @@ void checkSounds() {
         if(previousSettings != nullptr)
             delete previousSettings;
 
+        irq_disable(II_HBLANK);
         previousSettings = new Settings();
 
         *previousSettings = savefile->settings;
@@ -308,6 +316,7 @@ void checkSounds() {
     } else if (game->sounds.zone == -1) {
         resetZonePalette();
         setPalette();
+        irq_enable(II_HBLANK);
     }
 
     game->resetSounds();
@@ -804,7 +813,7 @@ void showTimer() {
     }
 
     if(proMode){
-        clearSmallText();
+        // clearSmallText();
         showPPS();
     }
 
@@ -837,7 +846,7 @@ void showText() {
 
         std::string str = std::to_string(game->level);
 
-         aprint(str, 7-str.size(), 16);
+        aprint(str, 7-str.size(), 16);
 
         showSpeedMeter((int)game->speed);
 
@@ -885,10 +894,13 @@ void showText() {
 void showPPS(){
     FIXED t = gameSeconds * float2fx(0.0167f);
 
-    if(t <= 0)
-        return;
+    FIXED pps;
 
-    FIXED pps =  fxdiv(int2fx(game->pieceCounter),(t));
+    if(t <= 0){
+        pps = 0;
+    }else{
+        pps = fxdiv(int2fx(game->pieceCounter),(t));
+    }
 
     std::string str = "";
 
@@ -901,8 +913,10 @@ void showPPS(){
         fractional &= 0xff;
     }
 
-    aprints("PPS:",0,0,2);
+	memset32(&tile_mem[2][113],0,8*3);
     aprints(str,25,0,2);
+
+    aprints("PPS:",0,0,2);
 }
 
 void showFinesse(){
@@ -919,7 +933,8 @@ void showClearText() {
 
             aprintf(game->comboCounter, 28, clearTextHeight - 1);
         } else {
-            aprint("          ", 20, clearTextHeight - 1);
+            // aprint("          ", 20, clearTextHeight - 1);
+            aprintClearArea(20, clearTextHeight - 1, 10, 1);
         }
 
         if (game->b2bCounter > 0) {
@@ -928,8 +943,9 @@ void showClearText() {
             aprint("x", 24, clearTextHeight + 2);
             aprintf(game->b2bCounter + 1, 25, clearTextHeight + 2);
         } else {
-            aprint("          ", 20, clearTextHeight + 1);
-            aprint("          ", 20, clearTextHeight + 2);
+            // aprint("          ", 20, clearTextHeight + 1);
+            // aprint("          ", 20, clearTextHeight + 2);
+            aprintClearArea(20, clearTextHeight + 1, 10, 2);
         }
     }
 
@@ -939,7 +955,8 @@ void showClearText() {
         std::string text = (*index).text;
         if (index->timer++ > maxClearTextTimer) {
             index = floatingList.erase(index);
-            aprint("            ", 9, 0);
+            // aprint("            ", 9, 0);
+            aprintClearArea(9, 0, 12, 1);
         } else {
             int height = 0;
             if (index->timer < 2 * maxClearTextTimer / 3)
@@ -953,7 +970,8 @@ void showClearText() {
                 std::size_t pos = text.find(" ");
 
                 if(pos != std::string::npos){
-                    aprint("            ", 9, 15 - height);
+                    // aprint("            ", 9, 15 - height);
+                    aprintClearArea(9, 15 - height, 12, 1);
                     std::string part1 = text.substr(0, pos);
                     std::string part2 = text.substr(pos + 1);
 
@@ -964,7 +982,8 @@ void showClearText() {
                     aprint(text, 15 - text.size() / 2, 15 - height);
                 }
             }
-            aprint("            ", 9, 15 - height + 1);
+            // aprint("            ", 9, 15 - height + 1);
+            aprintClearArea(9, 15 - height + 1, 12, 1);
             ++index;
         }
     }
@@ -975,8 +994,11 @@ void gameLoop(){
     changeScene(s);
 
     irq_enable(II_HBLANK);
+    setGradient(savefile->settings.backgroundGradient);
 
+    VBlankIntrWait();
     setSkin();
+
     clearSmallText();
     setSmallTextArea(110, 3, 7, 9, 10);
     gameSeconds = 0;
@@ -995,6 +1017,8 @@ void gameLoop(){
 
     if(game->gameMode == MASTER)
         showSpeedMeter((int)game->speed);
+
+    showZoneMeter();
 
     oam_copy(oam_mem, obj_buffer, 128);
 
@@ -1553,7 +1577,7 @@ void showPlaceEffect(){
             yoffset = -4;
             if(game->rotationSystem == NRS || game-> rotationSystem == ARS){
                 if(r % 2 == 1)
-                    r = 3;
+                    r = 1 + 2 * (game->rotationSystem == ARS);
                 else
                     r = 2;
             }

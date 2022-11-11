@@ -4,9 +4,11 @@
 #include "soundbank.h"
 #include "text.h"
 #include "tonc_memdef.h"
+#include <string>
 
 void handlingText();
 bool handlingControl();
+void setDas(int index);
 
 static const int startX = 3;
 static const int startY = 3;
@@ -24,6 +26,8 @@ static int dasHor = 0;
 static const int maxArr = 3;
 static int arr = 0;
 
+static int dasSelection = 0;
+
 static std::list<std::string> options = {
     "Auto Repeat Delay",
     "Auto Repeat Rate",
@@ -37,6 +41,17 @@ static std::list<std::string> options = {
 void handlingSettings(){
     selection = 0;
     refreshText = true;
+
+    if(savefile->settings.customDas){
+        dasSelection = savefile->settings.das-30;
+    }else{
+        switch(savefile->settings.das){
+            case 16: dasSelection = 1; break;
+            case 11: dasSelection = 2; break;
+            case  9: dasSelection = 3; break;
+            case  8: dasSelection = 4; break;
+        }
+    }
 
     while (1) {
         VBlankIntrWait();
@@ -57,21 +72,16 @@ void handlingSettings(){
 bool handlingControl(){
     if (key_hit(KEY_RIGHT) || key_hit(KEY_LEFT)) {
         if (selection == 0) {
-            if (key_hit(KEY_RIGHT)) {
-                if (savefile->settings.das == 16)
-                    savefile->settings.das = 11;
-                else if (savefile->settings.das == 11)
-                    savefile->settings.das = 9;
-                else if (savefile->settings.das == 9)
-                    savefile->settings.das = 8;
-            } else if (key_hit(KEY_LEFT)) {
-                if (savefile->settings.das == 8)
-                    savefile->settings.das = 9;
-                else if (savefile->settings.das == 9)
-                    savefile->settings.das = 11;
-                else if (savefile->settings.das == 11)
-                    savefile->settings.das = 16;
+            if(key_hit(KEY_RIGHT)){
+                if(dasSelection < 4)
+                    dasSelection++;
             }
+            if(key_hit(KEY_LEFT)){
+                if(dasSelection > -29)
+                    dasSelection--;
+            }
+            setDas(dasSelection);
+
         } else if (selection == 1) {
             if (key_hit(KEY_RIGHT) && savefile->settings.arr > -1)
                 savefile->settings.arr--;
@@ -153,7 +163,36 @@ bool handlingControl(){
         dasVer = 0;
     }
 
-    if(selection == 4){
+    if(selection == 0){
+        if (key_is_down(KEY_LEFT)) {
+            if (dasHor < maxDas) {
+                dasHor++;
+            } else if(dasSelection > -29){
+                if (arr++ > maxArr) {
+                    arr = 0;
+                    dasSelection--;
+                    sfx(SFX_MENUMOVE);
+                }
+            }
+            setDas(dasSelection);
+            refreshText = true;
+        } else if (key_is_down(KEY_RIGHT)) {
+            if (dasHor < maxDas) {
+                dasHor++;
+            } else if(dasSelection < 4){
+                if (arr++ > maxArr) {
+                    arr = 0;
+                    dasSelection++;
+                    sfx(SFX_MENUMOVE);
+                }
+            }
+            setDas(dasSelection);
+            refreshText = true;
+        } else {
+            dasHor = 0;
+        }
+
+    }else if(selection == 4){
         if (key_is_down(KEY_LEFT)) {
             if (dasHor < maxDas) {
                 dasHor++;
@@ -179,7 +218,6 @@ bool handlingControl(){
         } else {
             dasHor = 0;
         }
-
     }
 
     if(key_hit(KEY_B) || (key_hit(KEY_START) && selection == (int) options.size())){
@@ -210,14 +248,18 @@ void handlingText(){
        aprint("        ",endX-2,startY+space*i);
     }
 
-    if (savefile->settings.das == 8)
-        aprint("V.FAST", endX - 1, startY);
-    else if (savefile->settings.das == 9)
-        aprint("FAST", endX, startY);
-    else if (savefile->settings.das == 11)
-        aprint("MID", endX, startY);
-    else if (savefile->settings.das == 16)
-        aprint("SLOW", endX, startY);
+    if(!savefile->settings.customDas){
+        if (savefile->settings.das == 8)
+            aprint("V.FAST", endX - 1, startY);
+        else if (savefile->settings.das == 9)
+            aprint("FAST", endX, startY);
+        else if (savefile->settings.das == 11)
+            aprint("MID", endX, startY);
+        else if (savefile->settings.das == 16)
+            aprint("SLOW", endX, startY);
+    }else{
+        aprint(std::to_string(savefile->settings.das) + "f", endX, startY);
+    }
 
     if (savefile->settings.arr == -1)
         aprint("INSTANT", endX - 1, startY + space * 1);
@@ -264,10 +306,15 @@ void handlingText(){
 
     //show cursor
     if (selection == 0) {
-        if (savefile->settings.das > 8)
-            aprint(">", endX + 3 + (savefile->settings.das != 11), startY);
-        if (savefile->settings.das < 16)
+        if(!savefile->settings.customDas){
+            if (savefile->settings.das > 8)
+                aprint(">", endX + 3 + (savefile->settings.das != 11), startY);
             aprint("<", endX - 1 - (savefile->settings.das == 8), startY);
+        }else{
+            aprint(">", endX + 2 + (savefile->settings.das > 9), startY);
+            if (savefile->settings.das > 1)
+                aprint("<", endX - 1, startY);
+        }
     } else if (selection == 1) {
         if (savefile->settings.arr < 3)
             aprint("<", endX - 1 - (savefile->settings.arr <= 0), startY + space * selection);
@@ -297,5 +344,23 @@ void handlingText(){
     }else if (selection == (int) options.size()){
         aprint("[",12,17);
         aprint("]",17,17);
+    }
+}
+
+void setDas(int index){
+    int n = 0;
+    if(index > 0){
+        switch(index){
+            case 1: n = 16; break;
+            case 2: n = 11; break;
+            case 3: n = 9; break;
+            case 4: n = 8; break;
+        }
+        savefile->settings.customDas = false;
+        savefile->settings.das = n;
+    }else{
+        n = 30 + index;
+        savefile->settings.customDas = true;
+        savefile->settings.das = n;
     }
 }

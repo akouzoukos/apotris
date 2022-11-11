@@ -33,6 +33,7 @@
 #include "../build/sprite38tiles_bin.h"
 #include "../build/sprite39tiles_bin.h"
 #include "../build/sprite40tiles_bin.h"
+#include "../build/sprite41tiles_bin.h"
 
 #include "../build/title1tiles_bin.h"
 #include "../build/title2tiles_bin.h"

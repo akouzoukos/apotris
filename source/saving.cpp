@@ -28,8 +28,8 @@ void setDefaults(Save * save, int depth);
 void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize);
 
 const std::list<SaveChange> saveChanges = {
-SaveChange(0x50,132,20 * 4),//add zone + buffer to keys
-SaveChange(0x50,3120,4096),// add zone + buffer to scoreboards
+    SaveChange(0x50,132,20 * 4),//add zone + buffer to keys
+    SaveChange(0x50,3120,4096),// add zone + buffer to scoreboards
 };
 
 void saveToSram() {
@@ -306,8 +306,14 @@ void setDefaults(Save *save, int depth){
             }
         }
 
+        for(int i = 0; i < 4; i++)
+            for(int j = 0; j < 5; j++)
+                save->zone[i].highscores[j].score = 0;
+
         save->settings.diagonalType = save->settings.noDiagonals;
         save->settings.delaySoftDrop = true;
+        save->settings.backgroundGradient = 0;
+        save->settings.customDas = false;
 
         //check if select is already bound - if not, bind it to zone activation
         int* keys = (int*) &save->settings.keys;

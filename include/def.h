@@ -4,6 +4,7 @@
 #include <tonc_types.h>
 #include <maxmod.h>
 #include "tetrisEngine.h"
+#include "tonc_video.h"
 
 INLINE void sfx(int);
 
@@ -87,8 +88,10 @@ typedef struct Settings{
     int rumble;
     int diagonalType;
     bool delaySoftDrop;
+    int backgroundGradient;
+    bool customDas;
 
-    int placeHolder[98];
+    int placeHolder[96];
 }ALIGN(4) Settings;
 
 typedef struct Test{
@@ -301,6 +304,7 @@ extern void showBestMove();
 extern Tetris::Tuning getTuning();
 extern void showFinesseCombo();
 extern void showTimer();
+extern void setGradient(int);
 
 extern std::string timeToString(int);
 

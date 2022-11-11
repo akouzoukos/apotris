@@ -574,6 +574,7 @@ namespace Tetris
             initSeed = oldGame.initSeed;
             subMode = oldGame.subMode;
             initialLevel = oldGame.initialLevel;
+            trainingMode = oldGame.trainingMode;
         }
 
 

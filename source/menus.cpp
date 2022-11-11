@@ -194,7 +194,7 @@ int endScreen() {
     endAnimation();
 
     int prevBld = REG_BLDCNT;
-    REG_BLDCNT = (1 << 6) + (0b1111 << 9) + (1);
+    REG_BLDCNT = (1 << 6) + (0b11111 << 9) + (1);
     memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
     if(savefile->settings.announcer){
@@ -546,7 +546,7 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     int g = game->gameMode;
 
     aprints("Time: " + time,0,7*counter++,2);
-    if(!subMode)
+    if(!proMode)
         aprints("IGT: " + timeToString(igt),0,7*counter++,2);
 
     if(g == MARATHON || g == BLITZ || g == CLASSIC){
@@ -585,7 +585,7 @@ int pauseMenu(){
     clearText();
 
     int prevBld = REG_BLDCNT;
-    REG_BLDCNT = (1 << 6) + (0b1111 << 9) + (1);
+    REG_BLDCNT = (1 << 6) + (0b11111 << 9) + (1);
     memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
     //hide Sprites
@@ -751,9 +751,6 @@ int pauseMenu(){
     REG_BLDCNT = prevBld;
     memset16(&se_mem[25], 0 , 32 * 20);
     showBackground();
-
-    if(game->trainingMode)
-        showBestMove();
 
     return 0;
 }

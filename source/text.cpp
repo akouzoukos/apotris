@@ -3,6 +3,7 @@
 #include <string>
 #include <tonc.h>
 #include "logging.h"
+#include "posprintf.h"
 
 class TextArea{
 public:
@@ -52,8 +53,18 @@ void aprintClearLine(int y){
 	// log("clear line: " + result);
 }
 
+void aprintClearArea(int x, int y, int w, int h){
+	u16 * dest = (u16*)se_mem[29];
+
+	for(int i = y; i < y+h; i++){
+		memset16(&dest[32*i+x],0,w);
+	}
+}
+
 void aprintf(int n, int x, int y){
-	aprint(std::to_string(n),x,y);
+	char buff[30];
+	posprintf(buff, "%d",n);
+	aprint(buff,x,y);
 }
 
 void aprintColor(std::string str, int x, int y,int palette){
@@ -78,7 +89,7 @@ void clearText(){
 	if(textArea == nullptr)
 		return;
 
-	profile_start();
+	// profile_start();
 
 	memset32(&tile_mem[2][textArea->tileId],0,(textArea->endX-textArea->startX+1)*(textArea->endY-textArea->startY)*8);
 

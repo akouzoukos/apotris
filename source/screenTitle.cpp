@@ -1,4 +1,5 @@
 #include "def.h"
+#include "sprite41tiles_bin.h"
 #include "tetromino.hpp"
 #include "tonc.h"
 #include "text.h"
@@ -147,6 +148,8 @@ void startScreen() {
     int movingTimer = 0;
     int movingDirection = 0;
 
+    refreshText = true;
+
     selection = 0;
 
     VBlankIntrWait();
@@ -154,6 +157,7 @@ void startScreen() {
     drawUIFrame(0, 0, 30, 20);
 
     memcpy16(&tile_mem[2][102], sprite37tiles_bin, sprite37tiles_bin_size / 2);
+    memcpy16(&tile_mem[2][105], sprite41tiles_bin, sprite41tiles_bin_size / 2);
 
     setSkin();
     setLightMode();
@@ -190,9 +194,7 @@ void startScreen() {
             wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);
 
         //initialise background array
-        for (int i = 0; i < 30; i++)
-            for (int j = 0; j < 30; j++)
-                backgroundArray[i][j] = 0;
+        memset16(backgroundArray, 0, 30 * 30);
 
         oam_copy(oam_mem, obj_buffer, 128);
     }
@@ -981,6 +983,7 @@ void startScreen() {
                     mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
                     setSkin();
                     setLightMode();
+                    setGradient(savefile->settings.backgroundGradient);
                     drawUIFrame(0, 0, 30, 20);
                     refreshText = true;
                     selection = previousSelection;
@@ -1579,11 +1582,11 @@ void startText() {
             aprintColor(" Normal     Classic ", 5, goalHeight + 2, 1);
 
             for (int i = 0; i < 5; i++) {
+                aprintClearLine(11+i);
                 posprintf(buff,"%d.",i+1);
                 aprint(buff,3,11+i);
 
                 // aprint("                       ", 5, 11 + i);
-                aprintClearLine(11+i);
                 if (savefile->master[subMode].times[i].frames == 0)
                     continue;
 
