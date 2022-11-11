@@ -68,6 +68,9 @@ void graphicTest() {
 
         if(savefile->settings.floatText){
             showClearText();
+
+            if(!floatingList.empty())
+                showLabels();
         }
 
         key_poll();
@@ -545,7 +548,7 @@ void graphicTest() {
             showHold();
             showBackground();
 
-            if(selection == 8){
+            if(selection == 9){
                 u16 *dest = (u16*) &se_mem[25];
                 for(int i = 0; i < game->lengthX; i++){
                     dest[10+i+32*18] = 3 + savefile->settings.lightMode * 0x1000;

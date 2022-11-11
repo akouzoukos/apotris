@@ -39,6 +39,8 @@ static std::list<std::string> options = {
 };
 
 void handlingSettings(){
+    setSmallTextArea(110, endX, 2, endX+5, 2);
+
     selection = 0;
     refreshText = true;
 
@@ -258,6 +260,13 @@ void handlingText(){
         else if (savefile->settings.das == 16)
             aprint("SLOW", endX, startY);
     }else{
+        clearSmallText();
+        switch(savefile->settings.das){
+        case 16: aprints("slow",4,0,1); break;
+        case 11: aprints("mid",8,0,1); break;
+        case 9: aprints("fast",0,0,1); break;
+        case 8: aprints("v.fast",0,0,1); break;
+        }
         aprint(std::to_string(savefile->settings.das) + "f", endX, startY);
     }
 

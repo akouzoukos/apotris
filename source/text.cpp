@@ -118,7 +118,7 @@ void setSmallTextArea(int tid, int startX,int startY,int endX,int endY){
 }
 
 void clearSmallText(){
-	memset32(&tile_mem[2][textArea->tileId],0,(textArea->endX-textArea->startX+1)*(textArea->endY-textArea->startY)*8);
+	memset32(&tile_mem[2][textArea->tileId],0,(textArea->endX-textArea->startX+1)*(textArea->endY-textArea->startY+1)*8);
 }
 
 void aprints(std::string str, int x, int y, int colorIndex){//x and y are pixel
