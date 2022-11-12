@@ -1,4 +1,5 @@
 #include "def.h"
+#include "maxmod.h"
 #include "soundbank.h"
 #include "sprite36tiles_bin.h"
 #include "sprites.h"
@@ -98,6 +99,8 @@ static Settings previousSettings;
 static int flashTimer = 0;
 
 COLOR * previousPalette = nullptr;
+
+static bool refreshSkin = false;
 // Bot *testBot;
 
 void GameScene::draw(){
@@ -307,8 +310,17 @@ void checkSounds() {
         previousSettings = savefile->settings;
 
         savefile->settings.colors = 4;
+        // savefile->settings.skin = 0;
+
+        // refreshSkin = true;
         setPalette();
         flashTimer = flashTimerMax;
+
+        // mmPause();
+
+        mmSetModuleTempo(512);
+        mmSetModuleVolume(512 * ((float)savefile->settings.volume / 20));
+        // mmSetModulePitch(512);
 
         sfx(SFX_ZONESTART);
     } else if (game->sounds.zone == 2) {
@@ -318,6 +330,13 @@ void checkSounds() {
         resetZonePalette();
         setPalette();
         irq_enable(II_HBLANK);
+        update();
+        // refreshSkin = true;
+
+        mmSetModuleTempo(1024);
+        // mmSetModulePitch(1024);
+
+        mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
     }
 
     game->resetSounds();
@@ -1140,6 +1159,11 @@ void gameLoop(){
             return;
         }
 
+        if(refreshSkin){
+            refreshSkin = false;
+            setSkin();
+        }
+
         sqran(qran() % frameCounter);
     }
 }
@@ -1815,6 +1839,7 @@ void resetZonePalette(){
     holdingSave = false;
 
     savefile->settings = previousSettings;
+    setPalette();
 }
 
 void showFinesseCombo(){

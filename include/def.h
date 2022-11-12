@@ -6,8 +6,6 @@
 #include "tetrisEngine.h"
 #include "tonc_video.h"
 
-INLINE void sfx(int);
-
 INLINE FIXED lerp(FIXED a, FIXED b, FIXED mix){
     return a + (((b-a)*mix)>>8);
 }
@@ -155,11 +153,6 @@ typedef struct Save{
 
 extern Save *savefile;
 
-INLINE void sfx(int s){
-	mm_sfxhand h = mmEffect(s);
-	mmEffectVolume(h, 255 * (float)savefile->settings.sfxVolume / 10);
-}
-    
 #define glowDuration 12
 
 class FloatText {
@@ -240,6 +233,7 @@ public:
 
 #define ENABLE_FLASH_SAVE 1
 
+extern void sfx(int);
 extern void gameLoop();
 extern void playSong(int,int);
 extern void playSongRandom(int);

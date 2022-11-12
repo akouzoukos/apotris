@@ -1,3 +1,4 @@
+#include "def.h"
 #include "tetromino.hpp"
 #include "tetrisEngine.h"
 #include <iostream>
@@ -1396,6 +1397,9 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
         }
     }
 
+    if(bigMode)
+        return result;
+
     for(int iy = 0; iy < 4; iy++){
         for(int ix = 0; ix < 4; ix++){
             if(!result[iy][ix])
@@ -1442,6 +1446,17 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
                     result[iy][ix] += 17 << 4;
                 else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy > 0 && result[iy-1][ix])
                     result[iy][ix] += 18 << 4;
+            }else if(n == 5){
+                if(iy < 3 && ix < 3 && ix > 0 && result[iy+1][ix-1] && result[iy+1][ix+1])
+                    result[iy][ix] += 19 << 4;
+                else if(iy > 0 && ix < 3 && ix > 0 && result[iy-1][ix-1] && result[iy-1][ix+1])
+                    result[iy][ix] += 20 << 4;
+                else if(ix < 3 && iy < 3 && iy > 0 && result[iy-1][ix+1] && result[iy+1][ix+1])
+                    result[iy][ix] += 21 << 4;
+                else if(ix > 0 && iy < 3 && iy > 0 && result[iy-1][ix-1] && result[iy+1][ix-1])
+                    result[iy][ix] += 22 << 4;
+            }else if(n == 8){
+                result[iy][ix] += 23 << 4;
             }
         }
     }
@@ -2086,7 +2101,7 @@ const u16 Tetris::connectedConversion[24]={
 16,17,20,21,
 1,3,9,11,
 19,22,23,18,
-0,0,0,0,0
+2,10,5,7,6
 };
 
 const u16 Tetris::connectedFix[3][24] = {

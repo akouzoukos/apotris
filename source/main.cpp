@@ -88,6 +88,7 @@ Scene * scene = nullptr;
 
 u16 gradientTable[SCREEN_HEIGHT + 1];
 
+
 void onVBlank(void) {
 
     mmVBlank();
@@ -889,4 +890,9 @@ void setGradient(int color){
     }
 
     gradientTable[SCREEN_HEIGHT-1] = gradientTable[0];
+}
+
+void sfx(int s){
+	mm_sfxhand h = mmEffect(s);
+	mmEffectVolume(h, 255 * (float)savefile->settings.sfxVolume / 10);
 }

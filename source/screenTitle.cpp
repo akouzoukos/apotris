@@ -190,6 +190,9 @@ void startScreen() {
 
         refreshText = true;
     }else{
+        goalSelection = 0;
+        level = 1;
+
         showTitleSprites();
 
         //initialise background array
@@ -1091,7 +1094,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.4.0b1", 0, 19);
+        aprint("v3.4.0b2", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 

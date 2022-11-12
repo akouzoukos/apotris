@@ -19,6 +19,7 @@ void showScore();
 void showStats(bool, std::string, std::string);
 int onRecord();
 std::string nameInput(int);
+void showModeText();
 
 int mode = 0;
 bool showingStats = false;
@@ -257,56 +258,7 @@ int endScreen() {
             aprint(str+" Place", 11, 5);
         }
 
-        if(game->gameMode > 0 && game->gameMode <= 9){
-            int counter = 0;
-            std::string str;
-            std::string str2;
-
-            str = modeStrings[game->gameMode-1];
-
-            if(game->gameMode == TRAINING)
-                str = "Training";
-
-            aprintColor(str,30-str.size(),counter++,0);
-
-            str = "";
-            if(game->gameMode == TRAINING){
-                if(game->trainingMode)
-                    str = "Finesse";
-            }else{
-                if(game->gameMode != CLASSIC)
-                    str = modeOptionStrings[game->gameMode-1][mode];
-                else
-                    str = modeOptionStrings[game->gameMode-1][0];
-            }
-
-            if(str != "")
-                aprintColor(str,30-str.size(),counter++,0);
-
-            str = "";
-            str2 = "";
-            if(game->subMode){
-                switch(game->gameMode){
-                case SPRINT: str = "Attack"; break;
-                case DIG: str = "Efficiency"; break;
-                case CLASSIC:
-                    str = "B-Type";
-                    str2 = std::to_string(initialLevel) + "-" + std::to_string(game->bTypeHeight);
-                    break;
-                }
-            }else{
-                if(game->gameMode == CLASSIC)
-                    str = "A-Type";
-            }
-
-            if(str != "")
-                aprintColor(str,30-str.size(),counter++,0);
-            if(str2 != "")
-                aprintColor(str2,30-str2.size(),counter++,0);
-
-            if(bigMode)
-                aprintColor("BIG MODE",22,counter++,0);
-        }
+        showModeText();
 
         aprint("Play", 12, 11);
         aprint("Again", 14, 12);
@@ -596,6 +548,7 @@ int pauseMenu(){
     int optionsCounter = 0;
 
     clearText();
+    setSmallTextArea(110, 1, 1, 10, 20);
 
     int prevBld = REG_BLDCNT;
     REG_BLDCNT = (1 << 6) + (0b11111 << 9) + (1);
@@ -610,6 +563,26 @@ int pauseMenu(){
 
     oam_copy(oam_mem, obj_buffer, 128);
 
+    //calculate pps
+    FIXED t = gameSeconds * float2fx(0.0167f);
+    FIXED pps = 0;
+    if(t > 0)
+        pps =  fxdiv(int2fx(game->pieceCounter),(t));
+
+    std::string ppsStr = std::to_string(fx2int(pps)) + ".";
+
+    int fractional = pps & 0xff;
+    for(int i = 0; i < 2; i++){
+        fractional *= 10;
+        ppsStr += '0' + (fractional >> 8);
+        fractional &= 0xff;
+    }
+
+    std::string totalTime = timeToString(gameSeconds);
+    igt = game->inGameTimer;
+
+    showModeText();
+
     while (1) {
         if (!onStates){
             if(game->gameMode == TRAINING)
@@ -622,12 +595,14 @@ int pauseMenu(){
         VBlankIntrWait();
         key_poll();
 
-        aprint("PAUSE!", 12, 4);
-
         for (int i = 0; i < maxSelection; i++)
             aprint(" ", 10, optionsHeight + 2 * i);
-
         aprint(">", 10, optionsHeight + 2 * selection);
+
+        aprint("PAUSE!", 12, 4);
+
+
+        showStats(showingStats, totalTime, ppsStr);
 
         u16 key = key_hit(KEY_FULL);
 
@@ -758,12 +733,19 @@ int pauseMenu(){
             sfx(SFX_MENUMOVE);
         }
 
+        if(key == KEY_L){
+            sfx(SFX_MENUCONFIRM);
+            showingStats = !showingStats;
+            clearSmallText();
+        }
+
         oam_copy(oam_mem, obj_buffer, 128);
     }
 
     REG_BLDCNT = prevBld;
     memset16(&se_mem[25], 0 , 32 * 20);
     showBackground();
+    setSmallTextArea(110, 3, 7, 9, 10);
 
     return 0;
 }
@@ -930,4 +912,57 @@ int onRecord() {
     }
 
     return place;
+}
+
+void showModeText(){
+    if(game->gameMode > 0 && game->gameMode <= 9){
+        int counter = 0;
+        std::string str;
+        std::string str2;
+
+        str = modeStrings[game->gameMode-1];
+
+        if(game->gameMode == TRAINING)
+            str = "Training";
+
+        aprintColor(str,30-str.size(),counter++,0);
+
+        str = "";
+        if(game->gameMode == TRAINING){
+            if(game->trainingMode)
+                str = "Finesse";
+        }else{
+            if(game->gameMode != CLASSIC)
+                str = modeOptionStrings[game->gameMode-1][mode];
+            else
+                str = modeOptionStrings[game->gameMode-1][0];
+        }
+
+        if(str != "")
+            aprintColor(str,30-str.size(),counter++,0);
+
+        str = "";
+        str2 = "";
+        if(game->subMode){
+            switch(game->gameMode){
+            case SPRINT: str = "Attack"; break;
+            case DIG: str = "Efficiency"; break;
+            case CLASSIC:
+                str = "B-Type";
+                str2 = std::to_string(initialLevel) + "-" + std::to_string(game->bTypeHeight);
+                break;
+            }
+        }else{
+            if(game->gameMode == CLASSIC)
+                str = "A-Type";
+        }
+
+        if(str != "")
+            aprintColor(str,30-str.size(),counter++,0);
+        if(str2 != "")
+            aprintColor(str2,30-str2.size(),counter++,0);
+
+        if(bigMode)
+            aprintColor("BIG MODE",22,counter++,0);
+    }
 }
