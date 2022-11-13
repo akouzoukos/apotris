@@ -4,6 +4,7 @@
 
 #include "def.h"
 #include "sprite37tiles_bin.h"
+#include "sprite5tiles_bin.h"
 #include "tetrisEngine.h"
 #include "sprites.h"
 
@@ -193,6 +194,7 @@ void initialize(){
     setGradient(GRADIENT_COLOR);
 }
 
+
 int main(void) {
     logInitMgba();
 
@@ -203,9 +205,13 @@ int main(void) {
 
     initialize();
 
-    // int test = GRADIENT_COLOR;
+    // u16 * dest = (u16 * ) &se_mem[26];
 
-    // irq_enable(II_HBLANK);
+    // for(int i = 0; i < 20; i++){
+    //     dest[i * 32 + 10] = 4 + 0x1000 * savefile->settings.palette;
+    // }
+
+    // int timer = 0;
 
     // while(1){
     //     VBlankIntrWait();
@@ -213,21 +219,28 @@ int main(void) {
     //     if(key_hit(KEY_A))
     //         break;
 
-    //     setGradient(test);
 
-    //     if(key_is_down(KEY_UP)){
-    //         if(test > 0)
-    //             test--;
+    //     if(++timer >= 32){
+    //         timer = 0;
     //     }
 
-    //     if(key_is_down(KEY_DOWN)){
-    //         if(test < 0x7fff)
-    //             test++;
-    //     }
+        // if(timer % 4 == 0)
+        //     test();
+        // setGradient(test);
 
-    //     if(key_hit(KEY_START))
-    //         log(std::to_string(test));
-    //     // DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
+        // if(key_is_down(KEY_UP)){
+        //     if(test > 0)
+        //         test--;
+        // }
+
+        // if(key_is_down(KEY_DOWN)){
+        //     if(test < 0x7fff)
+        //         test++;
+        // }
+
+        // if(key_hit(KEY_START))
+        //     log(std::to_string(test));
+        // // DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
     // }
 
     //start screen animation
@@ -546,7 +559,6 @@ void setSkin() {
 
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
-    // memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
 
     int** board;
     for (int i = 0; i < 7; i++) {
@@ -556,11 +568,11 @@ void setSkin() {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
                     if(savefile->settings.skin == 11)
-                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite38tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite38tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin == 12)
-                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite39tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite39tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin == 13)
-                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite40tiles_bin[connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite40tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
                     else
@@ -610,6 +622,8 @@ void setLightMode() {
         memset16(&pal_obj_mem[14 * 16 + 2], 0x318c, 1);//obj font main
         memset16(&pal_obj_mem[14 * 16 + 3], 0x0421, 1);//boj font shadow
     }
+
+    setGradient(savefile->settings.backgroundGradient);
 }
 
 void sleep() {
@@ -885,14 +899,26 @@ void setGradient(int color){
 
     int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
 
-    for(int i = 0; i < SCREEN_HEIGHT; i++){
-        clr_fade((COLOR *)palette[n], color, (COLOR *) &gradientTable[i], 1, ((SCREEN_HEIGHT-1-i) / 20) * 2 + 16);
+    COLOR * src = (COLOR *) &palette[n];
+
+    if(!(savefile->settings.lightMode && color == 0)){
+        for(int i = 0; i < SCREEN_HEIGHT; i++){
+            clr_fade(src, color, (COLOR *) &gradientTable[i], 1, ((SCREEN_HEIGHT-1-i) / 20) * 2 + 16);
+        }
+
+        gradientTable[SCREEN_HEIGHT-1] = gradientTable[0];
+    }else{
+        for(int i = 0; i < SCREEN_HEIGHT; i++)
+            gradientTable[i] = 0x5ad6;
     }
 
-    gradientTable[SCREEN_HEIGHT-1] = gradientTable[0];
 }
 
 void sfx(int s){
 	mm_sfxhand h = mmEffect(s);
 	mmEffectVolume(h, 255 * (float)savefile->settings.sfxVolume / 10);
+}
+
+void setDefaultGradient(){
+    memcpy16(gradientTable,defaultGradient_bin,defaultGradient_bin_size/2);
 }

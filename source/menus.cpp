@@ -238,13 +238,14 @@ int endScreen() {
     if(game->lost)
         savefile->stats.gamesLost++;
 
+    showStats(showingStats, totalTime, ppsStr);
+
     while (1) {
         handleMultiplayer();
         VBlankIntrWait();
         key_poll();
 
         showScore();
-        showStats(showingStats, totalTime, ppsStr);
 
         if (record != -1 && game->gameMode != BATTLE && (game->won || game->gameMode == MARATHON || game->gameMode >= ULTRA)){
             std::string str;
@@ -359,6 +360,7 @@ int endScreen() {
             sfx(SFX_MENUCONFIRM);
             showingStats = !showingStats;
             clearSmallText();
+            showStats(showingStats, totalTime, ppsStr);
         }
     }
 
@@ -554,6 +556,9 @@ int pauseMenu(){
     REG_BLDCNT = (1 << 6) + (0b11111 << 9) + (1);
     memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
+    REG_BG0HOFS = 0;
+    REG_BG0VOFS = 0;
+
     //hide Sprites
     hideMinos();
     obj_hide(&obj_buffer[23]); //hide meter
@@ -583,6 +588,8 @@ int pauseMenu(){
 
     showModeText();
 
+    bool shown = false;
+
     while (1) {
         if (!onStates){
             if(game->gameMode == TRAINING)
@@ -600,9 +607,6 @@ int pauseMenu(){
         aprint(">", 10, optionsHeight + 2 * selection);
 
         aprint("PAUSE!", 12, 4);
-
-
-        showStats(showingStats, totalTime, ppsStr);
 
         u16 key = key_hit(KEY_FULL);
 
@@ -737,6 +741,12 @@ int pauseMenu(){
             sfx(SFX_MENUCONFIRM);
             showingStats = !showingStats;
             clearSmallText();
+            showStats(showingStats, totalTime, ppsStr);
+        }
+
+        if(!shown){
+            shown = true;
+            showStats(showingStats, totalTime, ppsStr);
         }
 
         oam_copy(oam_mem, obj_buffer, 128);

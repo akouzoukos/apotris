@@ -5,6 +5,7 @@
 #include "sprites.h"
 #include <string>
 #include "posprintf.h"
+#include "logging.h"
 
 using namespace Tetris;
 
@@ -69,7 +70,7 @@ void graphicTest() {
         if(savefile->settings.floatText){
             showClearText();
 
-            if(!floatingList.empty())
+            if(!floatingList.empty() && showOptions)
                 showLabels();
         }
 
@@ -186,7 +187,7 @@ void graphicTest() {
             }
         }
 
-        if(key_hit(KEY_A)){
+        if(key_hit(KEY_A) && selection == 0){
             clearText();
 
             oam_init(obj_buffer, 128);
@@ -578,7 +579,7 @@ void setClearEffect(){
         memcpy16(&tile_mem[0][3], sprite25tiles_bin, sprite25tiles_bin_size / 2);
         break;
     case 2:
-        memcpy16(&tile_mem[0][3], sprite26tiles_bin, sprite25tiles_bin_size / 2);
+        memcpy16(&tile_mem[0][3], sprite26tiles_bin, sprite26tiles_bin_size / 2);
         break;
     }
 }

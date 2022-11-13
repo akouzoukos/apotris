@@ -299,6 +299,7 @@ extern Tetris::Tuning getTuning();
 extern void showFinesseCombo();
 extern void showTimer();
 extern void setGradient(int);
+extern void setDefaultGradient();
 
 extern std::string timeToString(int);
 
@@ -387,6 +388,10 @@ class GameScene : public Scene{
 };
 
 class TitleScene : public Scene{
+    void draw();
+};
+
+class EditorScene : public Scene{
     void draw();
 };
 

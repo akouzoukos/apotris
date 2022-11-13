@@ -208,6 +208,9 @@ void startScreen() {
         if (!onSettings) {
             irq_disable(II_HBLANK);
         } else {
+            if(savefile->settings.backgroundGradient == 0)
+                setDefaultGradient();
+
             irq_enable(II_HBLANK);
         }
 
@@ -898,7 +901,7 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 300;
                             else if (goalSelection == 3)
-                                goal = 0x7fffffff;
+                                goal = 0;
                             break;
                         case SPRINT:
                             if(training)
@@ -1094,7 +1097,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.4.0b2", 0, 19);
+        aprint("v3.4.0b4", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
@@ -1505,15 +1508,25 @@ void startText() {
             }
         } else if (toStart == CLASSIC) {//Classic Options
             aprintColor("Classic",titleX,titleY,1);
-            const int levelHeight = 5;
-            const int goalHeight = 1;
+            const int levelHeight = 6;
+            const int goalHeight = 2;
 
-            const int diffHeight = 9;
+            const int diffHeight = 8;
 
-            aprint("Level: ", 12, levelHeight);
+            aprint("Level: ", 2, levelHeight);
             aprint("START", 12, 17);
 
-            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight) * 32 + 9;
+            for(int i = 0; i < 16; i++){
+                *dest++ = 102 + (i % 3) + 0xe000;
+            }
+
+            std::string levelText = std::to_string(level - 1);
+            if(level < 10)
+                levelText = " " + levelText;
+            aprint(levelText, 26 , levelHeight);
+
             aprint("Type:",4,goalHeight+2);
             aprintColor(" A-TYPE   B-TYPE ", 10, goalHeight + 2, 1);
 
@@ -1525,9 +1538,6 @@ void startText() {
             }else{
                 aprint("                      ",4,diffHeight);
             }
-
-            std::string levelText = std::to_string(level-1);
-            aprint(levelText, 27 - levelText.length(), levelHeight + 2);
 
             aprint(" ", 10, 17);
             if (selection == 0) {
@@ -1542,8 +1552,8 @@ void startText() {
                     break;
                 }
             } else if (selection == 1) {
-                aprint("<", 2, levelHeight + 2);
-                aprint(">", 23, levelHeight + 2);
+                aprint("<", 8, levelHeight);
+                aprint(">", 25, levelHeight);
             } else if (selection == 2 && subMode) {
                 aprint("<", 12, diffHeight);
                 aprint(">", 24, diffHeight);
@@ -1557,10 +1567,8 @@ void startText() {
             }
 
             // show level cursor
-            u16* dest = (u16*)se_mem[29];
-            dest += (levelHeight + 2) * 32 + 2 + level;
-
-            *dest = 0x5061;
+            obj_set_pos(levelCursor, 9 * 8 + 6 * level - 4, levelHeight * 8 );
+            obj_unhide(levelCursor,0);
 
             for (int i = 0; i < 5; i++) {
                 posprintf(buff,"%d.",i+1);
@@ -1670,15 +1678,26 @@ void startText() {
             aprintColor("Training",titleX,titleY,1);
 
             const int goalHeight = 10;
-            const int levelHeight = 4;
+            const int levelHeight = 6;
 
             aprint("START", 12, 17);
-            aprint("Level: ", 12, levelHeight);
+            aprint("Level: ", 2, levelHeight);
             aprint("Finesse Training: ", 3, goalHeight);
-            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
+            // aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
 
-            const std::string levelText = std::to_string(level);
-            aprint(levelText, 27 - levelText.length(), levelHeight + 2);
+            // const std::string levelText = std::to_string(level);
+            // aprint(levelText, 27 - levelText.length(), levelHeight + 2);
+
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight) * 32 + 9;
+            for(int i = 0; i < 16; i++){
+                *dest++ = 102 + (i % 3) + 0xe000;
+            }
+
+            std::string levelText = std::to_string(level);
+            if(level < 10)
+                levelText = " " + levelText;
+            aprint(levelText, 26 , levelHeight);
 
             if(goalSelection == 0){
                 aprint(" OFF ", 3 + 18, goalHeight);
@@ -1688,8 +1707,8 @@ void startText() {
 
             aprint(" ", 10, 17);
             if (selection == 0) {
-                aprint("<", 2, levelHeight + 2);
-                aprint(">", 23, levelHeight + 2);
+                aprint("<", 8, levelHeight);
+                aprint(">", 25, levelHeight);
             }else if (selection == 1) {
                 aprint("[", 3 + 18, goalHeight);
                 aprint("]", 3 + 21 + (!goalSelection), goalHeight);
@@ -1698,10 +1717,8 @@ void startText() {
             }
 
             // show level cursor
-            u16* dest = (u16*)se_mem[29];
-            dest += (levelHeight + 2) * 32 + 2 + level;
-
-            *dest = 0x5061;
+            obj_set_pos(levelCursor, 9 * 8 + 6 * level - 4, levelHeight * 8 );
+            obj_unhide(levelCursor,0);
 
         }
 
@@ -1796,7 +1813,7 @@ void fallingBlocks() {
                 int r = backgroundArray[i][j] >> 4;
 
                 if(savefile->settings.skin >= 11)
-                    *dest++ = 128 + connectedConversion[r] + ((n) << 12);
+                    *dest++ = 128 + GameInfo::connectedConversion[r] + ((n) << 12);
                 else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     *dest++ = (1 + ((n) << 12));
                 else{
@@ -2033,12 +2050,12 @@ void resetScoreboard(int mode, int goal, int subMode){
         break;
     case CLASSIC:
         for (int j = 0; j < 5; j++)
-            savefile->classic[goal].highscores[j].score = 0;
+            savefile->classic[subMode].highscores[j].score = 0;
         break;
     case MASTER:
         for (int j = 0; j < 5; j++){
-            savefile->master[goal].times[j].frames = 0;
-            savefile->master[goal].grade[j] = -1;
+            savefile->master[subMode].times[j].frames = 0;
+            savefile->master[subMode].grade[j] = -1;
         }
         break;
     }

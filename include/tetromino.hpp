@@ -48,4 +48,8 @@ namespace GameInfo{
     extern const float masterComboMultiplayer[10][4];
 
     extern const float creditPoints[5][2];
+
+    extern const u16 connectedConversion[24];
+
+    extern const u16 connectedFix[3][24];
 }

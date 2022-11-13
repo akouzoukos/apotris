@@ -2,6 +2,7 @@
 #include "maxmod.h"
 #include "soundbank.h"
 #include "sprite36tiles_bin.h"
+#include "sprite5tiles_bin.h"
 #include "sprites.h"
 #include "tetrisEngine.h"
 #include "tetromino.hpp"
@@ -100,8 +101,42 @@ static int flashTimer = 0;
 
 COLOR * previousPalette = nullptr;
 
-static bool refreshSkin = false;
+// static bool refreshSkin = false;
 // Bot *testBot;
+
+void frameSnow(){
+    const int fillAmount = 20;
+
+    TILE * t = (TILE *) sprite5tiles_bin;
+    TILE * dest = (TILE *) &tile_mem[0][4];
+    TILE * topTile = (TILE *) &tile_mem[0][46];
+
+    for(int i = 0; i < 8; i++){
+        int add1 = 0;
+        int add2 = 0;
+        for(int j = 0; j < 4; j++){
+            add1 += ((qran () % 100 < fillAmount) * 0xf) << ((j+4)*4);
+            add2 += (((qran () % 100) < ((10-i) * 10) ) * 0xf) << ((j+4)*4);
+        }
+
+        dest->data[i] = t->data[i] & ~add1;
+        topTile->data[i] = t->data[i] & ~add2;
+    }
+
+    u16 * dest2 = (u16 *) &se_mem[26];
+
+    int i;
+    for(i = 0; i < 20 - ((20 * game->zoneTimer) / game->zoneStart); i++){
+        dest2[i * 32 + 9] = 0;
+        dest2[i * 32 + 20] = 0;
+    }
+
+    if(i == 20)
+        i = 19;
+
+    dest2[i * 32 + 9] = 46;
+    dest2[i * 32 + 20] = 46 + 0x400;
+}
 
 void GameScene::draw(){
     control();
@@ -302,7 +337,6 @@ void checkSounds() {
     }
 
     if (game->sounds.zone == 1) {
-
         clearText();
         irq_disable(II_HBLANK);
 
@@ -318,6 +352,10 @@ void checkSounds() {
 
         // mmPause();
 
+        u16 * dest = (u16*) &se_mem[26];
+        for(int i = 0; i < 20; i++)
+            dest[i * 32 + 20] = 4 + 0x400;
+
         mmSetModuleTempo(512);
         mmSetModuleVolume(512 * ((float)savefile->settings.volume / 20));
         // mmSetModulePitch(512);
@@ -328,15 +366,9 @@ void checkSounds() {
         setPalette();
     } else if (game->sounds.zone == -1) {
         resetZonePalette();
-        setPalette();
         irq_enable(II_HBLANK);
         update();
         // refreshSkin = true;
-
-        mmSetModuleTempo(1024);
-        // mmSetModulePitch(1024);
-
-        mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
     }
 
     game->resetSounds();
@@ -352,6 +384,8 @@ void showBackground() {
     bool up, down, left, right;
     bool before = false, after = false;
 
+    int stop = game->lengthY-game->zonedLines + 1;
+
     dest += 10;
     for (int i = 20; i < 40; i++) {
         if (game->linesToClear.size() > 0) {
@@ -365,6 +399,9 @@ void showBackground() {
                     break;
             }
         }
+
+        if(stop && i > stop)
+            break;
 
         if(game->clearLock && i != *l2c && clearTimer != 1){
             dest+= 32;
@@ -444,12 +481,16 @@ void showBackground() {
                 int r = (game->board[i][j]) >> 4;
 
                 if(savefile->settings.skin == 7 || savefile->settings.skin == 8)
-                    offset = 48 + (game->board[i][j]-1);
+                    offset = 48 + (n);
                 else if(savefile->settings.skin >= 11)
-                    offset = 128 + connectedConversion[r];
+                    offset = 128 + GameInfo::connectedConversion[r];
 
-                *dest++ = (offset + ((n) << 12));
+                if(n != 8)
+                    *dest++ = (offset + ((n) << 12));
+                else
+                    *dest++ = 8;
             }
+
             if (game->clearLock && i == *l2c) {
                 dest--;
 
@@ -486,11 +527,11 @@ void showPawn() {
             int n = game->pawn.board[game->pawn.rotation][i][j];
             if (n > 0){
                 if(savefile->settings.skin == 11)
-                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite38tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite38tiles_bin[GameInfo::connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
                 else if(savefile->settings.skin == 12)
-                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite39tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite39tiles_bin[GameInfo::connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
                 else if(savefile->settings.skin == 13)
-                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite40tiles_bin[connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
+                    memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], &sprite40tiles_bin[GameInfo::connectedConversion[(n)>>4] * 32], sprite1tiles_bin_size / 2);
                 else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                     memcpy16(&tile_mem[4][16 * 7 + i * 4 + j], blockSprite, sprite1tiles_bin_size / 2);
                 else
@@ -526,7 +567,7 @@ void showPawn() {
         else if(savefile->settings.colors == 3){
             clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, int2fx(blend) >> 5);
         }else if(savefile->settings.colors == 4){
-            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&monoPalette[1][0], 8, int2fx(blend) >> 5);
+            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&monoPalette[1][0], 4, int2fx(blend) >> 5);
         }else if(savefile->settings.colors == 5){
             clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[0][n], 4, int2fx(blend) >> 5);
         }else if(savefile->settings.colors == 6){
@@ -590,7 +631,7 @@ void showShadow() {
         else if(savefile->settings.colors == 3){
             clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         }else if(savefile->settings.colors == 4){
-            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, 14);
         }else if(savefile->settings.colors == 5){
             clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
         }else if(savefile->settings.colors == 6){
@@ -603,7 +644,7 @@ void showShadow() {
         else if(savefile->settings.colors == 3){
             clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, float2fx(0.25));
         }else if(savefile->settings.colors == 4){
-            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 8, float2fx(0.25));
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
         }else if(savefile->settings.colors == 5){
             clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[0][n], 4, float2fx(0.25));
         }else if(savefile->settings.colors == 6){
@@ -627,7 +668,7 @@ void showHold() {
     holdSprite = &obj_buffer[2];
     holdFrameSprite = &obj_buffer[10];
 
-    if(game->gameMode != CLASSIC){
+    if(game->gameMode != CLASSIC && !game->zoneTimer){
         obj_unhide(holdFrameSprite, 0);
         obj_set_attr(holdFrameSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(512, 8, 3));
         obj_set_pos(holdFrameSprite, 4 * 8 + 7 + (push < 0) * push, 9 * 8 - 2);
@@ -643,13 +684,13 @@ void showHold() {
     int add = !(game->held == 0 || game->held == 3);
     int palette = (game->canHold)? game->held : 7;
 
-    int yoffset = - (6 * !(game->rotationSystem == SRS));
+    int yoffset = - (6 * (game->rotationSystem != SRS && savefile->settings.skin >= 7));
 
     if (savefile->settings.skin < 7) {
         obj_unhide(holdSprite, 0);
         obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
         holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
-        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 3 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0));
+        obj_set_pos(holdSprite, (5) * 8 + add * 3 + 3 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0 && game->rotationSystem != ARS));
     } else {
         obj_unhide(holdSprite, ATTR0_AFF);
         obj_set_attr(holdSprite, ATTR0_SQUARE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
@@ -679,7 +720,11 @@ void showQueue() {
     for (int i = 0; i < 3; i++)
         queueFrameSprites[i] = &obj_buffer[11 + i];
 
-    if(maxQueue > 1){
+    if(game->zoneTimer){
+        obj_hide(queueFrameSprites[0]);
+        obj_hide(queueFrameSprites[1]);
+        obj_hide(queueFrameSprites[2]);
+    }else if(maxQueue > 1){
         for (int i = 0; i < 3; i++) {
             obj_unhide(queueFrameSprites[i], 0);
             obj_set_attr(queueFrameSprites[i], ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(512 + 16 + 16 * i, 8, 3));
@@ -695,7 +740,7 @@ void showQueue() {
     }
 
     int startX = 22 * 8 + 1;
-    int yoffset = 4 * (maxQueue == 1) - (5 * (game->rotationSystem != SRS));
+    int yoffset = 4 * (maxQueue == 1) - (5 * (game->rotationSystem != SRS && savefile->settings.skin >= 7));
 
     std::list<int>::iterator q = game->queue.begin();
     for (int k = 0; k < 5; k++){
@@ -725,7 +770,7 @@ void showQueue() {
             else
                 size = 349;//~1.4
             obj_aff_scale(&obj_aff_buffer[k], size, size);
-            obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push - 4, (3 + (k * 3)) * 6 - 3 * (n == 0 && game->rotationSystem != ARS) - 4 + yoffset);
+            obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push - 4, (3 + (k * 3)) * 6 - 3 * (game->rotationSystem != ARS && n == 0) - 4 + yoffset);
         }
 
         if(q != game->queue.end())
@@ -1113,7 +1158,7 @@ void gameLoop(){
             zoneFlash();
 
         rumble_update();
-        if (clearTimer == maxClearTimer || (game->gameMode == SURVIVAL && clearTimer)) {
+        if (clearTimer >= maxClearTimer || (game->gameMode == SURVIVAL && clearTimer)) {
             game->removeClearLock();
             shake = -shakeMax * (savefile->settings.shakeAmount) / 4;
             rumbleTimer = rumbleMax * 2 * savefile->settings.rumble;
@@ -1159,9 +1204,13 @@ void gameLoop(){
             return;
         }
 
-        if(refreshSkin){
-            refreshSkin = false;
-            setSkin();
+        // if(refreshSkin){
+        //     refreshSkin = false;
+        //     setSkin();
+        // }
+
+        if(game->zoneTimer && gameSeconds % 4 == 0){
+            // frameSnow();
         }
 
         sqran(qran() % frameCounter);
@@ -1270,7 +1319,6 @@ void drawFrame() {
 
     dest += 9;
 
-    // int color = (savefile->settings.palette + 2 * (savefile->settings.palette > 6)) * 0x1000;
     int color = 8 * 0x1000;
 
     for (int i = 0; i < 20; i++) {
@@ -1381,7 +1429,7 @@ void drawGrid() {
 }
 
 void progressBar() {
-    if (game->goal == 0)
+    if (game->goal == 0 || game->zoneTimer)
         return;
 
     int current;
@@ -1786,7 +1834,7 @@ void showZoneMeter(){
     OBJ_ATTR * sprite = &obj_buffer[23];
 
     obj_set_attr(sprite, ATTR0_SQUARE, ATTR1_SIZE(2),ATTR2_BUILD(256 + 3, 15, 0));
-    obj_set_pos(sprite, 8, 74);
+    obj_set_pos(sprite, 14 + (push < 0) * push, 74);
     obj_unhide(sprite,0);
 
     const int color = 0x7fff;
@@ -1840,6 +1888,19 @@ void resetZonePalette(){
 
     savefile->settings = previousSettings;
     setPalette();
+
+    mmSetModuleTempo(1024);
+    mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
+
+    memcpy16(&tile_mem[0][4],sprite5tiles_bin,16);
+
+    u16 * dest = (u16*) &se_mem[26];
+    for(int i = 0; i < 20; i++){
+        dest[i * 32 + 9] = 4 + 0x8000;
+        dest[i * 32 + 20] = 4 + 0x8400;
+    }
+
+    flashTimer = 0;
 }
 
 void showFinesseCombo(){

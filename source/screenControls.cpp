@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include "logging.h"
 
 std::map<int,std::string> keyMap = {
     {KEY_LEFT,"Left"},
@@ -311,12 +312,25 @@ void changeInput(int selection){
         u16 key = key_hit(KEY_FULL);
 
         if(key != 0){
+            std::list<int> currentKeys;
+
+            int temp = key;
+
+            int counter = 0;
+            do{
+                if(temp & (1 << counter)){
+                    currentKeys.push_back(1<<counter);
+                    temp-= 1 << counter;
+                }
+
+                counter++;
+            }while(temp != 0);
+
             for(int i = 0; i < 9; i++){
                 foundKeys.clear();
 
                 int k = keys[i];
-
-                int counter = 0;
+                counter = 0;
                 do{
                     if(k & (1 << counter)){
                         foundKeys.push_back(1<<counter);
@@ -326,11 +340,13 @@ void changeInput(int selection){
                     counter++;
                 }while(k != 0);
 
-                if(std::find(foundKeys.begin(), foundKeys.end(),(int) key) != foundKeys.end())
-                    keys[i]-=key;
+                for(auto const & cur : currentKeys){
+                    if(std::find(foundKeys.begin(), foundKeys.end(),(int) cur) != foundKeys.end())
+                        keys[i]-=cur;
+                }
             }
 
-            //QUICK FIX FOR ROTATE LABELS, GONNA CHANGE NEXT MAJOR UPDATE
+            //QUICK FIX FOR ROTATE LABELS, GONNA CHANGE NEXT MAJOR UPDATE. (Nov. 12th, next update I swear Copium)
             if(selection == 2)
                 selection++;
             else if(selection == 3)

@@ -40,6 +40,8 @@ static std::list<std::string> options = {
 
 void handlingSettings(){
     setSmallTextArea(110, endX, 2, endX+5, 2);
+    clearSmallText();
+    clearText();
 
     selection = 0;
     refreshText = true;
@@ -69,6 +71,10 @@ void handlingSettings(){
         if(handlingControl())
             break;
     }
+
+    setSmallTextArea(110, 0, 0, 1, 1);
+    clearSmallText();
+    clearText();
 }
 
 bool handlingControl(){

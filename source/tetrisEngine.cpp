@@ -428,10 +428,8 @@ void Game::update() {
     if(dropLockTimer)
         dropLockTimer--;
 
-    if(zoneTimer){
+    if(zoneTimer > 1){
         zoneTimer--;
-        if(zoneTimer == 0)
-            endZone();
     }
 
     if (clearLock)
@@ -515,7 +513,7 @@ void Game::update() {
 
     if((linesCleared >= goal && gameMode == SPRINT && goal && subMode == 0) ||
        (linesSent >= goal && gameMode == SPRINT && goal && subMode == 1) ||
-       (linesCleared >= goal && gameMode == MARATHON) ||
+       (goal && linesCleared >= goal && gameMode == MARATHON) ||
        (garbageCleared >= goal && gameMode == DIG) ||
        (timer > goal && (gameMode == ULTRA || gameMode == BLITZ)) ||
        (linesCleared >= goal && gameMode == CLASSIC && goal)){
@@ -549,6 +547,8 @@ void Game::update() {
 
     pawn.lowest = lowest();
 
+    bool placed = false;
+
     if(dropping){
         hardDrop();
         dropping = false;
@@ -557,8 +557,10 @@ void Game::update() {
         if (pawn.lowest == pawn.y && !zoneTimer)
             lockTimer--;
 
-        if (lockTimer == 0 && rotationSystem != NRS)
+        if (lockTimer == 0 && rotationSystem != NRS){
             place();
+            placed = true;
+        }
     }
 
     if (down) {
@@ -569,7 +571,7 @@ void Game::update() {
     }else
         softDropCounter = 0;
 
-    if ((!delaySoftDrop && down) || softDropCounter == maxDas) {
+    if (((!delaySoftDrop && down) || softDropCounter == maxDas) && !placed) {
         if(softDropSpeed >= 0 && ++softDropRepeatTimer >= softDropSpeed){
             int n = 1 + (softDropSpeed == 0); // move piece twice if softDropSpeed is 0
 
@@ -787,6 +789,9 @@ void Game::place() {
     pieceCounter++;
 
     moveHistory.clear();
+
+    if(zoneTimer == 1)
+        endZone();
 }
 
 int Game::clear(Drop drop) {
@@ -2029,8 +2034,9 @@ void Game::removeEventLock(){
 }
 
 void Game::activateZone(){
-    if(zoneCharge < 8)
-        return;
+    // if(zoneCharge < 8)
+        // return;
+    zoneCharge = 32;
 
     fullZone = (zoneCharge == 32);
 
@@ -2039,6 +2045,8 @@ void Game::activateZone(){
     previousClear.isPerfectClear = 0;
 
     zoneTimer = (float) 37.5 * zoneCharge;
+
+    zoneStart = zoneTimer;
 
     zoneCharge = 0;
 
@@ -2089,45 +2097,7 @@ void Game::fixConnected(std::list<int> sourceList){
         int type = std::get<1>(line);
         for(int ix = 0; ix < lengthX; ix++){
             int n = board[iy][ix];
-            board[iy][ix] = (n & 0xf) + (connectedFix[type][n >> 4] << 4);
+            board[iy][ix] = (n & 0xf) + (GameInfo::connectedFix[type][n >> 4] << 4);
         }
     }
 }
-
-const u16 Tetris::connectedConversion[24]={
-12,
-8,0,15,13,
-4,14,
-16,17,20,21,
-1,3,9,11,
-19,22,23,18,
-2,10,5,7,6
-};
-
-const u16 Tetris::connectedFix[3][24] = {
-{
-0,
-1,0,3,4,
-1,6,4,3,
-9,10,4,3,
-13,14,9,6,
-10,18,
-0,0,0,0,0,
-},{
-0,
-0,2,3,4,
-2,6,7,8,
-4,3,11,12,
-4,3,7,16,
-8,6,
-0,0,0,0,0,
-},{
-0,
-0,0,3,4,
-0,6,4,3,
-4,3,4,3,
-4,3,4,6,
-3,6,
-0,0,0,0,0
-},
-};

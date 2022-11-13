@@ -401,6 +401,7 @@ namespace Tetris
         int zonedLines = 0;
         int zoneClearCounter = 0;
         int zoneScore = 0;
+        int zoneStart = 0;
         bool fullZone = false;
 
         int grade = 0;
