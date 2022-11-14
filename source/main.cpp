@@ -89,24 +89,26 @@ Scene * scene = nullptr;
 
 u16 gradientTable[SCREEN_HEIGHT + 1];
 
+bool gradientEnabled = false;
 
 void onVBlank(void) {
 
     mmVBlank();
+    if(gradientEnabled)
+        DMA_TRANSFER(&pal_bg_mem[0], gradientTable, 1, 0, DMA_HDMA);
+
     LINK_ISR_VBLANK();
 
     REG_IME = 1;
-
     if (canDraw) {
         canDraw = 0;
 
         scene->draw();
     }
 
+    REG_IME = 0;
     frameCounter++;
     mmFrame();
-
-    REG_IME = 0;
 }
 
 void onHBlank() {
@@ -142,9 +144,9 @@ void initialize(){
 
     initRumble();
 
-    REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
-    REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3);
-    REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0);
+    REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2) | BG_MOSAIC;
+    REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3) | BG_MOSAIC;
+    REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0) | BG_MOSAIC;
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
 
@@ -205,13 +207,17 @@ int main(void) {
 
     initialize();
 
-    // u16 * dest = (u16 * ) &se_mem[26];
+    // u16 * dest = (u16 * ) &se_mem[25];
+
+    // for(int i = 0; i < 20; i++){
+    //     memset16(&dest[i*32 + 10], 1, 10);
+    // }
 
     // for(int i = 0; i < 20; i++){
     //     dest[i * 32 + 10] = 4 + 0x1000 * savefile->settings.palette;
     // }
 
-    // int timer = 0;
+    // bool state = false;
 
     // while(1){
     //     VBlankIntrWait();
@@ -219,28 +225,28 @@ int main(void) {
     //     if(key_hit(KEY_A))
     //         break;
 
-
-    //     if(++timer >= 32){
-    //         timer = 0;
+    //     if(key_hit(KEY_B)){
+    //         state = !state;
+    //         gradient(state);
     //     }
+    //     // DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
 
-        // if(timer % 4 == 0)
-        //     test();
-        // setGradient(test);
+    //     // if(timer % 4 == 0)
+    //     //     test();
+    //     // setGradient(test);
 
-        // if(key_is_down(KEY_UP)){
-        //     if(test > 0)
-        //         test--;
-        // }
+    //     // if(key_is_down(KEY_UP)){
+    //     //     if(test > 0)
+    //     //         test--;
+    //     // }
 
-        // if(key_is_down(KEY_DOWN)){
-        //     if(test < 0x7fff)
-        //         test++;
-        // }
+    //     // if(key_is_down(KEY_DOWN)){
+    //     //     if(test < 0x7fff)
+    //     //         test++;
+    //     // }
 
-        // if(key_hit(KEY_START))
-        //     log(std::to_string(test));
-        // // DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
+    //     // if(key_hit(KEY_START))
+    //     //     log(std::to_string(test));
     // }
 
     //start screen animation
@@ -660,7 +666,7 @@ void sleep() {
     }
 
     irq_disable(II_VBLANK);
-    irq_disable(II_HBLANK);
+    gradient(false);
     int stat_value = REG_SNDSTAT;
     int dsc_value = REG_SNDDSCNT;
     int dmg_value = REG_SNDDMGCNT;
@@ -670,7 +676,11 @@ void sleep() {
     REG_SNDDSCNT = 0;
     REG_SNDDMGCNT = 0;
 
-    linkConnection->deactivate();
+    bool isLinked = linkConnection->isActive();
+
+    if(isLinked)
+        linkConnection->deactivate();
+
     irq_disable(II_TIMER3);
     irq_disable(II_SERIAL);
 
@@ -684,12 +694,14 @@ void sleep() {
     REG_SNDDSCNT = dsc_value;
     REG_SNDDMGCNT = dmg_value;
 
-    linkConnection->activate();
+    if(isLinked)
+        linkConnection->activate();
+
     irq_enable(II_TIMER3);
     irq_enable(II_SERIAL);
     irq_delete(II_KEYPAD);
     irq_enable(II_VBLANK);
-    irq_enable(II_HBLANK);
+    gradient(true);
 }
 
 void diagnose() {
@@ -752,11 +764,11 @@ void setPalette(){
         }
 
         if(!savefile->settings.lightMode){
-            memset16(&pal_bg_mem[8], 0x7fff,1);
-            memset16(&pal_obj_mem[8], 0x7fff,1);
+            memset16(&pal_bg_mem[7], 0x7fff,2);
+            memset16(&pal_obj_mem[7], 0x7fff,2);
         }else{
-            memset16(&pal_bg_mem[8], 0x0421,1);
-            memset16(&pal_obj_mem[8], 0x0421,1);
+            memset16(&pal_bg_mem[7], 0x0421,2);
+            memset16(&pal_obj_mem[7], 0x0421,2);
         }
 
     }else if(savefile->settings.colors == 5){
@@ -896,6 +908,7 @@ void changeScene(Scene *newScene){
 }
 
 void setGradient(int color){
+    REG_DMA0CNT &= ~(1 << 0x1f);
 
     int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
 
@@ -917,8 +930,21 @@ void setGradient(int color){
 void sfx(int s){
 	mm_sfxhand h = mmEffect(s);
 	mmEffectVolume(h, 255 * (float)savefile->settings.sfxVolume / 10);
+
+    if((s == SFX_PLACE) && game->zoneTimer){
+        mmEffectRate(h,512);
+    }
 }
 
 void setDefaultGradient(){
     memcpy16(gradientTable,defaultGradient_bin,defaultGradient_bin_size/2);
+}
+
+void gradient(bool state){
+    if(state){
+    }else{
+        REG_DMA0CNT &= ~(1 << 0x1f);
+    }
+
+    gradientEnabled = state;
 }

@@ -29,7 +29,7 @@ Tetris::Game* quickSave;
 
 int igt = 0;
 
-const std::string modeStrings[9] = {
+const std::string modeStrings[10] = {
     "Marathon",
     "Sprint",
     "Dig",
@@ -39,9 +39,10 @@ const std::string modeStrings[9] = {
     "Combo",
     "Survival",
     "Classic",
+    "Master",
 };
 
-const std::string modeOptionStrings[9][4] = {
+const std::string modeOptionStrings[10][4] = {
     {"150","200","300","Endless"},
     {"20","40","100"},
     {"10","20","100"},
@@ -51,6 +52,7 @@ const std::string modeOptionStrings[9][4] = {
     {""},
     {"EASY","MEDIUM","HARD"},
     {"",""},
+    {"Normal","Classic"}
 };
 
 void songListMenu() {
@@ -205,7 +207,9 @@ int endScreen() {
             else if (game->lost == 1)
                 sfx(SFX_GAMEOVER);
         }else if (game->gameMode != BATTLE) {
-            if (game->won == 1)
+            if (game->gameMode == MASTER && game->won == 1 && game->level < 500 && game->timer >= 25200)
+                sfx(SFX_TIME);
+            else if (game->won == 1)
                 sfx(SFX_CLEAR);
             else if (game->lost == 1)
                 sfx(SFX_GAMEOVER);
@@ -216,11 +220,6 @@ int endScreen() {
                 sfx(SFX_YOULOSE);
         }
     }
-
-    // int sum = 0;
-    // for(int i = 0; i < 4; i++)
-    //     sum += game->statTracker.clears[i];
-    // igt = game->timer - ((game->maxClearDelay-1) * sum);
 
     igt = game->inGameTimer;
 
@@ -516,6 +515,11 @@ void showStats(bool moreStats, std::string time, std::string pps) {
             aprints("Start Level: " + std::to_string(game->initialLevel),0,7*counter++,2);
 
         aprints("Final Level: " + std::to_string(game->level),0,7*counter++,2);
+        aprints("Score: " + std::to_string(game->score),0,7*counter++,2);
+    }else if (g == ULTRA){
+        aprints("Score: " + std::to_string(game->score),0,7*counter++,2);
+    }else if (g == MASTER){
+        aprints("Level: " + std::to_string(game->level),0,7*counter++,2);
     }
 
     aprints("Lines: " + std::to_string(game->linesCleared),0,7*counter++,2);
@@ -925,7 +929,7 @@ int onRecord() {
 }
 
 void showModeText(){
-    if(game->gameMode > 0 && game->gameMode <= 9){
+    if(game->gameMode > 0 && game->gameMode <= 10){
         int counter = 0;
         std::string str;
         std::string str2;
@@ -942,8 +946,10 @@ void showModeText(){
             if(game->trainingMode)
                 str = "Finesse";
         }else{
-            if(game->gameMode != CLASSIC)
+            if(game->gameMode != CLASSIC && game->gameMode != MASTER)
                 str = modeOptionStrings[game->gameMode-1][mode];
+            else if(game->gameMode == MASTER)
+                str = modeOptionStrings[game->gameMode-1][subMode];
             else
                 str = modeOptionStrings[game->gameMode-1][0];
         }
@@ -955,6 +961,7 @@ void showModeText(){
         str2 = "";
         if(game->subMode){
             switch(game->gameMode){
+            case MARATHON: str = "Zone"; break;
             case SPRINT: str = "Attack"; break;
             case DIG: str = "Efficiency"; break;
             case CLASSIC:

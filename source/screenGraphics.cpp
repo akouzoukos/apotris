@@ -6,6 +6,7 @@
 #include <string>
 #include "posprintf.h"
 #include "logging.h"
+#include "tonc_irq.h"
 
 using namespace Tetris;
 
@@ -19,6 +20,9 @@ static const int startY = 2;
 static const int options = 15;
 
 void graphicTest() {
+    gradient(false);
+    irq_enable(II_HBLANK);
+
     setPalette();
     setGradient(savefile->settings.backgroundGradient);
 
@@ -568,6 +572,9 @@ void graphicTest() {
     REG_DISPCNT |= DCNT_BG3;
     REG_BLDCNT = prevBld;
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
+
+    irq_disable(II_HBLANK);
+    gradient(true);
 }
 
 void setClearEffect(){
@@ -611,6 +618,7 @@ void showLabels(){
 
 void gradientEditor(){
     irq_enable(II_HBLANK);
+
     int display_value = REG_DISPCNT;
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG2; //Disable all backgrounds except text
 
@@ -732,4 +740,5 @@ void gradientEditor(){
 
     REG_DISPCNT = display_value;
     clearText();
+
 }

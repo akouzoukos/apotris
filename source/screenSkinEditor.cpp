@@ -281,7 +281,7 @@ void skinEditor(){
     changeScene(s);
 
     onMini = false;
-    irq_disable(II_HBLANK);
+    gradient(false);
     memset16(&pal_bg_mem[0],0,1);
     memset16(&se_mem[27], 0x0000, 32 * 20);
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(2);
@@ -533,7 +533,7 @@ void skinEditor(){
     oam_copy(oam_mem, obj_buffer, 128);
     memset16(&tile_mem[5][200],0,64*4);
 
-    irq_enable(II_HBLANK);
+    gradient(true);
     memset16(&se_mem[25], 0x0000, 32 * 20);
     memset16(&se_mem[26], 0x0000, 32 * 20);
     memset16(&se_mem[27], 0x0000, 32 * 20);
@@ -543,7 +543,6 @@ void skinEditor(){
     REG_BG3HOFS = 0;
 
     memset32(&tile_mem[2][110],0,8 * 400);
-
     TitleScene* newScene = new TitleScene();
     changeScene(newScene);
 }

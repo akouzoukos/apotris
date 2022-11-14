@@ -300,6 +300,7 @@ extern void showFinesseCombo();
 extern void showTimer();
 extern void setGradient(int);
 extern void setDefaultGradient();
+extern void gradient(bool state);
 
 extern std::string timeToString(int);
 
@@ -373,6 +374,8 @@ extern TILE* customSkin;
 
 extern bool proMode;
 
+extern bool gradientEnabled;
+
 #define shakeMax 10
 
 class Scene{
@@ -388,6 +391,10 @@ class GameScene : public Scene{
 };
 
 class TitleScene : public Scene{
+    void draw();
+};
+
+class GraphicsScene : public Scene{
     void draw();
 };
 

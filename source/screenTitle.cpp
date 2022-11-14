@@ -206,12 +206,12 @@ void startScreen() {
         canDraw = true;
         VBlankIntrWait() ;
         if (!onSettings) {
-            irq_disable(II_HBLANK);
+            gradient(false);
         } else {
             if(savefile->settings.backgroundGradient == 0)
                 setDefaultGradient();
 
-            irq_enable(II_HBLANK);
+            gradient(true);
         }
 
         key_poll();
@@ -286,11 +286,8 @@ void startScreen() {
                 }
             }
 
-            // for (int i = 0; i < 5; i++)
-                // aprint(" ", startX - 2, startY + space * i);
             if (!onPlay) {
                 aprint(">", startX - 2, startY + space * selection);
-                // aprint(" ", 15, startY);
             } else {
                 aprint(">", 15, startY);
             }
@@ -389,6 +386,10 @@ void startScreen() {
                         n = CLASSIC;
                         if(level > 19)
                             level = 19;
+                        if(level < 1)
+                            level = 1;
+                        obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
+                        memcpy16(&tile_mem[4][16*7],blockSprite,16);
                     } else if (selection == 8) {//Master
                         options = 2;
                         n = MASTER;
@@ -400,6 +401,8 @@ void startScreen() {
                         options = 3;
                         n = TRAINING;
                         level = 1;
+                        obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
+                        memcpy16(&tile_mem[4][16*7],blockSprite,16);
 
                         // sfx(SFX_MENUCONFIRM);
                         // delete game;
@@ -451,6 +454,7 @@ void startScreen() {
                 if (n != 0) {
                     previousOptionScreen = toStart = n;
                     onSettings = true;
+                    gradient(true);
 
                     u16* dest = (u16*)se_mem[25];
                     memset16(dest, 0, 20 * 32);
@@ -753,7 +757,7 @@ void startScreen() {
                         settingsText();
                     }else if (selection == options-1){
                         saveToSram();
-                        irq_enable(II_HBLANK);
+                        gradient(true);
                         onSettings = false;
                         options = (int)menuOptions.size();
                         selection = 0;
@@ -770,7 +774,7 @@ void startScreen() {
                         sfx(SFX_MENUMOVE);
                     }else{
                         saveToSram();
-                        irq_enable(II_HBLANK);
+                        gradient(true);
                         onSettings = false;
                         options = (int)menuOptions.size();
                         selection = 0;
@@ -970,6 +974,12 @@ void startScreen() {
                         refreshText = true;
                         selection = previousSelection;
                         subMode = 0;
+
+                        if(toStart == -3){
+                            if(linkConnection->isActive())
+                                linkConnection->deactivate();
+                        }
+
                     } else {
                         selection = 0;
                         sfx(SFX_MENUCANCEL);
@@ -1076,7 +1086,7 @@ void startScreen() {
     VBlankIntrWait();
     clearText();
     onSettings = false;
-    irq_disable(II_HBLANK);
+    gradient(false);
     setPalette();
     memset16(pal_bg_mem, 0x0000, 1);
 
@@ -1097,7 +1107,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.4.0b4", 0, 19);
+        aprint("v3.4.0b6", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
@@ -1950,7 +1960,6 @@ void resetScoreboard(int mode, int goal, int subMode){
 
     oam_init(obj_buffer, 128);
     oam_copy(oam_mem, obj_buffer, 128);
-
 
     int timer = 0;
 

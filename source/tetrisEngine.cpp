@@ -144,7 +144,7 @@ void Game::rotateTwice() {
 }
 
 void Game::rotate(int dir){
-    if ((clearLock || entryDelay) && !eventLock){
+    if ((clearLock || entryDelay)){
         initialRotate += dir;
 
         if(initialRotate > 3)
@@ -152,6 +152,8 @@ void Game::rotate(int dir){
         else if(initialRotate < 0)
             initialRotate += 4;
 
+        return;
+    }else if(eventLock){
         return;
     }
 
@@ -337,7 +339,7 @@ void Game::moveDown() {
 }
 
 void Game::hardDrop() {
-    if (clearLock || dropLockTimer || entryDelay)
+    if (clearLock || eventLock || dropLockTimer || entryDelay)
         return;
 
     int diff = pawn.lowest - pawn.y;
@@ -442,8 +444,9 @@ void Game::update() {
         entryDelay--;
     }
 
-    if(pawn.current == -1 && !entryDelay)
+    if(pawn.current == -1 && !entryDelay){
         next();
+    }
 
     if (!(left || right)){
         if(gameMode != CLASSIC){
@@ -500,7 +503,7 @@ void Game::update() {
         }
     }else if(gameMode == MASTER && !disappearing){
         if(level < 500 && timer >= 25200)
-            lost = 1;
+            won = 1;
 
         if(decayTimer && comboCounter < 2){
             decayTimer--;
@@ -771,7 +774,7 @@ void Game::place() {
     if(entryDelay)
         pawn.current = -1;
 
-    if (!clearLock && !entryDelay)
+    if (!clearLock && !entryDelay && !(zoneTimer == 1 && comboCounter > 0))
         next();
 
     canHold = true;
@@ -895,7 +898,8 @@ int Game::clear(Drop drop) {
             clearCount = zonedLines - zonedBefore;
         }
 
-        if (zonedLines >= 8 && sounds.zone != -1) {
+        if (!inversion && zonedLines >= 8 && sounds.zone != -1) {
+            inversion = true;
             sounds.zone = 2;
         }
 
@@ -1140,6 +1144,10 @@ int Game::clear(Drop drop) {
     }
 
     setSpeed();
+
+    if(maxClearDelay == 1){
+        removeClearLock();
+    }
     
     return 1;
 }
@@ -1224,7 +1232,7 @@ void Game::next() {
     if (check || !checkRotation(0, 0, pawn.rotation) || gameMode == CLASSIC){
         pawn.y-=1;
         if (!checkRotation(0, 0, pawn.rotation)){
-            if(zoneTimer)
+            if(zoneTimer && zonedLines)
                 endZone();
             else if(gameMode == TRAINING)
                 clearBoard();
@@ -1451,17 +1459,17 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
                     result[iy][ix] += 17 << 4;
                 else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy > 0 && result[iy-1][ix])
                     result[iy][ix] += 18 << 4;
-            }else if(n == 5){
-                if(iy < 3 && ix < 3 && ix > 0 && result[iy+1][ix-1] && result[iy+1][ix+1])
-                    result[iy][ix] += 19 << 4;
-                else if(iy > 0 && ix < 3 && ix > 0 && result[iy-1][ix-1] && result[iy-1][ix+1])
-                    result[iy][ix] += 20 << 4;
-                else if(ix < 3 && iy < 3 && iy > 0 && result[iy-1][ix+1] && result[iy+1][ix+1])
-                    result[iy][ix] += 21 << 4;
-                else if(ix > 0 && iy < 3 && iy > 0 && result[iy-1][ix-1] && result[iy+1][ix-1])
-                    result[iy][ix] += 22 << 4;
-            }else if(n == 8){
-                result[iy][ix] += 23 << 4;
+            // }else if(n == 5){
+            //     if(iy < 3 && ix < 3 && ix > 0 && result[iy+1][ix-1] && result[iy+1][ix+1])
+            //         result[iy][ix] += 19 << 4;
+            //     else if(iy > 0 && ix < 3 && ix > 0 && result[iy-1][ix-1] && result[iy-1][ix+1])
+            //         result[iy][ix] += 20 << 4;
+            //     else if(ix < 3 && iy < 3 && iy > 0 && result[iy-1][ix+1] && result[iy+1][ix+1])
+            //         result[iy][ix] += 21 << 4;
+            //     else if(ix > 0 && iy < 3 && iy > 0 && result[iy-1][ix-1] && result[iy+1][ix-1])
+            //         result[iy][ix] += 22 << 4;
+            // }else if(n == 8){
+            //     result[iy][ix] += 23 << 4;
             }
         }
     }
@@ -1478,7 +1486,7 @@ void Game::lockCheck() {
 
 void Game::keyLeft(int dir) {
     moveCounter++;
-    if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
+    if (clearLock || eventLock || entryDelay || (gameMode == CLASSIC && down)) {
         left = dir;
         return;
     }
@@ -1507,7 +1515,7 @@ void Game::keyLeft(int dir) {
 
 void Game::keyRight(int dir) {
     moveCounter++;
-    if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
+    if (clearLock || eventLock || entryDelay || (gameMode == CLASSIC && down)) {
         right = dir;
         return;
     }
@@ -1535,7 +1543,7 @@ void Game::keyRight(int dir) {
 
 void Game::keyDown(int dir) {
     moveCounter++;
-    if (clearLock || entryDelay) {
+    if (clearLock || eventLock || entryDelay) {
         if(!(entryDelay && rotationSystem == NRS))
             down = dir;
         return;
@@ -1546,6 +1554,7 @@ void Game::keyDown(int dir) {
         if (pawn.y != pawn.lowest)
             score++;
     }
+
     down = dir;
     softDrop = true;
     dropLockTimer = 0;
@@ -2031,11 +2040,12 @@ void Game::updateDisappear(){
 
 void Game::removeEventLock(){
     eventLock = false;
+    inversion = false;
 }
 
 void Game::activateZone(){
     // if(zoneCharge < 8)
-        // return;
+    //     return;
     zoneCharge = 32;
 
     fullZone = (zoneCharge == 32);
@@ -2057,6 +2067,7 @@ void Game::endZone(){
     zoneTimer = 0;
     sounds.zone = -1;
     clear(Drop());
+    eventLock = true;
 }
 
 void Game::clearBoard(){

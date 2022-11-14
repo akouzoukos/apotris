@@ -1,5 +1,6 @@
 #include "def.h"
 #include "maxmod.h"
+#include "LinkConnection.h"
 #include "soundbank.h"
 #include "sprite36tiles_bin.h"
 #include "sprite5tiles_bin.h"
@@ -17,10 +18,8 @@
 #include "classic_pal_bin.h"
 #include "logging.h"
 #include "posprintf.h"
-#include "tonc_bios.h"
 #include "tonc_core.h"
-#include "tonc_input.h"
-#include "tonc_irq.h"
+#include "tonc_memdef.h"
 #include "tonc_memmap.h"
 #include "tonc_video.h"
 
@@ -47,6 +46,9 @@ void resetZonePalette();
 void control();
 void showTimer();
 void update();
+void rainbowPalette();
+void frameSnow();
+void showZoneText();
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -101,42 +103,11 @@ static int flashTimer = 0;
 
 COLOR * previousPalette = nullptr;
 
+static int rainbowTimer = 1;
+static bool rainbowIncreasing = 0;
+static u16 rainbow[5];
 // static bool refreshSkin = false;
 // Bot *testBot;
-
-void frameSnow(){
-    const int fillAmount = 20;
-
-    TILE * t = (TILE *) sprite5tiles_bin;
-    TILE * dest = (TILE *) &tile_mem[0][4];
-    TILE * topTile = (TILE *) &tile_mem[0][46];
-
-    for(int i = 0; i < 8; i++){
-        int add1 = 0;
-        int add2 = 0;
-        for(int j = 0; j < 4; j++){
-            add1 += ((qran () % 100 < fillAmount) * 0xf) << ((j+4)*4);
-            add2 += (((qran () % 100) < ((10-i) * 10) ) * 0xf) << ((j+4)*4);
-        }
-
-        dest->data[i] = t->data[i] & ~add1;
-        topTile->data[i] = t->data[i] & ~add2;
-    }
-
-    u16 * dest2 = (u16 *) &se_mem[26];
-
-    int i;
-    for(i = 0; i < 20 - ((20 * game->zoneTimer) / game->zoneStart); i++){
-        dest2[i * 32 + 9] = 0;
-        dest2[i * 32 + 20] = 0;
-    }
-
-    if(i == 20)
-        i = 19;
-
-    dest2[i * 32 + 9] = 46;
-    dest2[i * 32 + 20] = 46 + 0x400;
-}
 
 void GameScene::draw(){
     control();
@@ -158,7 +129,7 @@ void GameScene::draw(){
         update();
         showBackground();
         game->resetRefresh();
-    }else if (game->clearLock){
+    }else if (game->clearLock && !eventPauseTimer){
         showBackground();
         showTimer();
     }else{
@@ -172,6 +143,9 @@ void update() {
 
     if(!game->zoneTimer)
         showText();
+    else{
+        showZoneText();
+    }
 
     showTimer();
     showClearText();
@@ -218,7 +192,7 @@ void checkSounds() {
 
             mm_sound_effect clear = {
                 {SFX_LEVELUP},
-                (mm_hword)((1.0 + (float)speed / 10) * (1 << 10)),
+                (mm_hword)((1.0 + (float)speed / 10) * (1 << (10 - (game->zoneTimer != 0)))),
                 0,
                 (u8)(255 * (float) savefile->settings.sfxVolume / 10),
                 128,
@@ -338,37 +312,37 @@ void checkSounds() {
 
     if (game->sounds.zone == 1) {
         clearText();
-        irq_disable(II_HBLANK);
+        gradient(false);
 
         holdingSave = true;
         previousSettings = savefile->settings;
 
         savefile->settings.colors = 4;
-        // savefile->settings.skin = 0;
-
-        // refreshSkin = true;
+        savefile->settings.clearEffect = 2;
         setPalette();
-        flashTimer = flashTimerMax;
+        setClearEffect();
+        showBackground();
 
-        // mmPause();
+        flashTimer = flashTimerMax;
+        zoneFlash();
 
         u16 * dest = (u16*) &se_mem[26];
-        for(int i = 0; i < 20; i++)
+        for(int i = 0; i < 20; i++){
+            dest[i * 32 + 9] = 4;
             dest[i * 32 + 20] = 4 + 0x400;
+        }
 
         mmSetModuleTempo(512);
         mmSetModuleVolume(512 * ((float)savefile->settings.volume / 20));
-        // mmSetModulePitch(512);
 
         sfx(SFX_ZONESTART);
     } else if (game->sounds.zone == 2) {
         savefile->settings.lightMode = !previousSettings.lightMode;
         setPalette();
     } else if (game->sounds.zone == -1) {
+        aprintClearArea(10, 0, 10, 20);
         resetZonePalette();
-        irq_enable(II_HBLANK);
-        update();
-        // refreshSkin = true;
+        zoneFlash();
     }
 
     game->resetSounds();
@@ -384,8 +358,6 @@ void showBackground() {
     bool up, down, left, right;
     bool before = false, after = false;
 
-    int stop = game->lengthY-game->zonedLines + 1;
-
     dest += 10;
     for (int i = 20; i < 40; i++) {
         if (game->linesToClear.size() > 0) {
@@ -399,9 +371,6 @@ void showBackground() {
                     break;
             }
         }
-
-        if(stop && i > stop)
-            break;
 
         if(game->clearLock && i != *l2c && clearTimer != 1){
             dest+= 32;
@@ -486,9 +455,9 @@ void showBackground() {
                     offset = 128 + GameInfo::connectedConversion[r];
 
                 if(n != 8)
-                    *dest++ = (offset + ((n) << 12));
+                    *dest++ = (offset + ((n) << 12) * !game->zoneTimer);
                 else
-                    *dest++ = 8;
+                    *dest++ = 3;
             }
 
             if (game->clearLock && i == *l2c) {
@@ -548,39 +517,41 @@ void showPawn() {
     if(game->maxLockTimer > 1)
         blend += 16-(game->lockTimer * 16) / game->maxLockTimer;
 
-    if (!savefile->settings.lightMode){
-        if(savefile->settings.colors == 2)
-            clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[11 * 16], 8, blend);
-        else if(savefile->settings.colors == 3){
-            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-        }else if(savefile->settings.colors == 4){
-            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-        }else if(savefile->settings.colors == 5){
-            clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-        }else if(savefile->settings.colors == 6){
-            clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-        } else
-            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[11 * 16], 8, blend);
-    }else{
-        if(savefile->settings.colors == 2)
-            clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)classic_pal_bin, 8, int2fx(blend) >> 5);
-        else if(savefile->settings.colors == 3){
-            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, int2fx(blend) >> 5);
-        }else if(savefile->settings.colors == 4){
-            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&monoPalette[1][0], 4, int2fx(blend) >> 5);
-        }else if(savefile->settings.colors == 5){
-            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[0][n], 4, int2fx(blend) >> 5);
-        }else if(savefile->settings.colors == 6){
-            clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[1][n], 4, int2fx(blend) >> 5);
-        }else
-            clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, int2fx(blend) >> 5);
+    if(!game->zoneTimer){
+        if (!savefile->settings.lightMode){
+            if(savefile->settings.colors == 2)
+                clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[11 * 16], 8, blend);
+            else if(savefile->settings.colors == 3){
+                clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+            }else if(savefile->settings.colors == 4){
+                clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+            }else if(savefile->settings.colors == 5){
+                clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+            }else if(savefile->settings.colors == 6){
+                clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
+            } else
+                clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[11 * 16], 8, blend);
+        }else{
+            if(savefile->settings.colors == 2)
+                clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)classic_pal_bin, 8, int2fx(blend) >> 5);
+            else if(savefile->settings.colors == 3){
+                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, int2fx(blend) >> 5);
+            }else if(savefile->settings.colors == 4){
+                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&monoPalette[1][0], 4, int2fx(blend) >> 5);
+            }else if(savefile->settings.colors == 5){
+                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[0][n], 4, int2fx(blend) >> 5);
+            }else if(savefile->settings.colors == 6){
+                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[1][n], 4, int2fx(blend) >> 5);
+            }else
+                clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, int2fx(blend) >> 5);
+        }
     }
 
     if(!game->pawn.big){
-        obj_set_attr(pawnSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * 7, 11, 2));
+        obj_set_attr(pawnSprite, ATTR0_SQUARE | ATTR0_MOSAIC, ATTR1_SIZE(2), ATTR2_BUILD(16 * 7, 11, 2));
         obj_set_pos(pawnSprite, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->pawn.y - 20) * 8 + shake * savefile->settings.shake);
     }else{
-        obj_set_attr(pawnSprite, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(31), ATTR2_BUILD(16 * 7, 11, 2));
+        obj_set_attr(pawnSprite, ATTR0_SQUARE | ATTR0_AFF_DBL | ATTR0_MOSAIC, ATTR1_SIZE(2) | ATTR1_AFF_ID(31), ATTR2_BUILD(16 * 7, 11, 2));
         obj_aff_identity(&obj_aff_buffer[31]);
         obj_aff_scale(&obj_aff_buffer[31], 1<<7, 1<<7);
         obj_set_pos(pawnSprite, (10 + game->pawn.x*2) * 8 + push * savefile->settings.shake, (game->pawn.y*2 - 20) * 8 + shake * savefile->settings.shake);
@@ -625,39 +596,41 @@ void showShadow() {
 
     int n = game->pawn.current;
 
-    if (!savefile->settings.lightMode){
-        if(savefile->settings.colors == 2)
-            clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
-        else if(savefile->settings.colors == 3){
-            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-        }else if(savefile->settings.colors == 4){
-            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, 14);
-        }else if(savefile->settings.colors == 5){
-            clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-        }else if(savefile->settings.colors == 6){
-            clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-        } else
-            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
-    }else{
-        if(savefile->settings.colors == 2)
-            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 8, float2fx(0.25));
-        else if(savefile->settings.colors == 3){
-            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, float2fx(0.25));
-        }else if(savefile->settings.colors == 4){
-            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
-        }else if(savefile->settings.colors == 5){
-            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[0][n], 4, float2fx(0.25));
-        }else if(savefile->settings.colors == 6){
-            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[1][n], 4, float2fx(0.25));
-        }else
-            clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, float2fx(0.25));
+    if(!game->zoneTimer){
+        if (!savefile->settings.lightMode){
+            if(savefile->settings.colors == 2)
+                clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
+            else if(savefile->settings.colors == 3){
+                clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+            }else if(savefile->settings.colors == 4){
+                clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, 14);
+            }else if(savefile->settings.colors == 5){
+                clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+            }else if(savefile->settings.colors == 6){
+                clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+            } else
+                clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
+        }else{
+            if(savefile->settings.colors == 2)
+                clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 8, float2fx(0.25));
+            else if(savefile->settings.colors == 3){
+                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, float2fx(0.25));
+            }else if(savefile->settings.colors == 4){
+                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
+            }else if(savefile->settings.colors == 5){
+                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[0][n], 4, float2fx(0.25));
+            }else if(savefile->settings.colors == 6){
+                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[1][n], 4, float2fx(0.25));
+            }else
+                clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, float2fx(0.25));
+        }
     }
 
     if(!game->pawn.big){
-        obj_set_attr(pawnShadow, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(16 * (8 - (savefile->settings.shadow == 3)), 10, 2));
+        obj_set_attr(pawnShadow, ATTR0_SQUARE | ATTR0_MOSAIC, ATTR1_SIZE(2), ATTR2_BUILD(16 * (8 - (savefile->settings.shadow == 3)), 10, 2));
         obj_set_pos(pawnShadow, (10 + game->pawn.x) * 8 + push * savefile->settings.shake, (game->lowest() - 20) * 8 + shake * savefile->settings.shake);
     }else{
-        obj_set_attr(pawnShadow, ATTR0_SQUARE | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(30), ATTR2_BUILD(16 * (8 - (savefile->settings.shadow == 3)), 10, 2));
+        obj_set_attr(pawnShadow, ATTR0_SQUARE | ATTR0_AFF_DBL | ATTR0_MOSAIC, ATTR1_SIZE(2) | ATTR1_AFF_ID(30), ATTR2_BUILD(16 * (8 - (savefile->settings.shadow == 3)), 10, 2));
         obj_aff_identity(&obj_aff_buffer[30]);
         obj_aff_scale(&obj_aff_buffer[30],1<<7,1<<7);
         obj_set_pos(pawnShadow, (10 + game->pawn.x*2) * 8 + push * savefile->settings.shake, (game->lowest()*2 - 20) * 8 + shake * savefile->settings.shake);
@@ -670,7 +643,7 @@ void showHold() {
 
     if(game->gameMode != CLASSIC && !game->zoneTimer){
         obj_unhide(holdFrameSprite, 0);
-        obj_set_attr(holdFrameSprite, ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(512, 8, 3));
+        obj_set_attr(holdFrameSprite, ATTR0_SQUARE | ATTR0_MOSAIC, ATTR1_SIZE(2), ATTR2_BUILD(512, 8, 3));
         obj_set_pos(holdFrameSprite, 4 * 8 + 7 + (push < 0) * push, 9 * 8 - 2);
     }else{
         obj_hide(holdFrameSprite);
@@ -688,13 +661,13 @@ void showHold() {
 
     if (savefile->settings.skin < 7) {
         obj_unhide(holdSprite, 0);
-        obj_set_attr(holdSprite, ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
-        holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette, 3);
+        obj_set_attr(holdSprite, ATTR0_WIDE | ATTR0_MOSAIC, ATTR1_SIZE(2), ATTR2_PALBANK(palette));
+        holdSprite->attr2 = ATTR2_BUILD(9 * 16 + 8 * game->held, palette * (game->zoneTimer == 0), 3);
         obj_set_pos(holdSprite, (5) * 8 + add * 3 + 3 + (push < 0) * push, (10) * 8 - 3 * (game->held == 0 && game->rotationSystem != ARS));
     } else {
         obj_unhide(holdSprite, ATTR0_AFF);
-        obj_set_attr(holdSprite, ATTR0_SQUARE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
-        holdSprite->attr2 = ATTR2_BUILD(16 * game->held, palette, 3);
+        obj_set_attr(holdSprite, ATTR0_SQUARE | ATTR0_AFF | ATTR0_MOSAIC, ATTR1_SIZE(2) | ATTR1_AFF_ID(5), ATTR2_PALBANK(palette));
+        holdSprite->attr2 = ATTR2_BUILD(16 * game->held, palette * (game->zoneTimer == 0), 3);
         FIXED size;
         if(savefile->settings.skin < 9)
             size = 357;//~1.4
@@ -727,12 +700,12 @@ void showQueue() {
     }else if(maxQueue > 1){
         for (int i = 0; i < 3; i++) {
             obj_unhide(queueFrameSprites[i], 0);
-            obj_set_attr(queueFrameSprites[i], ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(512 + 16 + 16 * i, 8, 3));
+            obj_set_attr(queueFrameSprites[i], ATTR0_SQUARE | ATTR0_MOSAIC, ATTR1_SIZE(2), ATTR2_BUILD(512 + 16 + 16 * i, 8, 3));
             obj_set_pos(queueFrameSprites[i], 173 + (push > 0) * push, 12 + 32 * i - (i * 9 * (5-maxQueue)));
         }
     }else{
         obj_unhide(queueFrameSprites[0], 0);
-        obj_set_attr(queueFrameSprites[0], ATTR0_SQUARE, ATTR1_SIZE(2), ATTR2_BUILD(512, 8, 3));
+        obj_set_attr(queueFrameSprites[0], ATTR0_SQUARE | ATTR0_MOSAIC, ATTR1_SIZE(2), ATTR2_BUILD(512, 8, 3));
         obj_set_pos(queueFrameSprites[0], 173 + (push > 0) * push, 12);
 
         obj_hide(queueFrameSprites[1]);
@@ -755,13 +728,13 @@ void showQueue() {
         int add = !(n == 0 || n == 3);
         if (savefile->settings.skin < 7) {
             obj_unhide(queueSprites[k], 0);
-            obj_set_attr(queueSprites[k], ATTR0_WIDE, ATTR1_SIZE(2), ATTR2_PALBANK(n));
-            queueSprites[k]->attr2 = ATTR2_BUILD(16 * 9 + 8 * n, n, 3);
+            obj_set_attr(queueSprites[k], ATTR0_WIDE | ATTR0_MOSAIC, ATTR1_SIZE(2), ATTR2_PALBANK(n));
+            queueSprites[k]->attr2 = ATTR2_BUILD(16 * 9 + 8 * n, n * (game->zoneTimer == 0), 3);
             obj_set_pos(queueSprites[k], startX + add * 3 + (push > 0) * push, (3 + (k * 3)) * 6 - 3 * (n == 0) + yoffset + 8 * (game->rotationSystem == ARS && n == 0));
         } else {
             obj_unhide(queueSprites[k], ATTR0_AFF);
-            obj_set_attr(queueSprites[k], ATTR0_SQUARE | ATTR0_AFF, ATTR1_SIZE(2) | ATTR1_AFF_ID(k), ATTR2_PALBANK(n));
-            queueSprites[k]->attr2 = ATTR2_BUILD(16 * n, n, 3);
+            obj_set_attr(queueSprites[k], ATTR0_SQUARE | ATTR0_AFF | ATTR0_MOSAIC, ATTR1_SIZE(2) | ATTR1_AFF_ID(k), ATTR2_PALBANK(n));
+            queueSprites[k]->attr2 = ATTR2_BUILD(16 * n, n * (game->zoneTimer == 0), 3);
             obj_aff_identity(&obj_aff_buffer[k]);
             // FIXED size = 358 + sizeControl;//~1.4
             FIXED size;
@@ -788,7 +761,7 @@ void control() {
 
     Keys k = savefile->settings.keys;
 
-    if (key_hit(KEY_START) && !multiplayer) {
+    if (key_hit(KEY_START) && !multiplayer && !eventPauseTimer) {
         sfx(SFX_MENUCONFIRM);
         pause = true;
         mmPause();
@@ -850,7 +823,7 @@ void control() {
         }
     }
 
-    if (key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != BATTLE)) {
+    if (key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != BATTLE) && !eventPauseTimer) {
         if(restartTimer++ > maxRestartTimer || !savefile->settings.resetHold)
             playAgain = true;
     }else{
@@ -881,8 +854,6 @@ void showTimer() {
         // clearSmallText();
         showPPS();
     }
-
-    showZoneMeter();
 }
 
 void showText() {
@@ -1018,6 +989,9 @@ void showClearText() {
         }
     }
 
+    if(game->zoneTimer)
+        return;
+
     std::list<FloatText>::iterator index = floatingList.begin();
 
     for (int i = 0; i < (int)floatingList.size(); i++) {
@@ -1062,13 +1036,13 @@ void gameLoop(){
     GameScene* s = new GameScene();
     changeScene(s);
 
-    irq_enable(II_HBLANK);
     setGradient(savefile->settings.backgroundGradient);
+    gradient(true);
 
     VBlankIntrWait();
     setSkin();
 
-    clearSmallText();
+    memset16(&tile_mem[2][110], 0, 400);
     setSmallTextArea(110, 3, 7, 9, 10);
     gameSeconds = 0;
 
@@ -1118,24 +1092,29 @@ void gameLoop(){
 
         progressBar();
 
-        if(ENABLE_BOT){
-            profile_start();
-            // testBot->run();
-            botGame->update();
-            handleBotGame();
-            addToResults(profile_stop(),0);
-        }
+        // if(ENABLE_BOT){
+        //     profile_start();
+        //     // testBot->run();
+        //     botGame->update();
+        //     handleBotGame();
+        //     addToResults(profile_stop(),0);
+        // }
 
         gameSeconds = game->timer;
 
-        if (game->clearLock) {
+        if (game->clearLock && !game->eventLock) {
             clearTimer++;
         }
 
         if(game->eventLock){
             if(eventPauseTimer == 0){
-                eventPauseTimer = eventPauseTimerMax;
-                showBackground();
+                if(game->gameMode == MASTER){
+                    showBackground();
+                    eventPauseTimer = eventPauseTimerMax;
+                } else if(game->gameMode == MARATHON){
+                    flashTimer = flashTimerMax;
+                    eventPauseTimer = flashTimerMax + 2;
+                }
             }
 
             eventPauseTimer--;
@@ -1153,9 +1132,6 @@ void gameLoop(){
 
         canDraw = true;
         VBlankIntrWait();
-
-        if(flashTimer)
-            zoneFlash();
 
         rumble_update();
         if (clearTimer >= maxClearTimer || (game->gameMode == SURVIVAL && clearTimer)) {
@@ -1204,14 +1180,30 @@ void gameLoop(){
             return;
         }
 
-        // if(refreshSkin){
-        //     refreshSkin = false;
-        //     setSkin();
-        // }
+        if(game->zoneTimer){
+            if(gameSeconds % 4 == 0){
+                frameSnow();
+            }
 
-        if(game->zoneTimer && gameSeconds % 4 == 0){
-            // frameSnow();
+            if(!flashTimer)
+                rainbowPalette();
+
         }
+
+        if(game->gameMode == MARATHON && game->subMode && gameSeconds % 2 == 0){
+            if(rainbowIncreasing)
+                rainbowTimer++;
+            else
+                rainbowTimer--;
+
+            if(rainbowTimer >= (32 * 2) - 1 || rainbowTimer == 0)
+                rainbowIncreasing = !rainbowIncreasing;
+
+            showZoneMeter();
+        }
+
+        if(flashTimer)
+            zoneFlash();
 
         sqran(qran() % frameCounter);
     }
@@ -1222,7 +1214,7 @@ void addGlow(Tetris::Drop location) {
         for (int j = location.startX; j < location.endX; j++)
             glow[i][j] = glowDuration;
 
-    if (game->comboCounter > 0) {
+    if (game->comboCounter > 0 || game->zoneTimer) {
         int xCenter = (location.endX - location.startX) / 2 + location.startX;
         if (game->previousClear.isTSpin) {
             for (int i = 0; i < 20; i++)
@@ -1723,7 +1715,7 @@ void showPlaceEffect(){
 
         it->sprite = &obj_buffer[19+i];
         obj_unhide(it->sprite,ATTR0_AFF_DBL);
-        obj_set_attr(it->sprite, ATTR0_WIDE | ATTR0_AFF_DBL, ATTR1_SIZE(3) | ATTR1_AFF_ID(7+i), ATTR2_BUILD(650 + 32 * i, it->piece, 3 - (it->rotating != 0)));
+        obj_set_attr(it->sprite, ATTR0_WIDE | ATTR0_AFF_DBL, ATTR1_SIZE(3) | ATTR1_AFF_ID(7+i), ATTR2_BUILD(650 + 32 * i, it->piece * (game->zoneTimer == 0), 3 - (it->rotating != 0)));
         obj_set_pos(it->sprite, x, y);
         obj_aff_identity(&obj_aff_buffer[7+i]);
         obj_aff_rotscale(&obj_aff_buffer[7+i], ((flip)?-1:1) << 8, 1<<8, - 0x4000 * (r) + spin);
@@ -1833,7 +1825,7 @@ void showZoneMeter(){
 
     OBJ_ATTR * sprite = &obj_buffer[23];
 
-    obj_set_attr(sprite, ATTR0_SQUARE, ATTR1_SIZE(2),ATTR2_BUILD(256 + 3, 15, 0));
+    obj_set_attr(sprite, ATTR0_SQUARE | ATTR0_MOSAIC, ATTR1_SIZE(2),ATTR2_BUILD(256 + 3, 15, 0));
     obj_set_pos(sprite, 14 + (push < 0) * push, 74);
     obj_unhide(sprite,0);
 
@@ -1850,34 +1842,48 @@ void showZoneMeter(){
         if(n <= 2){
             for(int i = 0; i < n; i++)
                 memset16(&pal_obj_mem[15*16 + 4 + i], disabled , 1);
-            return;
+            // return;
         }
     }else{
         n = game->zoneTimer / 100;
     }
 
     for(int i = 0; i < 12; i++){
-
         if(i < n)
             memset16(&pal_obj_mem[15*16 + 4 + i], color , 1);
         else
             memset16(&pal_obj_mem[15*16 + 4 + i], anticolor , 1);
     }
+
 }
 
 void zoneFlash(){
+
+    if(!eventPauseTimer)
+        rainbowPalette();
+
     if(flashTimer == flashTimerMax){
         if(previousPalette != nullptr)
             delete previousPalette;
         previousPalette = new COLOR [512];
-        memcpy16(&previousPalette[0], pal_bg_mem, 512);
+        memcpy32(&previousPalette[0], pal_bg_mem, 256);
     }
 
     flashTimer--;
 
+    REG_MOSAIC = MOS_BUILD(flashTimer,flashTimer,flashTimer,flashTimer);
+
     int n = ((float)flashTimer/flashTimerMax) * 31;
 
-    clr_fade_fast(previousPalette, 0x7fff, pal_bg_mem, 512, n);
+    clr_fade_fast(previousPalette, 0x7fff, pal_obj_mem, 128, n);
+
+    bool cond = ((flashTimer < flashTimerMax/2) && eventPauseTimer);
+
+    if(cond)
+        gradient(true);
+
+    memcpy16(&pal_bg_mem[cond],&pal_obj_mem[cond],(8 * 16));
+
 }
 
 void resetZonePalette(){
@@ -1888,6 +1894,7 @@ void resetZonePalette(){
 
     savefile->settings = previousSettings;
     setPalette();
+    setClearEffect();
 
     mmSetModuleTempo(1024);
     mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
@@ -1900,7 +1907,8 @@ void resetZonePalette(){
         dest[i * 32 + 20] = 4 + 0x8400;
     }
 
-    flashTimer = 0;
+    if(!eventPauseTimer)
+        flashTimer = 0;
 }
 
 void showFinesseCombo(){
@@ -1919,4 +1927,99 @@ void showFinesseCombo(){
 
     std::string text = "x" + std::to_string(game->finesseStreak);
     aprintsSprite(text,0,0,275);
+}
+
+void frameSnow(){
+    const int fillAmount = 20;
+
+    TILE * t = (TILE *) sprite5tiles_bin;
+    TILE * dest = (TILE *) &tile_mem[0][4];
+    TILE * topTile = (TILE *) &tile_mem[0][46];
+
+    for(int i = 0; i < 8; i++){
+        int add1 = 0;
+        int add2 = 0;
+        for(int j = 0; j < 4; j++){
+            add1 += ((qran () % 100 < fillAmount) * 0xf) << ((j+4)*4);
+            add2 += (((qran () % 100) < ((10-i) * 10) ) * 0xf) << ((j+4)*4);
+        }
+
+        dest->data[i] = t->data[i] & ~add1;
+        topTile->data[i] = t->data[i] & ~add2;
+    }
+
+    u16 * dest2 = (u16 *) &se_mem[26];
+
+    int i;
+    for(i = 0; i < 20 - ((20 * game->zoneTimer) / game->zoneStart); i++){
+        dest2[i * 32 + 9] = 0;
+        dest2[i * 32 + 20] = 0;
+    }
+
+    if(i == 20)
+        i = 19;
+
+    dest2[i * 32 + 9] = 46;
+    dest2[i * 32 + 20] = 46 + 0x400;
+
+}
+
+void rainbowPalette(){
+    int n = (rainbowTimer >> 3) + 24;
+
+    int color = 0;
+    if(!savefile->settings.lightMode)
+        color = RGB15(31, n, n);
+    else
+        color = RGB15(n, 31, 31);
+
+    clr_rgbscale((COLOR *) rainbow,(COLOR *)&palette[0][1],5,color);
+    if(!savefile->settings.lightMode)
+        clr_fade((COLOR *) rainbow,0,(COLOR*) rainbow,4,10);
+    else
+        clr_adj_brightness((COLOR *) rainbow,(COLOR*) rainbow,4,float2fx(0.25));
+
+        // clr_adj_brightness((COLOR *) rainbow,(COLOR*) rainbow,4,float2fx(0.5));
+        // clr_fade((COLOR *) rainbow,0,(COLOR*) rainbow,4,22);
+
+    memcpy16(&pal_bg_mem[1],rainbow,4);
+    memcpy16(&pal_obj_mem[1],rainbow,4);
+    if(savefile->settings.shadow != 3){
+        memcpy16(&pal_obj_mem[10*16+1],rainbow,4);
+    }else{
+        if(!savefile->settings.lightMode)
+            clr_fade((COLOR*)rainbow, 0x0000, &pal_obj_mem[10 * 16+1], 4, 14);
+        else
+            clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)rainbow, 4, float2fx(0.25));
+    }
+    memcpy16(&pal_obj_mem[11*16+1],rainbow,4);
+}
+
+void showZoneText(){
+    if(game->zonedLines == 0 || !savefile->settings.floatText)
+        return;
+
+    aprintClearArea(10, 0, 10, 20);
+
+    int height = (game->lengthY - game->zonedLines) / 2;
+
+    char buff[4];
+
+    posprintf(buff, "%d",game->zonedLines);
+
+    std::string text = buff;
+
+    text += " line";
+
+    if(game->zonedLines > 1)
+        text+= "s";
+
+    const u16 pal[2][2] = {{0x5294,0x0421},{0x5294,0x318c}};
+
+    if(!savefile->settings.lightMode)
+        memcpy16(&pal_bg_mem[13 * 16 + 2],pal[0],2);
+    else
+        memcpy16(&pal_bg_mem[13 * 16 + 2 ],pal[1],2);
+
+    aprintColor(text, 15 - text.size()/2, height , 2);
 }

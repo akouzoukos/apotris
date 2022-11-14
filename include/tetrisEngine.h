@@ -403,6 +403,7 @@ namespace Tetris
         int zoneScore = 0;
         int zoneStart = 0;
         bool fullZone = false;
+        bool inversion = false;
 
         int grade = 0;
         int coolCount = 0;
