@@ -225,6 +225,9 @@ int endScreen() {
 
     igt = game->inGameTimer;
 
+    mmSetModuleTempo(1024);
+    mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
+
     playSongRandom(0);
 
     showScore();
