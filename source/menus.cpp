@@ -690,7 +690,7 @@ int pauseMenu(){
                     quickSave = new Game(*game);
                     saveExists = true;
 
-                    aprint("Saved!", 23, 18);
+                    aprint(" Saved!", 22, 18);
                     sfx(SFX_MENUCONFIRM);
                 } else if (selection == 2) {
                     sfx(SFX_MENUCONFIRM);

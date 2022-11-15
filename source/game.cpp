@@ -1,6 +1,7 @@
 #include "def.h"
 #include "maxmod.h"
 #include "LinkConnection.h"
+#include "meter1_tiles_bin.h"
 #include "soundbank.h"
 #include "sprite36tiles_bin.h"
 #include "sprite5tiles_bin.h"
@@ -49,6 +50,7 @@ void update();
 void rainbowPalette();
 void frameSnow();
 void showZoneText();
+void showFullMeter();
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -108,6 +110,9 @@ static bool rainbowIncreasing = 0;
 static u16 rainbow[5];
 
 static bool creditRefresh = false;
+static u16 fullMeterTimer = 0;
+#define fullMeterTimerMax 5 * 60;
+#define fullMeterAnimationLength 15
 // static bool refreshSkin = false;
 // Bot *testBot;
 
@@ -142,8 +147,8 @@ void GameScene::draw(){
 }
 
 void update() {
-    aprintClearArea(0, 0, 10, 6);
-    aprintClearArea(0, 13, 10, 7);
+    // aprintClearArea(0, 0, 10, 6);
+    // aprintClearArea(0, 13, 10, 7);
 
     if(!game->zoneTimer)
         showText();
@@ -369,6 +374,14 @@ void checkSounds() {
         aprintClearArea(10, 0, 10, 20);
         resetZonePalette();
         zoneFlash();
+    }
+
+    if(game->sounds.meter){
+        fullMeterTimer = fullMeterAnimationLength;
+    }
+
+    if(game->gameMode == MARATHON && subMode){
+        showFullMeter();
     }
 
     game->resetSounds();
@@ -869,6 +882,7 @@ void showTimer() {
     if (!(game->gameMode == TRAINING)) {
 
         std::string timer = timeToString(gameSeconds);
+        aprintClearArea(0, 1, 10, 1);
         aprint(timer, 1 - (timer.size() > 8), 1);
     }
 
@@ -877,6 +891,7 @@ void showTimer() {
         // aprints("Finesse:",0,7,2);
         // showFinesse();
         aprint("Finesse", 1, 14);
+        aprintClearArea(0, 15, 10, 15);
         aprintf(game->finesseFaults, 4, 15);
     }
 
@@ -891,13 +906,18 @@ void showText() {
 
         aprint("Score", 3, 3);
 
-        std::string score = std::to_string(game->score);
+        char buff[30];
+        posprintf(buff, "%d",game->score);
+        std::string score = buff;
+
         int x = 8 - score.size();
+        aprintClearArea(0, 5, 10, 5);
         aprint(score, (x > 0)? x : 0, 5);
 
         if (game->gameMode != ULTRA) {
             aprint("Level", 2, 14);
 
+            aprintClearArea(0, 15, 10, 15);
             aprintf(game->level, 4, 15);
         }
 
@@ -906,6 +926,7 @@ void showText() {
     } else if (game->gameMode == DIG && subMode) {
         aprint("Pieces", 2, 14);
 
+        aprintClearArea(0, 15, 10, 15);
         aprintf(game->pieceCounter, 4, 15);
     } else if (game->gameMode == MASTER){
         aprint("Level", 3, 14);
@@ -927,11 +948,13 @@ void showText() {
 
         str = GameInfo::masterGrades[game->grade + game->coolCount];
 
+        aprintClearArea(0, 5, 10, 5);
         aprint(str,4 - (str.length() == 1),5);
     }
 
     if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1) && game->gameMode != MASTER){
         aprint("Lines", 2, 17);
+        aprintClearArea(0, 18, 10, 18);
         if (game->gameMode == DIG)
             aprintf(game->garbageCleared, 4, 18);
         else
@@ -953,10 +976,12 @@ void showText() {
         else
             str+= "3";
 
+        aprintClearArea(0, 18, 10, 18);
         aprint(str,2,18);
 
     } else if(game->gameMode == BATTLE || (game->gameMode == SPRINT && subMode == 1)){
         aprint("Attack", 2, 17);
+        aprintClearArea(0, 18, 10, 18);
         aprintf(game->linesSent, 4, 18);
     }
 }
@@ -1072,11 +1097,11 @@ void gameLoop(){
     VBlankIntrWait();
     setSkin();
 
-    memset16(&tile_mem[2][110], 0, 400);
+    memset32(&tile_mem[2][110], 0, 400*8);
     setSmallTextArea(110, 3, 7, 9, 10);
     gameSeconds = 0;
 
-    memcpy16(&tile_mem[4][256+3],sprite36tiles_bin,sprite36tiles_bin_size/2);
+    memcpy16(&tile_mem[4][256+3],meterTiles[0],meter1_tiles_bin_size/2);
 
     update();
 
@@ -1330,6 +1355,7 @@ void screenShake() {
         return;
 
     REG_BG0VOFS = -shake;
+
     REG_BG1VOFS = -shake;
 
     if (shake) {
@@ -1426,9 +1452,6 @@ void drawGrid() {
         std::advance(index, 1);
     }
 
-    u16* dest = (u16*)se_mem[26];
-    dest += 10;
-
     u32 gridTile;
     int palOffset = 4;
 
@@ -1441,6 +1464,13 @@ void drawGrid() {
         case 5: gridTile = 0x0020; break;
         default: gridTile = 0x0002; break;
     }
+
+    u16* dest = (u16*)se_mem[26];
+
+    memset16(&dest[31*32+10],gridTile,10);
+    memset16(&dest[20*32+10],gridTile,10);
+
+    dest += 10;
 
     if (savefile->settings.lightMode && !game->zoneTimer)
         gridTile += palOffset * 0x1000;
@@ -1878,7 +1908,7 @@ void showZoneMeter(){
     obj_unhide(sprite,0);
 
     const int color = 0x7fff;
-    const int anticolor = 0x0421;
+    const int anticolor = 0x0c63;
     const int disabled = 0x5294;
 
     int n;
@@ -1886,18 +1916,14 @@ void showZoneMeter(){
         n = game->zoneCharge / 3;
         if(game->zoneCharge == 32)
             n = 12;
-
-        if(n <= 2){
-            for(int i = 0; i < n; i++)
-                memset16(&pal_obj_mem[15*16 + 4 + i], disabled , 1);
-            return;
-        }
     }else{
-        n = game->zoneTimer / 100;
+        n = game->zoneTimer / 100 + 1;
     }
 
     for(int i = 0; i < 12; i++){
-        if(i < n)
+        if(i < n && n <= 2 && !game->zoneTimer)
+            memset16(&pal_obj_mem[15*16 + 4 + i], disabled , 1);
+        else if (i < n)
             memset16(&pal_obj_mem[15*16 + 4 + i], color , 1);
         else
             memset16(&pal_obj_mem[15*16 + 4 + i], anticolor , 1);
@@ -2094,8 +2120,6 @@ static u8 creditLastRead = 0;
 const FIXED creditSpeed = float2fx(0.6);
 const int creditSpace = 200;
 
-static int credit_timer = 0;
-
 void setupCredits(){
     creditCurrentHeight = int2fx(SCREEN_HEIGHT);
     creditIndex = 0;
@@ -2198,4 +2222,21 @@ void refreshCredits(){
     else
         wordSprites[creditIndex*3+2]->setText("");
 
+}
+
+void showFullMeter(){
+    if(game->zoneCharge != 32){
+        return;
+    }
+
+    if(--fullMeterTimer <= 0){
+        fullMeterTimer = fullMeterTimerMax;
+        memcpy16(&tile_mem[4][256+3],meterTiles[0],meter1_tiles_bin_size/2);
+        return;
+    }
+
+    if(fullMeterTimer < fullMeterAnimationLength){
+        int n = 2 - (fullMeterTimer/(fullMeterAnimationLength/3));
+        memcpy16(&tile_mem[4][256+3],meterTiles[n+1],meter1_tiles_bin_size/2);
+    }
 }

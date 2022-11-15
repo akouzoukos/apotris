@@ -34,9 +34,10 @@ void graphicTest() {
     memset16(&se_mem[26], 0x0000, 32 * 20);
 
     delete game;
-    game = new Game(3,bigMode);
+    game = new Game(DIG,bigMode);
     game->setGoal(0);
     game->setLevel(1);
+    game->rotationSystem = SRS;
 
     game->update();
 
@@ -206,8 +207,8 @@ void graphicTest() {
             oam_copy(oam_mem, obj_buffer, 128);
 
             gradientEditor();
-            showLabels();
-            //TODO: show reshow text;
+            if(showOptions)
+                showLabels();
         }
 
         if (key_hit(KEY_LEFT) || key_hit(KEY_RIGHT)) {

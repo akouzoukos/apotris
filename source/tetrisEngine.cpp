@@ -953,10 +953,14 @@ int Game::clear(Drop drop) {
     if(gameMode == MARATHON){
         level = ((int)linesCleared / 10) + 1;
         if(subMode && !zonedLines){
-            zoneCharge += clearCount;
+            if(zoneCharge < 32){
+                if(zoneCharge + clearCount >= 32){
+                    sounds.meter = 1;
+                    zoneCharge = 32;
+                } else
+                    zoneCharge += clearCount;
+            }
 
-            if(zoneCharge > 32)
-                zoneCharge = 32;
         }
     }else if(gameMode == BLITZ){
         for(int i = 0; i < 15; i++){

@@ -56,6 +56,10 @@
 #include "classic15tiles_bin.h"
 #include "classic16tiles_bin.h"
 
+#include "meter1_tiles_bin.h"
+#include "meter2_tiles_bin.h"
+#include "meter3_tiles_bin.h"
+#include "meter4_tiles_bin.h"
 
 const uint8_t * classicTiles[2][8] = {
         {
@@ -136,6 +140,14 @@ const uint8_t * placeEffectTiles[15] = {
         effect14_tiles_bin,
         effect15_tiles_bin,
 };
+
+const uint8_t * meterTiles[4] = {
+        meter1_tiles_bin,
+        meter2_tiles_bin,
+        meter3_tiles_bin,
+        meter4_tiles_bin,
+};
+
 
 const uint16_t palette[2][256] __attribute__((aligned(4)))=
 {
