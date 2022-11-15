@@ -140,8 +140,6 @@ void initialize(){
     mmInitDefault((mm_addr)soundbank_bin, 12);
     mmSetEventHandler((mm_callback)myEventHandler);
 
-    // logInitMgba();
-
     initRumble();
 
     REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2) | BG_MOSAIC;
@@ -198,7 +196,8 @@ void initialize(){
 
 
 int main(void) {
-    logInitMgba();
+    if(DIAGNOSE)
+        logInitMgba();
 
     if(ENABLE_FLASH_SAVE)
         flash_init();
@@ -206,56 +205,6 @@ int main(void) {
     loadSave();
 
     initialize();
-
-    // u16 * dest = (u16 * ) &se_mem[25];
-
-    // for(int i = 0; i < 20; i++){
-    //     memset16(&dest[i*32 + 10], 1, 10);
-    // }
-
-    // for(int i = 0; i < 20; i++){
-    //     dest[i * 32 + 10] = 4 + 0x1000 * savefile->settings.palette;
-    // }
-
-    // bool state = false;
-    //
-    //
-    // setupCredits();
-
-    // while(1){
-    //     VBlankIntrWait();
-    //     key_poll();
-    //     if(key_hit(KEY_A))
-    //         break;
-
-    //     showCredits();
-
-    //     oam_copy(oam_mem, obj_buffer, 128);
-    // }
-
-    //     if(key_hit(KEY_B)){
-    //         state = !state;
-    //         gradient(state);
-    //     }
-    //     // DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
-
-    //     // if(timer % 4 == 0)
-    //     //     test();
-    //     // setGradient(test);
-
-    //     // if(key_is_down(KEY_UP)){
-    //     //     if(test > 0)
-    //     //         test--;
-    //     // }
-
-    //     // if(key_is_down(KEY_DOWN)){
-    //     //     if(test < 0x7fff)
-    //     //         test++;
-    //     // }
-
-    //     // if(key_hit(KEY_START))
-    //     //     log(std::to_string(test));
-    // }
 
     //start screen animation
     while(1){

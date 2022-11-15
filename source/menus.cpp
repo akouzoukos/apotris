@@ -402,9 +402,13 @@ void endAnimation() {
         }
     }
 
+    int counter = 0;
     while (!floatingList.empty()) {
         VBlankIntrWait();
         showClearText();
+
+        if(++counter > 120)
+            break;
     }
     clearText();
 

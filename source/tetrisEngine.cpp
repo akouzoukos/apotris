@@ -954,7 +954,7 @@ int Game::clear(Drop drop) {
         level = ((int)linesCleared / 10) + 1;
         if(subMode && !zonedLines){
             if(zoneCharge < 32){
-                if(zoneCharge + clearCount >= 32){
+                if((zoneCharge + clearCount) >= 32){
                     sounds.meter = 1;
                     zoneCharge = 32;
                 } else

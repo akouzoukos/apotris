@@ -911,13 +911,13 @@ void showText() {
         std::string score = buff;
 
         int x = 8 - score.size();
-        aprintClearArea(0, 5, 10, 5);
+        aprintClearArea(0, 5, 10, 1);
         aprint(score, (x > 0)? x : 0, 5);
 
         if (game->gameMode != ULTRA) {
             aprint("Level", 2, 14);
 
-            aprintClearArea(0, 15, 10, 15);
+            aprintClearArea(0, 15, 10, 1);
             aprintf(game->level, 4, 15);
         }
 
@@ -926,7 +926,7 @@ void showText() {
     } else if (game->gameMode == DIG && subMode) {
         aprint("Pieces", 2, 14);
 
-        aprintClearArea(0, 15, 10, 15);
+        aprintClearArea(0, 15, 10, 1);
         aprintf(game->pieceCounter, 4, 15);
     } else if (game->gameMode == MASTER){
         aprint("Level", 3, 14);
@@ -948,13 +948,13 @@ void showText() {
 
         str = GameInfo::masterGrades[game->grade + game->coolCount];
 
-        aprintClearArea(0, 5, 10, 5);
+        aprintClearArea(0, 5, 10, 1);
         aprint(str,4 - (str.length() == 1),5);
     }
 
     if (game->gameMode != BATTLE && game->gameMode != BLITZ && !(game->gameMode == SPRINT && subMode == 1) && game->gameMode != MASTER){
         aprint("Lines", 2, 17);
-        aprintClearArea(0, 18, 10, 18);
+        aprintClearArea(0, 18, 10, 1);
         if (game->gameMode == DIG)
             aprintf(game->garbageCleared, 4, 18);
         else
@@ -976,12 +976,12 @@ void showText() {
         else
             str+= "3";
 
-        aprintClearArea(0, 18, 10, 18);
+        aprintClearArea(0, 18, 10, 1);
         aprint(str,2,18);
 
     } else if(game->gameMode == BATTLE || (game->gameMode == SPRINT && subMode == 1)){
         aprint("Attack", 2, 17);
-        aprintClearArea(0, 18, 10, 18);
+        aprintClearArea(0, 18, 10, 1);
         aprintf(game->linesSent, 4, 18);
     }
 }
@@ -1044,7 +1044,7 @@ void showClearText() {
         }
     }
 
-    if(game->zoneTimer)
+    if(game->zoneTimer && !game->lost)
         return;
 
     std::list<FloatText>::iterator index = floatingList.begin();
