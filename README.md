@@ -4,4 +4,4 @@ A block stacking puzzle game for the Gameboy Advance, with focus on delivering r
 
 Join the [discord server](https://discord.com/invite/jQnxmXS7tr) for updates, beta releases, or to give me feedback!
 
-![gif](https://github.com/akouzoukos/apotris/blob/763c35e3a6555252082e3f33affc230b12d571ec/images/image1.gif)
+![gif](https://github.com/akouzoukos/apotris/blob/9ae4f004b6bf534fa3f3762cb3387471066d6e2f/images/image1.gif)
