@@ -4,6 +4,7 @@
 #include <tonc_types.h>
 #include <maxmod.h>
 #include "tetrisEngine.h"
+#include "tonc_core.h"
 #include "tonc_video.h"
 
 INLINE FIXED lerp(FIXED a, FIXED b, FIXED mix){
@@ -301,8 +302,11 @@ extern void showTimer();
 extern void setGradient(int);
 extern void setDefaultGradient();
 extern void gradient(bool state);
-
 extern std::string timeToString(int);
+extern void setDefaultGraphics(Save * save, int depth);
+extern void showCredits();
+extern void setupCredits();
+extern void refreshCredits();
 
 extern OBJ_ATTR obj_buffer[128];
 extern OBJ_AFFINE* obj_aff_buffer;
@@ -403,3 +407,106 @@ class EditorScene : public Scene{
 };
 
 extern void changeScene(Scene * newScene);
+
+class WordSprite {
+public:
+    std::string text = "";
+    int startIndex;
+    int startTiles;
+    int id;
+    int priority = 1;
+    OBJ_ATTR* sprites[3];
+
+    void show(int x, int y, int palette) {
+        for (int i = 0; i < 3; i++) {
+            obj_unhide(sprites[i], 0);
+            obj_set_attr(sprites[i], ATTR0_WIDE, ATTR1_SIZE(1), ATTR2_BUILD(startTiles + i * 4, palette, priority));
+            obj_set_pos(sprites[i], x + i * 32, y);
+        }
+    }
+
+    void show(int x, int y, int palette, FIXED scale) {
+        for (int i = 0; i < 3; i++) {
+            int affId = id*3+i;
+            obj_unhide(sprites[i], 0);
+            obj_set_attr(sprites[i], ATTR0_WIDE | ATTR0_AFF, ATTR1_SIZE(1) | ATTR1_AFF_ID(affId), palette);
+            sprites[i]->attr2 = ATTR2_BUILD(startTiles + i * 4, palette, 1);
+            obj_set_pos(sprites[i], x + i * 32, y);
+            obj_aff_identity(&obj_aff_buffer[affId]);
+            obj_aff_scale(&obj_aff_buffer[affId], scale, scale);
+        }
+    }
+
+    void hide() {
+        for (int i = 0; i < 3; i++)
+            obj_hide(sprites[i]);
+    }
+
+    void setTextFast(char** _text, int size) {
+        if (*_text == text)
+            return;
+
+        text = *_text;
+
+        if(text == ""){
+            memset32(&tile_mem[4][startTiles], 0, 12 * 8);
+            return;
+        }
+
+        int n = min(size,12);
+
+        TILE* font = (TILE*)fontTiles;
+        int i;
+        for (i = 0; i < n; i++) {
+            int c = *_text[i] - 32;
+
+            // memcpy32(&tile_mem[4][startTiles + i], &font[c], 8);
+            dma3_cpy(&tile_mem[4][startTiles + i], &font[c], 32);
+        }
+
+        if(i < 12){
+            memset32(&tile_mem[4][startTiles + i], 0, (12-i) * 8);
+        }
+    }
+
+    void setText(std::string _text) {
+        if (_text == text)
+            return;
+
+        text = _text;
+
+
+        if(text == ""){
+            memset32(&tile_mem[4][startTiles], 0, 12 * 8);
+            return;
+        }
+
+        int n = min((int)text.size(),12);
+
+        TILE* font = (TILE*)fontTiles;
+        int i;
+        for (i = 0; i < n; i++) {
+            int c = text[i] - 32;
+
+            // memcpy32(&tile_mem[4][startTiles + i], &font[c], 8);
+            dma3_cpy(&tile_mem[4][startTiles + i], &font[c], 32);
+        }
+
+        if(i < 12){
+            memset32(&tile_mem[4][startTiles + i], 0, (12-i) * 8);
+        }
+    }
+
+    WordSprite(int _id,int _index, int _tiles) {
+        id = _id;
+        startIndex = _index;
+        startTiles = _tiles;
+
+        for (int i = 0; i < 3; i++) {
+            sprites[i] = &obj_buffer[startIndex + i];
+        }
+    }
+};
+
+#define MAX_WORD_SPRITES 15
+extern WordSprite* wordSprites[MAX_WORD_SPRITES];

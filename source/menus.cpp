@@ -29,7 +29,7 @@ Tetris::Game* quickSave;
 
 int igt = 0;
 
-const std::string modeStrings[10] = {
+const std::string modeStrings[11] = {
     "Marathon",
     "Sprint",
     "Dig",
@@ -40,9 +40,10 @@ const std::string modeStrings[10] = {
     "Survival",
     "Classic",
     "Master",
+    "Training",
 };
 
-const std::string modeOptionStrings[10][4] = {
+const std::string modeOptionStrings[11][4] = {
     {"150","200","300","Endless"},
     {"20","40","100"},
     {"10","20","100"},
@@ -52,7 +53,8 @@ const std::string modeOptionStrings[10][4] = {
     {""},
     {"EASY","MEDIUM","HARD"},
     {"",""},
-    {"Normal","Classic"}
+    {"Normal","Classic"},
+    {""},
 };
 
 void songListMenu() {
@@ -381,12 +383,6 @@ void endAnimation() {
 
     rumble_set_state(RumbleState(rumble_stop));
 
-    // int timer = 0;
-    // int maxTimer = 20;
-
-    // while(timer++ < maxTimer)
-    // 	VBlankIntrWait();
-
     sfx(SFX_END);
 
     for (int i = 0; i < 41; i++) {
@@ -544,6 +540,10 @@ void showStats(bool moreStats, std::string time, std::string pps) {
         aprints("Section Cools: " + std::to_string(game->coolCount), 0, 7*counter++, 2);
         aprints("Section Regrets: " + std::to_string(game->regretCount), 0, 7*counter++, 2);
     }
+
+    if(game->statTracker.maxZonedLines > 0){
+        aprints("Max MultiClear: " + std::to_string(game->statTracker.maxZonedLines), 0, 7*counter++, 2);
+    }
 }
 
 int pauseMenu(){
@@ -650,6 +650,8 @@ int pauseMenu(){
                     update();
                 } else if (n == 3) {
                     sleep();
+                    showStats(showingStats, totalTime, ppsStr);
+                    showModeText();
                 } else if (n == 4) {
                     REG_BLDCNT = prevBld;
                     sfx(SFX_MENUCANCEL);
@@ -929,7 +931,7 @@ int onRecord() {
 }
 
 void showModeText(){
-    if(game->gameMode > 0 && game->gameMode <= 10){
+    if(game->gameMode > 0 && game->gameMode <= 11){
         int counter = 0;
         std::string str;
         std::string str2;

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "tonc_types.h"
+#include <string>
+#include <list>
 
 namespace GameInfo{
     extern const int colors[7][3];
@@ -52,4 +54,6 @@ namespace GameInfo{
     extern const u16 connectedConversion[24];
 
     extern const u16 connectedFix[3][24];
+
+    extern const std::list<std::string> credits;
 }

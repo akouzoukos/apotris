@@ -12,7 +12,7 @@
 using namespace Tetris;
 using namespace GameInfo;
 
-int getNbr(int**,int,int);
+int getNbr(int** board,int x, int y, int ex, int sy, int ey);
 
 int Game::checkRotation(int dx, int dy, int r) {
 
@@ -104,25 +104,25 @@ void Pawn::setBlock(int system) {
     }
 }
 
-int getNbr(int **board, int x, int y){
+int getNbr(int **board, int x, int y, int ex, int sy , int ey){
     int count = 0;
 
-    if(y - 1 >= 0 && board[y-1][x])
+    if(y - 1 >= sy && board[y-1][x])
         count++;
-    if(y + 1 <= 3 && board[y+1][x])
+    if(y + 1 <= ey-1 && board[y+1][x])
         count++;
     if(x - 1 >= 0 && board[y][x-1])
         count++;
-    if(x + 1 <= 3 && board[y][x+1])
+    if(x + 1 <= ex-1 && board[y][x+1])
         count++;
 
-    if(y - 1 >= 0 && board[y-1][x] && x - 1 >= 0 && board[y][x-1] && board[y-1][x-1])
+    if(y - 1 >= sy && board[y-1][x] && x - 1 >= 0 && board[y][x-1] && board[y-1][x-1])
         count++;
-    if(y - 1 >= 0 && board[y-1][x] && x + 1 <= 3 && board[y][x+1] && board[y-1][x+1])
+    if(y - 1 >= sy && board[y-1][x] && x + 1 <= ex && board[y][x+1] && board[y-1][x+1])
         count++;
-    if(y + 1 <= 3 && board[y+1][x] && x - 1 >= 0 && board[y][x-1] && board[y+1][x-1])
+    if(y + 1 <= ey && board[y+1][x] && x - 1 >= 0 && board[y][x-1] && board[y+1][x-1])
         count++;
-    if(y + 1 <= 3 && board[y+1][x] && x + 1 <= 3 && board[y][x+1] && board[y+1][x+1])
+    if(y + 1 <= ey && board[y+1][x] && x + 1 <= ex && board[y][x+1] && board[y+1][x+1])
         count++;
 
     return count;
@@ -795,6 +795,10 @@ void Game::place() {
 
     if(zoneTimer == 1)
         endZone();
+
+    if(maxClearDelay == 1 && clearLock){
+        removeClearLock();
+    }
 }
 
 int Game::clear(Drop drop) {
@@ -1145,10 +1149,6 @@ int Game::clear(Drop drop) {
 
     setSpeed();
 
-    if(maxClearDelay == 1){
-        removeClearLock();
-    }
-    
     return 1;
 }
 
@@ -1236,8 +1236,9 @@ void Game::next() {
                 endZone();
             else if(gameMode == TRAINING)
                 clearBoard();
-            else
+            else{
                 lost = 1;
+            }
         }
     }
 
@@ -1418,7 +1419,7 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
             if(!result[iy][ix])
                 continue;
 
-            int n = getNbr(result, ix, iy);
+            int n = getNbr(result, ix, iy, 4 , 0 , 4);
 
             if(n == 1){
                 if(iy > 0 && result[iy-1][ix])
@@ -1589,6 +1590,7 @@ void Game::removeClearLock() {
                         continue;
                     board[i][j] = (i+comboCounter) % 7 + 1;
                 }
+                connectBoard(i, i);
             }
         }else{
             for(int i = (lengthY/2-1)/2; i < lengthY/2; i++){
@@ -1686,6 +1688,13 @@ void Game::generateGarbage(int height,int mode){
         }
 
         garbageHeight+=height;
+    }
+
+    if(bigMode)
+        return;
+
+    for(int i = lengthY-height; i < lengthY; i++){
+        connectBoard(i, i);
     }
 }
 
@@ -2044,9 +2053,11 @@ void Game::removeEventLock(){
 }
 
 void Game::activateZone(){
-    // if(zoneCharge < 8)
-    //     return;
-    zoneCharge = 32;
+    if(zoneCharge < 8 && !DIAGNOSE)
+        return;
+
+    if(DIAGNOSE)
+        zoneCharge = 32;
 
     fullZone = (zoneCharge == 32);
 
@@ -2064,6 +2075,9 @@ void Game::activateZone(){
 }
 
 void Game::endZone(){
+    if(zonedLines > statTracker.maxZonedLines)
+        statTracker.maxZonedLines = zonedLines;
+
     zoneTimer = 0;
     sounds.zone = -1;
     clear(Drop());
@@ -2109,6 +2123,74 @@ void Game::fixConnected(std::list<int> sourceList){
         for(int ix = 0; ix < lengthX; ix++){
             int n = board[iy][ix];
             board[iy][ix] = (n & 0xf) + (GameInfo::connectedFix[type][n >> 4] << 4);
+        }
+    }
+}
+
+void Game::connectBoard(int startY,int endY){
+    int ex = lengthX;
+    int sy = startY;
+    int ey = endY;
+
+    for(int iy = startY; iy < endY+1; iy++){
+
+        for(int ix = 0; ix < lengthX; ix++){
+            if(!board[iy][ix] || (board[iy][ix] >> 4) != 0)
+                continue;
+
+            int n = getNbr(board, ix, iy, ex, sy, ey);
+
+            if(n == 1){
+                if(iy > sy && board[iy-1][ix])
+                    board[iy][ix] += 1 << 4;
+                else if(iy < ey && board[iy+1][ix])
+                    board[iy][ix] += 2 << 4;
+                else if(ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 3 << 4;
+                else if(ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 4 << 4;
+            }else if(n == 2){
+                if(iy > sy && board[iy-1][ix] && iy < ey && board[iy+1][ix])
+                    board[iy][ix] += 5 << 4;
+                else if(ix > 0 && board[iy][ix-1] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 6 << 4;
+                else if(iy < ey && board[iy+1][ix] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 7 << 4;
+                else if(iy < ey && board[iy+1][ix] && ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 8 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 9 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 10 << 4;
+            }else if(n == 3){
+                if(iy < ey && board[iy+1][ix] && ix < ex && board[iy][ix+1] && board[iy+1][ix+1])
+                    board[iy][ix] += 11 << 4;
+                else if(iy < ey && board[iy+1][ix] && ix > 0 && board[iy][ix-1] && board[iy+1][ix-1])
+                    board[iy][ix] += 12 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix < ex && board[iy][ix+1] && board[iy-1][ix+1])
+                    board[iy][ix] += 13 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix > 0 && board[iy][ix-1] && board[iy-1][ix-1])
+                    board[iy][ix] += 14 << 4;
+                else if(iy > sy && board[iy-1][ix] && iy < ey && board[iy+1][ix] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 15 << 4;
+                else if(ix > 0 && board[iy][ix-1] && ix < ex && board[iy][ix+1] && iy < ey && board[iy+1][ix])
+                    board[iy][ix] += 16 << 4;
+                else if(iy > sy && board[iy-1][ix] && iy < ey && board[iy+1][ix] && ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 17 << 4;
+                else if(ix > 0 && board[iy][ix-1] && ix < ex && board[iy][ix+1] && iy > sy && board[iy-1][ix])
+                    board[iy][ix] += 18 << 4;
+            }else if(n == 5){
+                if(iy < ey && ix < ex && ix > 0 && board[iy+1][ix-1] && board[iy+1][ix+1])
+                    board[iy][ix] += 19 << 4;
+                else if(iy > sy && ix < ex && ix > 0 && board[iy-1][ix-1] && board[iy-1][ix+1])
+                    board[iy][ix] += 20 << 4;
+                else if(ix < ex && iy < ey && iy > sy && board[iy-1][ix+1] && board[iy+1][ix+1])
+                    board[iy][ix] += 21 << 4;
+                else if(ix > 0 && iy < ey && iy > sy && board[iy-1][ix-1] && board[iy+1][ix-1])
+                    board[iy][ix] += 22 << 4;
+            }else if(n == 8){
+                board[iy][ix] += 23 << 4;
+            }
         }
     }
 }

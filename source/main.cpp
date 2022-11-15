@@ -218,12 +218,20 @@ int main(void) {
     // }
 
     // bool state = false;
+    //
+    //
+    // setupCredits();
 
     // while(1){
     //     VBlankIntrWait();
     //     key_poll();
     //     if(key_hit(KEY_A))
     //         break;
+
+    //     showCredits();
+
+    //     oam_copy(oam_mem, obj_buffer, 128);
+    // }
 
     //     if(key_hit(KEY_B)){
     //         state = !state;
@@ -320,6 +328,8 @@ void reset() {
     memset32(&se_mem[25], 0x0000, 32 * 20);
     memset32(&se_mem[26], 0x0000, 32 * 20);
     memset32(&se_mem[27], 0x0000, 32 * 20);
+
+    REG_MOSAIC = MOS_BUILD(0,0,0,0);
 
     //reset glow
     for (int i = 0; i < 20; i++)

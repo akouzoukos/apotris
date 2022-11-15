@@ -1,4 +1,5 @@
 #pragma once
+#include "def.h"
 #include "tonc_types.h"
 #include <string>
 
@@ -25,5 +26,7 @@ static void logOutputMgba(u8 level, const char *message)
 }
 
 static inline void log(std::string str){
+    if(!DIAGNOSE)
+        return;
     logOutputMgba(4, str.c_str());
 }

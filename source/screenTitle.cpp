@@ -27,67 +27,8 @@ static OBJ_ATTR * levelCursor = &obj_buffer[32];
 
 using namespace Tetris;
 
-class WordSprite {
-public:
-    std::string text = "";
-    int startIndex;
-    int startTiles;
-    int id;
-    OBJ_ATTR* sprites[3];
-
-    void show(int x, int y, int palette) {
-        for (int i = 0; i < 3; i++) {
-            obj_unhide(sprites[i], 0);
-            obj_set_attr(sprites[i], ATTR0_WIDE, ATTR1_SIZE(1), palette);
-            sprites[i]->attr2 = ATTR2_BUILD(startTiles + i * 4, palette, 1);
-            obj_set_pos(sprites[i], x + i * 32, y);
-        }
-    }
-
-    void show(int x, int y, int palette, FIXED scale) {
-        for (int i = 0; i < 3; i++) {
-            int affId = id*3+i;
-            obj_unhide(sprites[i], 0);
-            obj_set_attr(sprites[i], ATTR0_WIDE | ATTR0_AFF, ATTR1_SIZE(1) | ATTR1_AFF_ID(affId), palette);
-            sprites[i]->attr2 = ATTR2_BUILD(startTiles + i * 4, palette, 1);
-            obj_set_pos(sprites[i], x + i * 32, y);
-            obj_aff_identity(&obj_aff_buffer[affId]);
-            obj_aff_scale(&obj_aff_buffer[affId], scale, scale);
-        }
-    }
-
-    void hide() {
-        for (int i = 0; i < 3; i++)
-            obj_hide(sprites[i]);
-    }
-
-    void setText(std::string _text) {
-        if (_text == text)
-            return;
-
-        text = _text;
-
-        TILE* font = (TILE*)fontTiles;
-        for (int i = 0; i < (int)text.length() && i < 12; i++) {
-            int c = text[i] - 32;
-
-            memcpy32(&tile_mem[4][startTiles + i], &font[c], 8);
-        }
-    }
-
-    WordSprite(int _id,int _index, int _tiles) {
-        id = _id;
-        startIndex = _index;
-        startTiles = _tiles;
-
-        for (int i = 0; i < 3; i++) {
-            sprites[i] = &obj_buffer[startIndex + i];
-        }
-    }
-};
-
-#define MAX_WORD_SPRITES 15
 WordSprite* wordSprites[MAX_WORD_SPRITES];
+
 int titleFloat = 0;
 OBJ_ATTR* titleSprites[2];
 u16 backgroundArray[30][30];
@@ -393,6 +334,9 @@ void startScreen() {
                     } else if (selection == 8) {//Master
                         options = 2;
                         n = MASTER;
+
+                        if(DIAGNOSE)
+                            level = 997;
                     } else if (selection == 9) {//2p Battle
                         n = -3;
                         linkConnection->activate();
@@ -1004,7 +948,9 @@ void startScreen() {
                     selection = previousSelection;
                 }
 
-                goalSelection = 0;
+                if(!onSettings)
+                    goalSelection = 0;
+
                 sfx(SFX_MENUCONFIRM);
             }
         }
@@ -1107,7 +1053,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.4.0b6", 0, 19);
+        aprint("v3.4.0b9", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
@@ -1130,7 +1076,7 @@ void startText() {
 
             u16* dest = (u16*)se_mem[29];
             dest += (levelHeight) * 32 + 9;
-            for(int i = 0; i < 16; i++){
+            for(int i = 0; i < 15; i++){
                 *dest++ = 102 + (i % 3) + 0xe000;
             }
 
@@ -1167,7 +1113,7 @@ void startText() {
                 }
             } else if (selection == 1) {
                 aprint("<", 8, levelHeight);
-                aprint(">", 25, levelHeight);
+                aprint(">", 24, levelHeight);
             } else if (selection == 2) {
                 if(goalSelection > 0)
                     goalText = "<" + goalText;
@@ -1179,7 +1125,7 @@ void startText() {
 
             aprint(goalText,14 + (goalSelection == 0 || selection != 2),goalHeight);
 
-            obj_set_pos(levelCursor, 9 * 8 + 6 * level - 4, levelHeight * 8 );
+            obj_set_pos(levelCursor, 9 * 8 + 6 * (level - 1) - 1, levelHeight * 8 );
             obj_unhide(levelCursor,0);
 
             for (int i = 0; i < 5; i++) {
@@ -1528,7 +1474,7 @@ void startText() {
 
             u16* dest = (u16*)se_mem[29];
             dest += (levelHeight) * 32 + 9;
-            for(int i = 0; i < 16; i++){
+            for(int i = 0; i < 15; i++){
                 *dest++ = 102 + (i % 3) + 0xe000;
             }
 
@@ -1563,7 +1509,7 @@ void startText() {
                 }
             } else if (selection == 1) {
                 aprint("<", 8, levelHeight);
-                aprint(">", 25, levelHeight);
+                aprint(">", 24, levelHeight);
             } else if (selection == 2 && subMode) {
                 aprint("<", 12, diffHeight);
                 aprint(">", 24, diffHeight);
@@ -1577,7 +1523,7 @@ void startText() {
             }
 
             // show level cursor
-            obj_set_pos(levelCursor, 9 * 8 + 6 * level - 4, levelHeight * 8 );
+            obj_set_pos(levelCursor, 9 * 8 + 6 * (level-1) - 1, levelHeight * 8 );
             obj_unhide(levelCursor,0);
 
             for (int i = 0; i < 5; i++) {
@@ -1693,14 +1639,10 @@ void startText() {
             aprint("START", 12, 17);
             aprint("Level: ", 2, levelHeight);
             aprint("Finesse Training: ", 3, goalHeight);
-            // aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
-
-            // const std::string levelText = std::to_string(level);
-            // aprint(levelText, 27 - levelText.length(), levelHeight + 2);
 
             u16* dest = (u16*)se_mem[29];
             dest += (levelHeight) * 32 + 9;
-            for(int i = 0; i < 16; i++){
+            for(int i = 0; i < 15; i++){
                 *dest++ = 102 + (i % 3) + 0xe000;
             }
 
@@ -1718,7 +1660,7 @@ void startText() {
             aprint(" ", 10, 17);
             if (selection == 0) {
                 aprint("<", 8, levelHeight);
-                aprint(">", 25, levelHeight);
+                aprint(">", 24, levelHeight);
             }else if (selection == 1) {
                 aprint("[", 3 + 18, goalHeight);
                 aprint("]", 3 + 21 + (!goalSelection), goalHeight);
@@ -1727,7 +1669,7 @@ void startText() {
             }
 
             // show level cursor
-            obj_set_pos(levelCursor, 9 * 8 + 6 * level - 4, levelHeight * 8 );
+            obj_set_pos(levelCursor, 9 * 8 + 6 * (level-1) - 1, levelHeight * 8 );
             obj_unhide(levelCursor,0);
 
         }

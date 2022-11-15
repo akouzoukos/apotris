@@ -36,6 +36,7 @@ void graphicTest() {
     delete game;
     game = new Game(3,bigMode);
     game->setGoal(0);
+    game->setLevel(1);
 
     game->update();
 
@@ -130,6 +131,13 @@ void graphicTest() {
             else
                 selection = 0;
             sfx(SFX_MENUMOVE);
+        }
+
+        if(key_hit(KEY_SELECT)){
+            setDefaultGraphics(savefile, 0);
+            setSkin();
+            setPalette();
+            memset16(&se_mem[27], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
         }
 
         if (key_is_down(KEY_UP)) {

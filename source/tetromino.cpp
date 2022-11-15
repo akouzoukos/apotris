@@ -2,6 +2,9 @@
 
 #include "tonc_types.h"
 
+#include <string>
+#include <list>
+
 namespace GameInfo{
     const int colors[7][3] = {
         {50,200,255},
@@ -1184,4 +1187,19 @@ namespace GameInfo{
             0,0,0,0,0
         },
     };
+
+    const std::list<std::string> credits ={
+    "DIRECTOR",
+    "MAIN DESIGN",
+    "SOUND STAFF",
+    "GAME PLANNER",
+    "B.G. DESIGN",
+    "PROGRAMMER",
+    "SPECIAL THANKS",
+    "EXECUTIVE PRODUCER",
+    "GAME DESIGN",
+    "PRODUCED BY",
+    };
 }
+
+

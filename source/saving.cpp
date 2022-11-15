@@ -25,6 +25,7 @@ void setDefaultKeys();
 void addStats();
 void resetSkins(Save * save);
 void setDefaults(Save * save, int depth);
+void setDefaultGraphics(Save * save, int depth);
 void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize);
 
 const std::list<SaveChange> saveChanges = {
@@ -198,9 +199,6 @@ void setDefaults(Save *save, int depth){
     if(depth < 1){
         save->settings.announcer = true;
         save->settings.finesse = false;
-        save->settings.floatText = true;
-        save->settings.shake = true;
-        save->settings.effects = true;
         save->settings.das = 11;
         save->settings.arr = 2;
         save->settings.sfr = 2;
@@ -225,12 +223,6 @@ void setDefaults(Save *save, int depth){
     }
 
     if(depth < 2){
-        save->settings.edges = true;
-        save->settings.backgroundGrid = 5;
-        save->settings.skin = 11;
-        save->settings.palette = 5;
-        save->settings.shadow = 3;
-        save->settings.lightMode = false;
 
         for (int i = 0; i < 10; i++)
             save->settings.songList[i] = true;
@@ -244,20 +236,10 @@ void setDefaults(Save *save, int depth){
         save->settings.sfxVolume = 10;
         save->settings.directionalDas = false;
         save->settings.noDiagonals = false;
-        save->settings.maxQueue = 5;
-        save->settings.colors = 1;
         save->settings.cycleSongs = true;
         save->settings.dropProtectionFrames = 8;
         save->settings.abHold = true;
-        save->settings.clearEffect = 1;
         save->settings.resetHold = false;
-
-        if(save->settings.shake)
-            save->settings.shakeAmount = 2;
-        else{
-            save->settings.shake = true;
-            save->settings.shakeAmount = 0;
-        }
 
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 5; j++)
@@ -272,9 +254,7 @@ void setDefaults(Save *save, int depth){
     }
 
     if(depth < 4){
-        save->settings.placeEffect = true;
         save->settings.rumble = 0;
-
     }
 
     if(depth < 5){
@@ -312,7 +292,6 @@ void setDefaults(Save *save, int depth){
 
         save->settings.diagonalType = save->settings.noDiagonals;
         save->settings.delaySoftDrop = false;
-        save->settings.backgroundGradient = 0x7dc8;
         save->settings.customDas = false;
 
         //check if select is already bound - if not, bind it to zone activation
@@ -346,6 +325,8 @@ void setDefaults(Save *save, int depth){
         else
             save->settings.keys.zone = 0;
     }
+
+    setDefaultGraphics(save, depth);
 }
 
 bool compareVersion(const SaveChange & first,const SaveChange & second){
@@ -397,5 +378,41 @@ void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int ol
 
     if(previous.saveId != 0){
         memcpy16(newSave,oldSave,previous.location / 2);
+    }
+}
+
+void setDefaultGraphics(Save *save, int depth){
+    if(depth < 1){
+        save->settings.floatText = true;
+        save->settings.shake = true;
+        save->settings.effects = true;
+    }
+
+    if(depth < 2){
+        save->settings.edges = true;
+        save->settings.backgroundGrid = 5;
+        save->settings.skin = 11;
+        save->settings.palette = 5;
+        save->settings.shadow = 3;
+        save->settings.lightMode = false;
+
+    }
+
+    if(depth < 3){
+        save->settings.maxQueue = 5;
+        save->settings.colors = 1;
+        save->settings.clearEffect = 1;
+
+        if(save->settings.shake)
+            save->settings.shakeAmount = 2;
+        else{
+            save->settings.shake = true;
+            save->settings.shakeAmount = 0;
+        }
+    }
+
+    if(depth < 4){
+        save->settings.placeEffect = true;
+        save->settings.backgroundGradient = 0x7dc8;
     }
 }

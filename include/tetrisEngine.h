@@ -56,7 +56,7 @@ namespace Tetris
         int maxStreak = 0;
         int maxCombo = 0;
         int holds = 0;
-
+        int maxZonedLines = 0;
 
         Stats(){}
     };
@@ -269,6 +269,7 @@ namespace Tetris
         void endZone();
         void clearBoard();
         void fixConnected(std::list<int>);
+        void connectBoard(int startY, int endY);
 
         int bigBag[35];
 
@@ -339,7 +340,6 @@ namespace Tetris
         std::list<int> historyList;
 
         int pieceDrought[7];
-        int eventTimer = 0;
         bool delaySoftDrop = true;
 
     public:
@@ -385,6 +385,7 @@ namespace Tetris
         int seed = 0;
         int initSeed = 0;
         int initialLevel = 0;
+        int eventTimer = 0;
 
         int entryDelay = 0;
         int areMax = 0;
@@ -515,6 +516,7 @@ namespace Tetris
                                 continue;
                             board[i][j] = i % 7 + 1;
                         }
+                        connectBoard(i, i);
                     }
                 }else{
                     for(int i = (lengthY/4-1); i < lengthY/2; i++){
