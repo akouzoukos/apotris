@@ -3,11 +3,35 @@
 #include "tonc.h"
 #include "sprite1tiles_bin.h"
 #include "sprites.h"
+#include "tonc_core.h"
+#include <string>
+#include "logging.h"
+#include <algorithm>
+
+class SaveChange{
+public:
+    int saveId;
+    int location;
+    int size;
+
+    SaveChange(int _id, int _location, int _size){
+        saveId = _id;
+        location = _location;
+        size = _size;
+    }
+};
 
 void setDefaultKeys();
 void addStats();
 void resetSkins(Save * save);
 void setDefaults(Save * save, int depth);
+void setDefaultGraphics(Save * save, int depth);
+void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize);
+
+const std::list<SaveChange> saveChanges = {
+    SaveChange(0x50,132,20 * 4),//add zone + buffer to keys
+    SaveChange(0x50,3120,4096),// add zone + buffer to scoreboards
+};
 
 void saveToSram() {
     addStats();
@@ -37,7 +61,21 @@ void loadSave() {
     savefile = new Save();
     loadFromSram();
 
-    if (savefile->newGame == 0x4e) {
+    if (savefile->newGame == 0x4f) {
+        const int oldSize = 3876;
+        Save* temp = new Save();
+        u8* tmp = (u8*)temp;
+
+        u8* sf = (u8*)savefile;
+
+        applySaveChanges(tmp, sf, 0x4f, sizeof(Save), oldSize);
+
+        setDefaults(temp,5);
+
+        memcpy32(savefile, temp, sizeof(Save) / 4);
+
+        delete temp;
+    }else if (savefile->newGame == 0x4e) {
         savefile->newGame = SAVE_TAG;
 
         setDefaults(savefile,4);
@@ -53,8 +91,6 @@ void loadSave() {
             tmp[i] = sf[i];
 
         memcpy16(&tmp[sizeof(Settings)+ sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
-
-        temp->newGame = SAVE_TAG;
 
         setDefaults(temp,3);
 
@@ -73,8 +109,6 @@ void loadSave() {
             tmp[i] = sf[i];
 
         memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
-
-        temp->newGame = SAVE_TAG;
 
         setDefaults(temp,2);
 
@@ -96,8 +130,6 @@ void loadSave() {
 
         memcpy16(&tmp[sizeof(Settings) + sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
 
-        temp->newGame = SAVE_TAG;
-
         setDefaults(temp,1);
 
         setDefaultKeys();
@@ -108,7 +140,6 @@ void loadSave() {
 
     } else if (savefile->newGame != SAVE_TAG) {
         savefile = new Save();
-        savefile->newGame = SAVE_TAG;
 
         setDefaults(savefile,0);
 
@@ -123,6 +154,8 @@ void loadSave() {
 
     if ((savefile->settings.rumble < 0) || (savefile->settings.rumble > 4))
         savefile->settings.rumble = 0;
+
+    savefile->newGame = SAVE_TAG;
 
     u8* dump = (u8*)savefile;
     int sum = 0;
@@ -144,6 +177,7 @@ void setDefaultKeys(){
     k.softDrop = KEY_DOWN;
     k.hardDrop = KEY_UP;
     k.hold = KEY_R | KEY_L;
+    k.zone = KEY_SELECT;
 
     savefile->settings.keys = k;
 }
@@ -165,9 +199,6 @@ void setDefaults(Save *save, int depth){
     if(depth < 1){
         save->settings.announcer = true;
         save->settings.finesse = false;
-        save->settings.floatText = true;
-        save->settings.shake = true;
-        save->settings.effects = true;
         save->settings.das = 11;
         save->settings.arr = 2;
         save->settings.sfr = 2;
@@ -192,12 +223,6 @@ void setDefaults(Save *save, int depth){
     }
 
     if(depth < 2){
-        save->settings.edges = false;
-        save->settings.backgroundGrid = 0;
-        save->settings.skin = 0;
-        save->settings.palette = 6;
-        save->settings.shadow = 0;
-        save->settings.lightMode = false;
 
         for (int i = 0; i < 10; i++)
             save->settings.songList[i] = true;
@@ -211,20 +236,10 @@ void setDefaults(Save *save, int depth){
         save->settings.sfxVolume = 10;
         save->settings.directionalDas = false;
         save->settings.noDiagonals = false;
-        save->settings.maxQueue = 5;
-        save->settings.colors = 0;
         save->settings.cycleSongs = true;
         save->settings.dropProtectionFrames = 8;
         save->settings.abHold = true;
-        save->settings.clearEffect = 0;
         save->settings.resetHold = false;
-
-        if(save->settings.shake)
-            save->settings.shakeAmount = 2;
-        else{
-            save->settings.shake = true;
-            save->settings.shakeAmount = 0;
-        }
 
         for (int i = 0; i < 2; i++)
             for (int j = 0; j < 5; j++)
@@ -239,9 +254,7 @@ void setDefaults(Save *save, int depth){
     }
 
     if(depth < 4){
-        save->settings.placeEffect = false;
         save->settings.rumble = 0;
-
     }
 
     if(depth < 5){
@@ -257,11 +270,149 @@ void setDefaults(Save *save, int depth){
             for (int j = 0; j < 5; j++)
                 save->classic[i].highscores[j].score = 0;
 
-        save->stats.timePlayed = 0;
+        // save->stats.timePlayed = 0;
         save->stats.gamesStarted = 0;
         save->stats.gamesCompleted = 0;
         save->stats.gamesLost = 0;
 
         resetSkins(save);
+    }
+
+    if(depth < 6){
+        for (int i = 0; i < 2; i++){
+            for (int j = 0; j < 5; j++){
+                save->master[i].times[j].frames = 0;
+                save->master[i].grade[j] = -1;
+            }
+        }
+
+        for(int i = 0; i < 4; i++)
+            for(int j = 0; j < 5; j++)
+                save->zone[i].highscores[j].score = 0;
+
+        save->settings.diagonalType = save->settings.noDiagonals;
+        save->settings.delaySoftDrop = false;
+        save->settings.customDas = false;
+
+        //check if select is already bound - if not, bind it to zone activation
+        int* keys = (int*) &save->settings.keys;
+
+        bool found = false;
+
+        std::list<int> foundKeys;
+        for(int i = 0; i < 9; i++){
+            foundKeys.clear();
+
+            int k = keys[i];
+            int counter = 0;
+            do{
+                if(k & (1 << counter)){
+                    foundKeys.push_back(1<<counter);
+                    k-= 1 << counter;
+                }
+
+                counter++;
+            }while(k != 0);
+
+            if(std::find(foundKeys.begin(), foundKeys.end(),(int) KEY_SELECT) != foundKeys.end()){
+                found = true;
+                break;
+            }
+        }
+
+        if(!found)
+            save->settings.keys.zone = KEY_SELECT;
+        else
+            save->settings.keys.zone = 0;
+    }
+
+    setDefaultGraphics(save, depth);
+}
+
+bool compareVersion(const SaveChange & first,const SaveChange & second){
+    return first.saveId < second.saveId;
+}
+
+bool compareLocation(const SaveChange & first,const SaveChange & second){
+    return first.location < second.location;
+}
+
+void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize){
+
+    const int diff = newSize - oldSize;
+
+    std::list<SaveChange> sorted = saveChanges;
+
+    //sort by descending location addresses
+    sorted.sort(compareLocation);
+    sorted.reverse();
+
+    //sort by ascending save id
+    sorted.sort(compareVersion);
+
+    int sum = 0;
+    SaveChange previous = SaveChange(0,0,0);
+    for(auto const & change : sorted){
+        if(change.saveId <= version)
+            continue;
+
+        if(previous.saveId != 0 && previous.saveId != change.saveId){
+            memcpy16(newSave,oldSave,previous.location / 2);
+
+            memcpy16(oldSave,newSave,newSize/2);
+
+            previous.location = 0;
+        }
+
+        int count = 0;
+        if(previous.location == 0)
+            count = oldSize-change.location;
+        else
+            count = previous.location - (change.location);
+
+        memcpy16(&newSave[change.location + diff - sum],&oldSave[change.location], (count)/2);
+
+        previous = change;
+        sum += previous.size;
+    }
+
+    if(previous.saveId != 0){
+        memcpy16(newSave,oldSave,previous.location / 2);
+    }
+}
+
+void setDefaultGraphics(Save *save, int depth){
+    if(depth < 1){
+        save->settings.floatText = true;
+        save->settings.shake = true;
+        save->settings.effects = true;
+    }
+
+    if(depth < 2){
+        save->settings.edges = true;
+        save->settings.backgroundGrid = 5;
+        save->settings.skin = 11;
+        save->settings.palette = 5;
+        save->settings.shadow = 3;
+        save->settings.lightMode = false;
+
+    }
+
+    if(depth < 3){
+        save->settings.maxQueue = 5;
+        save->settings.colors = 1;
+        save->settings.clearEffect = 1;
+
+        if(save->settings.shake)
+            save->settings.shakeAmount = 2;
+        else{
+            save->settings.shake = true;
+            save->settings.shakeAmount = 0;
+        }
+    }
+
+    if(depth < 4){
+        save->settings.placeEffect = true;
+        save->settings.backgroundGradient = 0x7dc8;
     }
 }

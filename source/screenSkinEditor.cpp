@@ -274,10 +274,14 @@ static int toolTimer = 0;
 
 static int skinIndex = 0;
 static bool onMini = false;
+static bool refresh = false;
 
 void skinEditor(){
+    EditorScene * s = new EditorScene();
+    changeScene(s);
+
     onMini = false;
-    irq_disable(II_HBLANK);
+    gradient(false);
     memset16(&pal_bg_mem[0],0,1);
     memset16(&se_mem[27], 0x0000, 32 * 20);
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(2);
@@ -323,7 +327,7 @@ void skinEditor(){
         board.setBoard(customSkin,0);
         refreshSkin();
 
-        setSmallTextArea(100, 0, 10, 10, 20);
+        setSmallTextArea(110, 0, 10, 10, 20);
         clearText();
         aprints("Press SELECT",2,64,2);
         aprints("for help",2,72,2);
@@ -338,6 +342,7 @@ void skinEditor(){
         u8 timer = 0;
 
         while(true){
+            canDraw = true;
             VBlankIntrWait();
             key_poll();
 
@@ -400,12 +405,12 @@ void skinEditor(){
 
                         if(board.cursor.x > 0)
                             board.cursor.x--;
-                        else if(board.cursor.x > 5)
+                        if(board.cursor.x > 5)
                             board.cursor.x = 5;
 
                         if(board.cursor.y > 0)
                             board.cursor.y--;
-                        else if(board.cursor.y > 5)
+                        if(board.cursor.y > 5)
                             board.cursor.y = 5;
                     }else{
                         for(int i = 0; i < 8; i++)
@@ -528,7 +533,7 @@ void skinEditor(){
     oam_copy(oam_mem, obj_buffer, 128);
     memset16(&tile_mem[5][200],0,64*4);
 
-    irq_enable(II_HBLANK);
+    gradient(true);
     memset16(&se_mem[25], 0x0000, 32 * 20);
     memset16(&se_mem[26], 0x0000, 32 * 20);
     memset16(&se_mem[27], 0x0000, 32 * 20);
@@ -537,6 +542,9 @@ void skinEditor(){
     REG_BG3VOFS = 0;
     REG_BG3HOFS = 0;
 
+    memset32(&tile_mem[2][110],0,8 * 400);
+    TitleScene* newScene = new TitleScene();
+    changeScene(newScene);
 }
 
 int selector(){
@@ -756,7 +764,8 @@ void refreshSkin(){
         for(int i = 0; i < 8; i++){
             savefile->customSkins[skinIndex].smallBoard.data[i] = customSkin->data[i];
         }
-        buildMini(customSkin);
+
+        refresh = true;
     }
 }
 
@@ -788,7 +797,7 @@ void showMini(){
 
 void helpScreen(){
     sfx(SFX_MENUCONFIRM);
-    setSmallTextArea(100, 8, 1, 24, 21);
+    setSmallTextArea(110, 8, 1, 24, 21);
     clearText();
 
     const int startX = 2;
@@ -842,9 +851,16 @@ void helpScreen(){
 
     REG_DISPCNT |= DCNT_BG0;
     REG_DISPCNT |= DCNT_BG3;
-    setSmallTextArea(100, 0, 10, 10, 20);
+    setSmallTextArea(110, 0, 10, 10, 20);
     clearText();
     aprints("Press SELECT",2,64,2);
     aprints("for help",2,72,2);
     sfx(SFX_MENUCANCEL);
+}
+
+void EditorScene::draw(){
+    if(refresh){
+        refresh = false;
+        buildMini(customSkin);
+    }
 }

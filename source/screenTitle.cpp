@@ -1,4 +1,6 @@
 #include "def.h"
+#include "sprite41tiles_bin.h"
+#include "tetromino.hpp"
 #include "tonc.h"
 #include "text.h"
 #include <string>
@@ -19,73 +21,17 @@ void settingsText();
 void toggleBigMode();
 std::string timeToStringHours(int frames);
 void resetScoreboard(int,int,int);
+void drawBackgroundGrid();
+
+static OBJ_ATTR * levelCursor = &obj_buffer[32];
 
 using namespace Tetris;
 
-class WordSprite {
-public:
-    std::string text = "";
-    int startIndex;
-    int startTiles;
-    int id;
-    OBJ_ATTR* sprites[3];
-
-    void show(int x, int y, int palette) {
-        for (int i = 0; i < 3; i++) {
-            obj_unhide(sprites[i], 0);
-            obj_set_attr(sprites[i], ATTR0_WIDE, ATTR1_SIZE(1), palette);
-            sprites[i]->attr2 = ATTR2_BUILD(startTiles + i * 4, palette, 1);
-            obj_set_pos(sprites[i], x + i * 32, y);
-        }
-    }
-
-    void show(int x, int y, int palette, FIXED scale) {
-        for (int i = 0; i < 3; i++) {
-            int affId = id*3+i;
-            obj_unhide(sprites[i], 0);
-            obj_set_attr(sprites[i], ATTR0_WIDE | ATTR0_AFF, ATTR1_SIZE(1) | ATTR1_AFF_ID(affId), palette);
-            sprites[i]->attr2 = ATTR2_BUILD(startTiles + i * 4, palette, 1);
-            obj_set_pos(sprites[i], x + i * 32, y);
-            obj_aff_identity(&obj_aff_buffer[affId]);
-            obj_aff_scale(&obj_aff_buffer[affId], scale, scale);
-        }
-    }
-
-    void hide() {
-        for (int i = 0; i < 3; i++)
-            obj_hide(sprites[i]);
-    }
-
-    void setText(std::string _text) {
-        if (_text == text)
-            return;
-
-        text = _text;
-
-        TILE* font = (TILE*)fontTiles;
-        for (int i = 0; i < (int)text.length() && i < 12; i++) {
-            int c = text[i] - 32;
-
-            memcpy32(&tile_mem[4][startTiles + i], &font[c], 8);
-        }
-    }
-
-    WordSprite(int _id,int _index, int _tiles) {
-        id = _id;
-        startIndex = _index;
-        startTiles = _tiles;
-
-        for (int i = 0; i < 3; i++) {
-            sprites[i] = &obj_buffer[startIndex + i];
-        }
-    }
-};
-
-#define MAX_WORD_SPRITES 15
 WordSprite* wordSprites[MAX_WORD_SPRITES];
+
 int titleFloat = 0;
 OBJ_ATTR* titleSprites[2];
-u8 backgroundArray[30][30];
+u16 backgroundArray[30][30];
 int bgSpawnBlock = 0;
 int bgSpawnBlockMax = 20;
 int gravity = 0;
@@ -106,23 +52,28 @@ int bigModeMessageTimer = 0;
 int bigModeMessageMax = 180;
 
 const std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-const std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","2P Battle","Training"};
+const std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","Master","2P Battle","Training"};
 
 const int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
 static int selection = 0;
 int goalSelection = 0;
-static int level = 1;
+int level = 1;
 static int toStart = 0;
 static bool onSettings = false;
 int subMode = 0;
 bool proMode = false;
 
+static bool gridDrawn = false;
+
+bool refreshText = true;
+
 void startScreen() {
 
-    int options = (int)menuOptions.size();
+    TitleScene* s = new TitleScene();
+    changeScene(s);
 
-    bool refreshText = true;
+    int options = (int)menuOptions.size();
 
     int maxDas = 16;
     int dasHor = 0;
@@ -138,12 +89,16 @@ void startScreen() {
     int movingTimer = 0;
     int movingDirection = 0;
 
+    refreshText = true;
+
     selection = 0;
 
     VBlankIntrWait();
-    REG_DISPCNT &= ~DCNT_BG1;
     REG_DISPCNT &= ~DCNT_BG3;
     drawUIFrame(0, 0, 30, 20);
+
+    memcpy16(&tile_mem[2][102], sprite37tiles_bin, sprite37tiles_bin_size / 2);
+    memcpy16(&tile_mem[2][105], sprite41tiles_bin, sprite41tiles_bin_size / 2);
 
     setSkin();
     setLightMode();
@@ -153,6 +108,14 @@ void startScreen() {
     playSongRandom(0);
 
     clearText();
+
+    memcpy16(&tile_mem[4][16*7],blockSprite,16);
+    obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
+    obj_hide(levelCursor);
+
+    memset32(&tile_mem[4][256], 0x0000 , MAX_WORD_SPRITES * 12 * 8);
+    for (int i = 0; i < MAX_WORD_SPRITES; i++)
+        wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);
 
     if(goToOptions){
         goToOptions = false;
@@ -168,39 +131,28 @@ void startScreen() {
 
         refreshText = true;
     }else{
+        goalSelection = 0;
+        level = 1;
+
         showTitleSprites();
 
-        for (int i = 0; i < MAX_WORD_SPRITES; i++)
-            wordSprites[i] = new WordSprite(i,64 + i * 3, 256 + i * 12);
-
         //initialise background array
-        for (int i = 0; i < 30; i++)
-            for (int j = 0; j < 30; j++)
-                backgroundArray[i][j] = 0;
+        memset16(backgroundArray, 0, 30 * 30);
 
         oam_copy(oam_mem, obj_buffer, 128);
     }
 
     while (1) {
+
+        canDraw = true;
         VBlankIntrWait() ;
         if (!onSettings) {
-            irq_disable(II_HBLANK);
+            gradient(false);
         } else {
-            irq_enable(II_HBLANK);
-        }
+            if(savefile->settings.backgroundGradient == 0)
+                setDefaultGradient();
 
-        if (refreshText) {
-            refreshText = false;
-            if (onSettings) {
-                REG_DISPCNT |= DCNT_BG1;
-                REG_DISPCNT |= DCNT_BG3;
-            } else {
-                REG_DISPCNT &= ~DCNT_BG1;
-                REG_DISPCNT &= ~DCNT_BG3;
-            }
-
-            startText();
-
+            gradient(true);
         }
 
         key_poll();
@@ -211,6 +163,7 @@ void startScreen() {
 
             fallingBlocks();
             showTitleSprites();
+            obj_hide(levelCursor);
 
             if (savefile->settings.lightMode)
                 memset16(pal_bg_mem, 0x5ad6, 1);//background gray
@@ -221,8 +174,6 @@ void startScreen() {
             startX = 12;
             startY = 11;
 
-            // std::list<std::string>::iterator index = menuOptions.begin();
-            // for (int i = 0; i < (int)menuOptions.size(); i++) {
             int i = 0;
             for(auto const & option : menuOptions){
                 int x = (startX - 5 * onPlay) * 8;
@@ -243,8 +194,6 @@ void startScreen() {
 
             int offset = (int)menuOptions.size();
 
-            // index = gameOptions.begin();
-            // for (int i = 0; i < (int)gameOptions.size(); i++) {
             i = 0;
             for(auto const& option : gameOptions){
                 wordSprites[i + offset]->setText(option);
@@ -259,10 +208,6 @@ void startScreen() {
                     if(moving){
                         y=lerp((startY+(height+movingDirection)*space)*8,y,64*movingTimer);
                     }
-
-                    // FIXED scale = abs(fxdiv(int2fx(y),int2fx((startY+2)*space*8)));
-
-                    // scale = int2fx(1) + fxmul(scale,scale);
 
                     wordSprites[i + offset]->show(x, y, 15 - (selection != i));
 
@@ -282,11 +227,8 @@ void startScreen() {
                 }
             }
 
-            for (int i = 0; i < 5; i++)
-                aprint(" ", startX - 2, startY + space * i);
             if (!onPlay) {
                 aprint(">", startX - 2, startY + space * selection);
-                aprint(" ", 15, startY);
             } else {
                 aprint(">", 15, startY);
             }
@@ -327,6 +269,7 @@ void startScreen() {
                         options = (int)gameOptions.size();
                         movingHor = true;
                         movingDirection = 1;
+                        refreshText = true;
                     } else if (selection == 1) {
                         n = -1;
                         previousSettings = savefile->settings;
@@ -339,12 +282,26 @@ void startScreen() {
                         n = -2;
                     }
 
+                    if(selection != 0){
+                        drawUIFrame(0, 0, 30, 20);
+                    }
+
                 } else {
+                    drawUIFrame(0, 0, 30, 20);
+
+                    moving = false;
+                    movingHor = false;
+                    movingTimer = 0;
+                    movingDirection = 0;
+
                     if (selection == 0) {//marathon
                         n = MARATHON;
-                        options = 3;
+                        options = 4;
                         if(level < 1)
                             level = 1;
+
+                        obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
+                        memcpy16(&tile_mem[4][16*7],blockSprite,16);
                     } else if (selection == 1) {//sprint
                         n = SPRINT;
                         options = 3;
@@ -370,16 +327,26 @@ void startScreen() {
                         n = CLASSIC;
                         if(level > 19)
                             level = 19;
-                    // } else if (selection == 8) {//Big
-                    //     options = 2;
-                    //     n = BIG;
-                    } else if (selection == 8) {//2p Battle
+                        if(level < 1)
+                            level = 1;
+                        obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
+                        memcpy16(&tile_mem[4][16*7],blockSprite,16);
+                    } else if (selection == 8) {//Master
+                        options = 2;
+                        n = MASTER;
+
+                        if(DIAGNOSE)
+                            level = 997;
+                    } else if (selection == 9) {//2p Battle
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 9) {//Training
-                        options = 2;
-                        n = -4;
+                    } else if (selection == 10) {//Training
+                        options = 3;
+                        n = TRAINING;
+                        level = 1;
+                        obj_set_attr(levelCursor, ATTR0_SQUARE, ATTR1_SIZE(0), ATTR2_BUILD(16*7, 5, 0));
+                        memcpy16(&tile_mem[4][16*7],blockSprite,16);
 
                         // sfx(SFX_MENUCONFIRM);
                         // delete game;
@@ -431,6 +398,7 @@ void startScreen() {
                 if (n != 0) {
                     previousOptionScreen = toStart = n;
                     onSettings = true;
+                    gradient(true);
 
                     u16* dest = (u16*)se_mem[25];
                     memset16(dest, 0, 20 * 32);
@@ -453,10 +421,13 @@ void startScreen() {
                     movingHor = true;
                     movingDirection = -1;
                     sfx(SFX_MENUCANCEL);
+                    refreshText = true;
                 }
             }
 
         } else {
+            gridDrawn = false;
+
             for (int i = 0; i < MAX_WORD_SPRITES; i++)
                 wordSprites[i]->hide();
 
@@ -470,6 +441,18 @@ void startScreen() {
 
             if (toStart == MARATHON) {
                 if (selection == 0) {
+                    if (key == KEY_RIGHT && subMode < 1) {
+                        subMode++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && subMode > 0) {
+                        subMode--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+                } else if (selection == 1) {
                     if (key == KEY_RIGHT && level < 20) {
                         level++;
                         sfx(SFX_MENUMOVE);
@@ -507,7 +490,7 @@ void startScreen() {
                     } else {
                         dasHor = 0;
                     }
-                } else if (selection == 1) {
+                } else if (selection == 2) {
                     if (key == KEY_RIGHT && goalSelection < 3) {
                         goalSelection++;
                         sfx(SFX_MENUMOVE);
@@ -624,8 +607,62 @@ void startScreen() {
                         refreshText = true;
                     }
                 }
-            } else if (toStart == -4) {
+
+            }else if (toStart == MASTER){
                 if (selection == 0) {
+                    if (key == KEY_RIGHT && subMode < 1) {
+                        subMode++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && subMode > 0) {
+                        subMode--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+                }
+            } else if (toStart == TRAINING) {
+                if(selection == 0){
+                    if (key == KEY_RIGHT && level < 20) {
+                        level++;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key == KEY_LEFT && level > 1) {
+                        level--;
+                        sfx(SFX_MENUMOVE);
+                        refreshText = true;
+                    }
+
+                    if (key_is_down(KEY_LEFT)) {
+                        if (dasHor < maxDas) {
+                            dasHor++;
+                        } else if (level > 1) {
+                            if (arr++ > maxArr) {
+                                arr = 0;
+                                level--;
+                                sfx(SFX_MENUMOVE);
+                                refreshText = true;
+                            }
+                        }
+                    } else if (key_is_down(KEY_RIGHT)) {
+                        if (dasHor < maxDas) {
+                            dasHor++;
+                        } else if (level < 20) {
+                            if (arr++ > maxArr) {
+                                arr = 0;
+                                level++;
+                                sfx(SFX_MENUMOVE);
+                                refreshText = true;
+                            }
+                        }
+                    } else {
+                        dasHor = 0;
+                    }
+
+                }else if (selection == 1) {
                     if (key == KEY_LEFT || key == KEY_RIGHT) {
                         goalSelection = !goalSelection;
                         sfx(SFX_MENUMOVE);
@@ -664,7 +701,7 @@ void startScreen() {
                         settingsText();
                     }else if (selection == options-1){
                         saveToSram();
-                        irq_enable(II_HBLANK);
+                        gradient(true);
                         onSettings = false;
                         options = (int)menuOptions.size();
                         selection = 0;
@@ -681,7 +718,7 @@ void startScreen() {
                         sfx(SFX_MENUMOVE);
                     }else{
                         saveToSram();
-                        irq_enable(II_HBLANK);
+                        gradient(true);
                         onSettings = false;
                         options = (int)menuOptions.size();
                         selection = 0;
@@ -760,7 +797,7 @@ void startScreen() {
                 }
             }
 
-            if ((key == KEY_A || key == KEY_START) && (toStart >= 0 || toStart == -4)) {
+            if ((key == KEY_A || key == KEY_START) && (toStart >= 0)) {
                 if (selection != options - 1 && toStart != -2 && !(toStart == CLASSIC && !subMode && selection == options - 2)) {
                     selection = options - 1;
 
@@ -772,25 +809,26 @@ void startScreen() {
                 } else {
                     if (toStart != -1 && toStart != -2) {
                         bool training = false;
-                        if(toStart == -4){
-                            toStart = SPRINT;
+                        if(toStart == TRAINING){
                             training = true;
                         }
 
-                        // if(key_is_down(KEY_R)){
-                        //     proMode = true;
-                        // }else{
-                        //     proMode = false;
-                        // }
+                        if(key_is_down(KEY_R) || key_is_down(KEY_L)){
+                            proMode = true;
+                        }else{
+                            proMode = false;
+                        }
 
-                        initialLevel = level - (toStart == CLASSIC);
+                        initialLevel = level - (toStart == CLASSIC || toStart == MASTER);
+                        // initialLevel = 990;
+
                         previousOptionMax = options;
 
                         //START GAME
                         delete game;
                         game = new Game(toStart,bigMode);
                         game->setLevel(initialLevel);
-                        game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->setTuning(getTuning());
                         game->bTypeHeight = goalSelection;
                         game->setSubMode(subMode);
                         mode = goalSelection;
@@ -811,7 +849,7 @@ void startScreen() {
                             else if (goalSelection == 2)
                                 goal = 300;
                             else if (goalSelection == 3)
-                                goal = 0x7fffffff;
+                                goal = 0;
                             break;
                         case SPRINT:
                             if(training)
@@ -848,6 +886,13 @@ void startScreen() {
                         case CLASSIC:
                             if(subMode)
                                 goal = 25;
+                            game->setRotationSystem(NRS);
+                            break;
+                        case MASTER:
+                            // game->setRotationSystem(ARS);
+                            break;
+                        case TRAINING:
+                            goal = 0;
                             break;
                         }
                         game->setGoal(goal);
@@ -873,6 +918,12 @@ void startScreen() {
                         refreshText = true;
                         selection = previousSelection;
                         subMode = 0;
+
+                        if(toStart == -3){
+                            if(linkConnection->isActive())
+                                linkConnection->deactivate();
+                        }
+
                     } else {
                         selection = 0;
                         sfx(SFX_MENUCANCEL);
@@ -885,18 +936,21 @@ void startScreen() {
                     sfx(SFX_MENUCANCEL);
                     savefile->settings = previousSettings;
 
-                        for (int i = 0; i < MAX_CUSTOM_SKINS; i++)
-                            savefile->customSkins[i] = previousSkins[i];
+                    for (int i = 0; i < MAX_CUSTOM_SKINS; i++)
+                        savefile->customSkins[i] = previousSkins[i];
 
                     mmSetModuleVolume(512 * ((float)savefile->settings.volume / 10));
                     setSkin();
                     setLightMode();
+                    setGradient(savefile->settings.backgroundGradient);
                     drawUIFrame(0, 0, 30, 20);
                     refreshText = true;
                     selection = previousSelection;
                 }
 
-                goalSelection = 0;
+                if(!onSettings)
+                    goalSelection = 0;
+
                 sfx(SFX_MENUCONFIRM);
             }
         }
@@ -912,7 +966,7 @@ void startScreen() {
                     movingDirection = -1;
                 }
 
-                if(toStart == CLASSIC && !subMode && selection == 2)
+                if(onSettings && toStart == CLASSIC && !subMode && selection == 2)
                     selection--;
 
                 sfx(SFX_MENUMOVE);
@@ -929,7 +983,7 @@ void startScreen() {
                     movingDirection = 1;
                 }
 
-                if(toStart == CLASSIC && !subMode && selection == 2)
+                if(onSettings && toStart == CLASSIC && !subMode && selection == 2)
                     selection++;
 
                 sfx(SFX_MENUMOVE);
@@ -971,7 +1025,6 @@ void startScreen() {
             }
         }
 
-
         sqran(qran() * frameCounter);
 
         oam_copy(oam_mem, obj_buffer, 128);
@@ -979,7 +1032,7 @@ void startScreen() {
     VBlankIntrWait();
     clearText();
     onSettings = false;
-    irq_disable(II_HBLANK);
+    gradient(false);
     setPalette();
     memset16(pal_bg_mem, 0x0000, 1);
 
@@ -993,13 +1046,14 @@ void startScreen() {
 }
 
 void startText() {
+    clearText();
     char buff[5];
 
     const int titleX = 1;
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.3.0", 0, 19);
+        aprint("v3.4.0", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 
@@ -1010,79 +1064,94 @@ void startText() {
     } else {
         if (toStart == MARATHON) {//Marathon Options
             aprintColor("Marathon",titleX,titleY,1);
-            const int levelHeight = 3;
-            const int goalHeight = 7;
+            const int levelHeight = 6;
+            const int goalHeight = 8;
+            const int modeHeight = 4;
 
-            aprint("Level: ", 12, levelHeight);
-            aprint("Lines: ", 12, goalHeight);
+            const int linesStart = 7;
+
+            aprint("Level:", 2, levelHeight);
+            aprint("Lines:", linesStart, goalHeight);
             aprint("START", 12, 17);
 
-            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
-            aprintColor(" 150   200   300   Endless ", 1, goalHeight + 2, 1);
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight) * 32 + 9;
+            for(int i = 0; i < 15; i++){
+                *dest++ = 102 + (i % 3) + 0xe000;
+            }
 
-            const std::string levelText = std::to_string(level);
-            aprint(levelText, 27 - levelText.length(), levelHeight + 2);
+            aprint("Type:",4,modeHeight);
 
-            aprint(" ", 10, 17);
+            std::string levelText = std::to_string(level);
+            if(level < 10)
+                levelText = " " + levelText;
+            aprint(levelText, 26 , levelHeight);
+
+            std::string goalText = "";
+            switch (goalSelection) {
+                case 0: goalText += "150"; break;
+                case 1: goalText += "200"; break;
+                case 2: goalText += "300"; break;
+                case 3: goalText += "Endless"; break;
+            }
+
+            if(subMode){
+                aprint("Zone",20,modeHeight);
+                aprintColor("Normal",11,modeHeight,1);
+            } else{
+                aprint("Normal",11,modeHeight);
+                aprintColor("Zone",20,modeHeight,1);
+            }
+
             if (selection == 0) {
-                aprint("<", 2, levelHeight + 2);
-                aprint(">", 23, levelHeight + 2);
-            } else if (selection == 1) {
-                switch (goalSelection) {
-                case 0:
-                    aprint("[", 1, goalHeight + 2);
-                    aprint("]", 5, goalHeight + 2);
-                    break;
-                case 1:
-                    aprint("[", 7, goalHeight + 2);
-                    aprint("]", 11, goalHeight + 2);
-                    break;
-                case 2:
-                    aprint("[", 13, goalHeight + 2);
-                    aprint("]", 17, goalHeight + 2);
-                    break;
-                case 3:
-                    aprint("[", 19, goalHeight + 2);
-                    aprint("]", 27, goalHeight + 2);
-                    break;
+                if(subMode){
+                    aprint("[",19,modeHeight);
+                    aprint("]",24,modeHeight);
+                }else{
+                    aprint("[",10,modeHeight);
+                    aprint("]",17,modeHeight);
                 }
+            } else if (selection == 1) {
+                aprint("<", 8, levelHeight);
+                aprint(">", 24, levelHeight);
             } else if (selection == 2) {
+                if(goalSelection > 0)
+                    goalText = "<" + goalText;
+                if(goalSelection < 3)
+                    goalText += ">";
+            } else if (selection == 3) {
                 aprint(">", 10, 17);
             }
 
-            switch (goalSelection) {
-            case 0:
-                aprint("150", 2, goalHeight + 2);
-                break;
-            case 1:
-                aprint("200", 8, goalHeight + 2);
-                break;
-            case 2:
-                aprint("300", 14, goalHeight + 2);
-                break;
-            case 3:
-                aprint("Endless", 20, goalHeight + 2);
-                break;
-            }
+            aprint(goalText,14 + (goalSelection == 0 || selection != 2),goalHeight);
 
-            // show level cursor
-            u16* dest = (u16*)se_mem[29];
-            dest += (levelHeight + 2) * 32 + 2 + level;
-
-            *dest = 0x5061;
+            obj_set_pos(levelCursor, 9 * 8 + 6 * (level - 1) - 1, levelHeight * 8 );
+            obj_unhide(levelCursor,0);
 
             for (int i = 0; i < 5; i++) {
-                posprintf(buff,"%d.",i+1);
-                aprint(buff,3,11+i);
+                if(!subMode){
+                    posprintf(buff,"%d.",i+1);
+                    aprint(buff,3,11+i);
 
-                aprint("                       ", 5, 11 + i);
-                if (savefile->marathon[goalSelection].highscores[i].score == 0)
-                    continue;
+                    if (savefile->marathon[goalSelection].highscores[i].score == 0)
+                        continue;
 
-                aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
-                std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
+                    aprint(savefile->marathon[goalSelection].highscores[i].name, 6, 11 + i);
+                    std::string score = std::to_string(savefile->marathon[goalSelection].highscores[i].score);
 
-                aprint(score, 25 - (int)score.length(), 11 + i);
+                    aprint(score, 25 - (int)score.length(), 11 + i);
+                }else{
+                    posprintf(buff,"%d.",i+1);
+                    aprint(buff,3,11+i);
+
+                    if (savefile->zone[goalSelection].highscores[i].score == 0)
+                        continue;
+
+                    aprint(savefile->zone[goalSelection].highscores[i].name, 6, 11 + i);
+                    std::string score = std::to_string(savefile->zone[goalSelection].highscores[i].score);
+
+                    aprint(score, 25 - (int)score.length(), 11 + i);
+                }
             }
 
         } else if (toStart == SPRINT) {//Sprint Options
@@ -1139,12 +1208,11 @@ void startText() {
             }
 
             for (int i = 0; i < 5; i++) {
+                aprintClearLine(11+i);
                 posprintf(buff,"%d.",i+1);
                 aprint(buff,3,11+i);
                 if(subMode == 0){
-                    aprint("               ", 5, 11 + i);
                     if (savefile->sprint[goalSelection].times[i].frames == 0){
-                        aprint("        ", 17, 11 + i);
                         continue;
                     }
 
@@ -1154,9 +1222,7 @@ void startText() {
                     aprint(time, 25 - (int)time.length(), 11 + i);
 
                 }else if(subMode == 1){
-                    aprint("               ", 5, 11 + i);
                     if (savefile->sprintAttack[goalSelection].times[i].frames == 0){
-                        aprint("        ", 17, 11 + i);
                         continue;
                     }
 
@@ -1398,15 +1464,25 @@ void startText() {
             }
         } else if (toStart == CLASSIC) {//Classic Options
             aprintColor("Classic",titleX,titleY,1);
-            const int levelHeight = 5;
-            const int goalHeight = 1;
+            const int levelHeight = 6;
+            const int goalHeight = 2;
 
-            const int diffHeight = 9;
+            const int diffHeight = 8;
 
-            aprint("Level: ", 12, levelHeight);
+            aprint("Level: ", 2, levelHeight);
             aprint("START", 12, 17);
 
-            aprintColor(" ||||||||||||||||||||    ", 2, levelHeight + 2,1);
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight) * 32 + 9;
+            for(int i = 0; i < 15; i++){
+                *dest++ = 102 + (i % 3) + 0xe000;
+            }
+
+            std::string levelText = std::to_string(level - 1);
+            if(level < 10)
+                levelText = " " + levelText;
+            aprint(levelText, 26 , levelHeight);
+
             aprint("Type:",4,goalHeight+2);
             aprintColor(" A-TYPE   B-TYPE ", 10, goalHeight + 2, 1);
 
@@ -1418,9 +1494,6 @@ void startText() {
             }else{
                 aprint("                      ",4,diffHeight);
             }
-
-            std::string levelText = std::to_string(level-1);
-            aprint(levelText, 27 - levelText.length(), levelHeight + 2);
 
             aprint(" ", 10, 17);
             if (selection == 0) {
@@ -1435,8 +1508,8 @@ void startText() {
                     break;
                 }
             } else if (selection == 1) {
-                aprint("<", 2, levelHeight + 2);
-                aprint(">", 23, levelHeight + 2);
+                aprint("<", 8, levelHeight);
+                aprint(">", 24, levelHeight);
             } else if (selection == 2 && subMode) {
                 aprint("<", 12, diffHeight);
                 aprint(">", 24, diffHeight);
@@ -1450,10 +1523,8 @@ void startText() {
             }
 
             // show level cursor
-            u16* dest = (u16*)se_mem[29];
-            dest += (levelHeight + 2) * 32 + 2 + level;
-
-            *dest = 0x5061;
+            obj_set_pos(levelCursor, 9 * 8 + 6 * (level-1) - 1, levelHeight * 8 );
+            obj_unhide(levelCursor,0);
 
             for (int i = 0; i < 5; i++) {
                 posprintf(buff,"%d.",i+1);
@@ -1468,13 +1539,60 @@ void startText() {
 
                 aprint(score, 25 - (int)score.length(), 11 + i);
             }
+        } else if (toStart == MASTER) {//Master Options
+            aprintColor("Master",titleX,titleY,1);
+
+            const int goalHeight = 4;
+            aprint("  START", 10, 17);
+            aprint("Rules: ", 12, goalHeight);
+            aprintColor(" Normal     Classic ", 5, goalHeight + 2, 1);
+
+            for (int i = 0; i < 5; i++) {
+                aprintClearLine(11+i);
+                posprintf(buff,"%d.",i+1);
+                aprint(buff,3,11+i);
+
+                // aprint("                       ", 5, 11 + i);
+                if (savefile->master[subMode].times[i].frames == 0)
+                    continue;
+
+                aprint(savefile->master[subMode].times[i].name, 6, 11 + i);
+                std::string text;
+                text += GameInfo::masterGrades[savefile->master[subMode].grade[i]];
+                text += " " + timeToString(savefile->master[subMode].times[i].frames);
+
+                aprint(text, 25 - (int)text.length(), 11 + i);
+            }
+
+            if (selection == 0) {
+                switch (subMode) {
+                case 0:
+                    aprint("[", 5, goalHeight + 2);
+                    aprint("]", 12, goalHeight + 2);
+                    break;
+                case 1:
+                    aprint("[", 16, goalHeight + 2);
+                    aprint("]", 24, goalHeight + 2);
+                    break;
+                }
+            } else if (selection == 1) {
+                aprint(">", 10, 17);
+            }
+
+            switch (subMode) {
+            case 0:
+                aprint("Normal", 6, goalHeight + 2);
+                break;
+            case 1:
+                aprint("Classic", 17, goalHeight + 2);
+                break;
+            }
         } else if (toStart == -1) {
+            clearText();
+            settingsText();
             const int startY = 5;
             const int space = 2;
             aprint(" SAVE ", 12, 17);
-
-            for(int i = 0; i < 5; i++)
-                aprint(" ",10,startY+i*space);
 
             if(selection != 5)
                 aprint(">", 10, startY+selection * space);
@@ -1483,6 +1601,7 @@ void startText() {
                 aprint("]",17,17);
             }
         } else if (toStart == -2) {
+            clearText();
             const int startX = 4;
             const int startY = 2;
 
@@ -1511,13 +1630,26 @@ void startText() {
             } else {
                 aprint("Connected!", 10, 6);
             }
-        } else if (toStart == -4) {
+        } else if (toStart == TRAINING) {
             aprintColor("Training",titleX,titleY,1);
 
-            int goalHeight = 9;
+            const int goalHeight = 10;
+            const int levelHeight = 6;
+
             aprint("START", 12, 17);
+            aprint("Level: ", 2, levelHeight);
             aprint("Finesse Training: ", 3, goalHeight);
-            // aprintColor(" 3    5    10 ", 8, goalHeight + 2, 1);
+
+            u16* dest = (u16*)se_mem[29];
+            dest += (levelHeight) * 32 + 9;
+            for(int i = 0; i < 15; i++){
+                *dest++ = 102 + (i % 3) + 0xe000;
+            }
+
+            std::string levelText = std::to_string(level);
+            if(level < 10)
+                levelText = " " + levelText;
+            aprint(levelText, 26 , levelHeight);
 
             if(goalSelection == 0){
                 aprint(" OFF ", 3 + 18, goalHeight);
@@ -1527,25 +1659,21 @@ void startText() {
 
             aprint(" ", 10, 17);
             if (selection == 0) {
+                aprint("<", 8, levelHeight);
+                aprint(">", 24, levelHeight);
+            }else if (selection == 1) {
                 aprint("[", 3 + 18, goalHeight);
                 aprint("]", 3 + 21 + (!goalSelection), goalHeight);
-            } else if (selection == 1) {
+            } else if (selection == 2) {
                 aprint(">", 10, 17);
             }
 
-            // switch (goalSelection) {
-            // case 0:
-            //     aprint("3", 9, goalHeight + 2);
-            //     break;
-            // case 1:
-            //     aprint("5", 14, goalHeight + 2);
-            //     break;
-            // case 2:
-            //     aprint("10", 19, goalHeight + 2);
-            //     break;
-            // }
+            // show level cursor
+            obj_set_pos(levelCursor, 9 * 8 + 6 * (level-1) - 1, levelHeight * 8 );
+            obj_unhide(levelCursor,0);
 
         }
+
     }
 }
 
@@ -1608,6 +1736,9 @@ void showTitleSprites() {
 }
 
 void fallingBlocks() {
+    if(!gridDrawn)
+        drawBackgroundGrid();
+
     gravity++;
     bgSpawnBlock++;
 
@@ -1626,16 +1757,22 @@ void fallingBlocks() {
     }
 
     u16* dest = (u16*)se_mem[25];
+
     for (i = 4+6*bigMode; i < 24+6*bigMode; i++) {
         for (j = 0; j < 30; j++) {
-            if (!backgroundArray[i][j])
-                *dest++ = 2 * (!savefile->settings.lightMode);
-            else{
-                if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
-                    *dest++ = (1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+            if (backgroundArray[i][j]){
+                int n = (backgroundArray[i][j] - 1) & 0xf;
+                int r = backgroundArray[i][j] >> 4;
+
+                if(savefile->settings.skin >= 11)
+                    *dest++ = 128 + GameInfo::connectedConversion[r] + ((n) << 12);
+                else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
+                    *dest++ = (1 + ((n) << 12));
                 else{
-                    *dest++ = (48 + backgroundArray[i][j] - 1 + (((u32)(backgroundArray[i][j] - 1)) << 12));
+                    *dest++ = (48 + n + ((n) << 12));
                 }
+            }else{
+                *dest++ = 0;
             }
         }
         dest += 2;
@@ -1644,7 +1781,7 @@ void fallingBlocks() {
     if (bgSpawnBlock > bgSpawnBlockMax) {
 
         int n = qran() % 7;
-        int** p = game->getShape(n, qran() % 4);
+        int** p = Tetris::getShape(n, qran() % 4,SRS);
 
         bool found = false;
 
@@ -1660,7 +1797,7 @@ void fallingBlocks() {
                 for (i = 0; i < 4; i++)
                     for (j = 0; j < 4; j++)
                         if (p[i][j])
-                            backgroundArray[i][j + x] = n + 1;
+                            backgroundArray[i][j + x] = n + p[i][j];
         }else{
             int x = (qran() % 13) * 2;
 
@@ -1688,8 +1825,8 @@ void fallingBlocks() {
         }
 
         for(i = 0; i < 4; i++)
-            delete p[i];
-        delete p;
+            delete[] p[i];
+        delete[] p;
 
         bgSpawnBlock = 0;
     }
@@ -1766,7 +1903,6 @@ void resetScoreboard(int mode, int goal, int subMode){
     oam_init(obj_buffer, 128);
     oam_copy(oam_mem, obj_buffer, 128);
 
-
     int timer = 0;
 
     int s = 1;
@@ -1821,8 +1957,13 @@ void resetScoreboard(int mode, int goal, int subMode){
 
     switch(mode){
     case MARATHON:
-        for (int j = 0; j < 5; j++)
-            savefile->marathon[goal].highscores[j].score = 0;
+        if(!subMode){
+            for (int j = 0; j < 5; j++)
+                savefile->marathon[goal].highscores[j].score = 0;
+        }else{
+            for (int j = 0; j < 5; j++)
+                savefile->zone[goal].highscores[j].score = 0;
+        }
         break;
     case SPRINT:
         if(!subMode){
@@ -1859,9 +2000,42 @@ void resetScoreboard(int mode, int goal, int subMode){
             savefile->survival[goal].times[j].frames = 0;
         break;
     case CLASSIC:
+        for (int j = 0; j < 5; j++)
+            savefile->classic[subMode].highscores[j].score = 0;
+        break;
+    case MASTER:
+        for (int j = 0; j < 5; j++){
+            savefile->master[subMode].times[j].frames = 0;
+            savefile->master[subMode].grade[j] = -1;
+        }
         break;
     }
 
     saveToSram();
     clearText();
+}
+
+void drawBackgroundGrid(){
+    gridDrawn = true;
+
+    u16 * dest = (u16*) &se_mem[26];
+
+    for(int i = 0; i < 20; i++){
+        for(int j = 0; j < 30; j++){
+            *dest++ = 2 * (!savefile->settings.lightMode);
+        }
+        dest+=2;
+    }
+}
+
+void TitleScene::draw(){
+    if(refreshText){
+        refreshText = false;
+        startText();
+        if (onSettings) {
+            REG_DISPCNT |= DCNT_BG3;
+        } else {
+            REG_DISPCNT &= ~DCNT_BG3;
+        }
+    }
 }

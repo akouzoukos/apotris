@@ -1,14 +1,21 @@
+#include "def.h"
 #include "tetromino.hpp"
 #include "tetrisEngine.h"
 #include <iostream>
 #include <string>
+#include <algorithm>
+#include <tuple>
 #include "tonc.h"
 #include "logging.h"
+#include "posprintf.h"
 
 using namespace Tetris;
 using namespace GameInfo;
 
+int getNbr(int** board,int x, int y, int ex, int sy, int ey);
+
 int Game::checkRotation(int dx, int dy, int r) {
+
     int x = dx + pawn.x;
     int y = dy + pawn.y;
 
@@ -16,7 +23,6 @@ int Game::checkRotation(int dx, int dy, int r) {
     for (int i = 0; i < 4; i++) {
         if(total >= 4)
             break;
-
 
         for (int j = 0; j < 4; j++) {
             if (pawn.board[r][i][j] == 0)
@@ -45,182 +51,295 @@ int Game::checkRotation(int dx, int dy, int r) {
     return 1;
 }
 
-void Pawn::setBlock(bool alt) {
-    for (int i= 0; i < 4; i++){
-        for (int j = 0; j < 4; j++){
-            for (int k = 0; k < 4; k++){
-                if(!alt)
-                    board[i][j][k] = tetraminos[current][i][j][k];
-                else
-                    board[i][j][k] = classic[current][i][j][k];
+int Game::checkSpecialRotation(int dx, int r){
+    int x = dx + pawn.x;
+
+    int total = 0;
+    for (int i = 0; i < 4; i++) {
+        if(total >= 4)
+            break;
+
+
+        for (int j = 0; j < 4; j++) {
+            if (pawn.board[r][i][j] == 0)
+                continue;
+
+            total++;
+
+            if(!pawn.big){
+                if (x + j < 0 || x + j > lengthX - 1 || pawn.y + i < 0 || pawn.y + i > lengthY - 1 || board[i+pawn.y][j+x] != 0)
+                    return i * 4 + j + 1;
+            }else{
+                for(int k = 0; k < 2; k++){
+                    for(int l = 0; l < 2; l++){
+                        int xoffset = (x+j) * 2 + l;
+                        int yoffset = (pawn.y+i) * 2 + k;
+                        if (xoffset < 0 || xoffset > lengthX - 1 || yoffset < 0 || yoffset > lengthY - 1 || board[yoffset][xoffset] != 0)
+                            return i * 4 + j + 1;
+                    }
+                }
             }
+
+            if(total >= 4)
+                break;
         }
     }
+
+    return 0;
+}
+
+void Pawn::setBlock(int system) {
+    for (int i= 0; i < 4; i++){
+        int ** shape = getShape(current,i,system);
+
+        for(int iy = 0; iy < 4; iy++){
+            for(int ix = 0; ix < 4; ix++){
+                board[i][iy][ix] = shape[iy][ix];
+            }
+        }
+
+        for(int j = 0; j < 4; j++)
+            delete[] shape[j];
+        delete[] shape;
+    }
+}
+
+int getNbr(int **board, int x, int y, int ex, int sy , int ey){
+    int count = 0;
+
+    if(y - 1 >= sy && board[y-1][x])
+        count++;
+    if(y + 1 <= ey-1 && board[y+1][x])
+        count++;
+    if(x - 1 >= 0 && board[y][x-1])
+        count++;
+    if(x + 1 <= ex-1 && board[y][x+1])
+        count++;
+
+    if(y - 1 >= sy && board[y-1][x] && x - 1 >= 0 && board[y][x-1] && board[y-1][x-1])
+        count++;
+    if(y - 1 >= sy && board[y-1][x] && x + 1 <= ex && board[y][x+1] && board[y-1][x+1])
+        count++;
+    if(y + 1 <= ey && board[y+1][x] && x - 1 >= 0 && board[y][x-1] && board[y+1][x-1])
+        count++;
+    if(y + 1 <= ey && board[y+1][x] && x + 1 <= ex && board[y][x+1] && board[y+1][x+1])
+        count++;
+
+    return count;
 }
 
 void Game::rotateCW() {
-    if (clearLock || entryDelay){
-        initialRotate++;
-        if(initialRotate > 3)
-            initialRotate = 0;
-        return;
-    }
-
-    moveCounter++;
-    lastMoveRotation = 1;
-    for (int i = 0; i < 5; i++) {
-        int dx = kicks[(pawn.current == 0)][0][pawn.rotation][i][0];
-        int dy = kicks[(pawn.current == 0)][0][pawn.rotation][i][1];
-        int r = (pawn.rotation == 3) ? 0 : pawn.rotation + 1;
-        
-        if (checkRotation(dx, dy, r)) {
-            pawn.rotation = r;
-
-            lockCheck();
-            pawn.x += dx;
-            pawn.y += dy;
-
-            pawn.setBlock(gameMode == CLASSIC);
-            sounds.rotate = 1;
-
-            lastMoveDx = dx;
-            lastMoveDy = dy;
-
-            if(i == 4 && pawn.current == 5)
-                specialTspin = true;
-            
-            moveHistory.push_back(4);
-
-            return;
-        }else
-			sounds.invalid = 1;
-
-        if(gameMode == CLASSIC)
-            break;
-    }
+    rotate(1);
 }
 
 void Game::rotateCCW() {
-    if (clearLock || entryDelay){
-        initialRotate--;
-        if(initialRotate < 0)
-            initialRotate = 3;
-        return;
-    }
-
-    moveCounter++;
-    lastMoveRotation = -1;
-    for (int i = 0; i < 5; i++) {
-        int dx = kicks[(pawn.current == 0)][1][pawn.rotation][i][0];
-        int dy = kicks[(pawn.current == 0)][1][pawn.rotation][i][1];
-        int r = (pawn.rotation == 0) ? 3 : pawn.rotation - 1;
-        
-        if (checkRotation(dx, dy, r)) {
-            pawn.rotation = r;
-
-            lockCheck();
-            pawn.x += dx;
-            pawn.y += dy;
-
-            pawn.setBlock(gameMode == CLASSIC);
-            sounds.rotate = 1;
-
-            lastMoveDx = dx;
-            lastMoveDy = dy;
-            
-            if(i == 4 && pawn.current == 5)
-                specialTspin = true;
-            
-            moveHistory.push_back(5);
-
-            return;
-        }else
-			sounds.invalid = 1;
-
-        if(gameMode == CLASSIC)
-            break;
-    }
+    rotate(-1);
 }
 
 void Game::rotateTwice() {
-    if (clearLock || entryDelay || gameMode == CLASSIC){
-        if(gameMode != CLASSIC){
-            initialRotate+=2;
-            if(initialRotate > 3)
-                initialRotate = 0;
-        }
+    if(rotationSystem != SRS)
+        return;
+
+    rotate(2);
+}
+
+void Game::rotate(int dir){
+    if ((clearLock || entryDelay)){
+        initialRotate += dir;
+
+        if(initialRotate > 3)
+            initialRotate -= 4;
+        else if(initialRotate < 0)
+            initialRotate += 4;
+
+        return;
+    }else if(eventLock){
         return;
     }
 
+    int dx = 0;
+    int dy = 0;
+    int r = pawn.rotation + dir;
+    if(r > 3)
+        r -= 4;
+    else if(r < 0)
+        r += 4;
+
     moveCounter++;
-    lastMoveRotation = 1;
-    for (int i = 0; i < 6; i++) {
-        int dx = kickTwice[pawn.rotation][i][0];
-        int dy = kickTwice[pawn.rotation][i][1];
-        int r = pawn.rotation + 2;
-        if(r > 3)
-            r -= 4;
+    lastMoveRotation = dir;
 
-        if (checkRotation(dx, dy, r)) {
-            pawn.rotation = r;
+    if(rotationSystem == SRS){
+        for (int i = 0; i < 5 + (dir > 1); i++) {
+            int dx;
+            int dy;
+            if(dir <= 1){
+                dx = kicks[(pawn.current == 0)][(dir < 0)][pawn.rotation][i][0];
+                dy = kicks[(pawn.current == 0)][(dir < 0)][pawn.rotation][i][1];
+            }else{
+                dx = kickTwice[pawn.rotation][i][0];
+                dy = kickTwice[pawn.rotation][i][1];
+            }
 
-            lockCheck();
-            pawn.x += dx;
-            pawn.y += dy;
+            if (checkRotation(dx, dy, r)) {
+                rotatePlace(dir,dx,dy,r);
+                return;
 
-            pawn.setBlock(gameMode == CLASSIC);
-            sounds.rotate = 1;
+            }else{
+                sounds.invalid = 1;
+            }
+        }
 
-            moveHistory.push_back(7);
-
-            lastMoveDx = dx;
-            lastMoveDy = dy;
-
+    }else if(rotationSystem == NRS){
+        if(checkRotation(0, 0, r)){
+            rotatePlace(dir,dx,dy,r);
             return;
         }else
-			sounds.invalid = 1;
+            sounds.invalid = 1;
+
+    }else if(rotationSystem == ARS){
+
+        if((pawn.current == 1 || pawn.current == 2 || pawn.current == 5) && (pawn.rotation % 2 == 0)){
+            int n = checkSpecialRotation(0, r);
+            if((n-1) % 4 == 1)
+                return;
+        }else if(pawn.current == 0){
+            if(checkRotation(0, 0, r)){
+                rotatePlace(dir,dx,dy,r);
+                return;
+            }else{
+                int touching = checkITouching(r, (pawn.rotation % 2 == 0));
+                if(pawn.rotation % 2 == 1){
+                    if(touching == 1)
+                        dx = 2;
+                    else
+                        dx = -1;
+                }else{
+                    if(touching)
+                        dy = -2;
+                }
+
+                if(checkRotation(dx, dy, r)){
+                    rotatePlace(dir,dx,dy,r);
+                    return;
+                }else
+                    sounds.invalid = 1;
+            }
+            return;
+        }
+
+        for(int i = 0; i < 3; i++){
+            dx = 0;
+            dy = 0;
+
+            if(i == 1 && pawn.current == 5 && r == 2){
+                dy = -1;
+            }else if(i == 1)
+                dx = 1;
+            else if(i == 2)
+                dx = -1;
+
+            if(checkRotation(dx, dy, r)){
+                rotatePlace(dir,dx,dy,r);
+
+                if((pawn.current == 0 || pawn.current == 5) && dy)
+                    stopLockReset = true;
+
+                return;
+            }else
+                sounds.invalid = 1;
+
+            if(dy)
+                break;
+        }
     }
 }
 
-void Game::moveLeft() {
+void Game::rotatePlace(int dir, int dx, int dy, int r){
+    pawn.rotation = r;
+
+    lockCheck();
+    pawn.x += dx;
+    pawn.y += dy;
+
+    pawn.setBlock(rotationSystem);
+    sounds.rotate = 1;
+
+    switch(dir){
+        case -1: moveHistory.push_front(5); break;
+        case  1: moveHistory.push_front(4); break;
+        case  2: moveHistory.push_front(6); break;
+    }
+
+    lastMoveDx = dx;
+    lastMoveDy = dy;
+}
+
+bool Game::moveLeft() {
+    if(das != maxDas)
+        moveHistory.push_back(0);
+    else if(!(moveHistory.size() > 0 && moveHistory.back() == 2)){
+        if(moveHistory.size() > 0 && moveHistory.back() == 0)
+            moveHistory.pop_back();
+
+        moveHistory.push_back(2);
+    }
+
     if (checkRotation(-1, 0, pawn.rotation)) {
         pawn.x--;
         sounds.shift = 1;
         lastMoveRotation = 0;
         lockCheck();
+        return true;
     }else{
         pushDir = -1;
         if(gameMode == CLASSIC)
             das = maxDas;
+        return false;
     }
 }
 
-void Game::moveRight() {
+bool Game::moveRight() {
+    if(das != maxDas)
+        moveHistory.push_back(1);
+    else if(!(moveHistory.size() > 0 && moveHistory.back() == 3)){
+        if(moveHistory.size() > 0 && moveHistory.back() == 1)
+            moveHistory.pop_back();
+
+        moveHistory.push_back(3);
+    }
+
     if (checkRotation(1, 0, pawn.rotation)) {
         pawn.x++;
         sounds.shift = 1;
         lastMoveRotation = 0;
         lockCheck();
+        return true;
     }else{
         pushDir = 1;
         if(gameMode == CLASSIC)
             das = maxDas;
+        return false;
     }
 }
 
 void Game::moveDown() {
     if (checkRotation(0, 1, pawn.rotation)){
         pawn.y++;
+
+        if(rotationSystem == ARS && !stopLockReset)
+            lockTimer = maxLockTimer;
+
         if(gameMode != CLASSIC)
             sounds.shift = 1 ;
         lastMoveRotation = 0;
-    }else if(gameMode == CLASSIC){
+    }else if(rotationSystem == NRS || rotationSystem == ARS){
         place();
+        down = 0;
     }
 }
 
 void Game::hardDrop() {
-    if (clearLock || dropLockTimer)
+    if (clearLock || eventLock || dropLockTimer || entryDelay)
         return;
 
     int diff = pawn.lowest - pawn.y;
@@ -232,7 +351,7 @@ void Game::hardDrop() {
     for(int j = 0; j < 4; j++){
         bool escape = false;
         for(int i = 0; i < 4; i++){
-            if(pawn.board[pawn.rotation][i][j] == 1){
+            if(pawn.board[pawn.rotation][i][j] != 0){
                 offset = j;
                 escape = true;
                 break;
@@ -243,7 +362,7 @@ void Game::hardDrop() {
     }
 
     std::list<int> bestFinesse = getBestFinesse(pawn.current,pawn.x+offset,pawn.rotation);
-    previousBest = bestFinesse;//for debugging
+    previousBest = bestFinesse;
 
     int difference = 0;
     bool correct = false;
@@ -263,6 +382,7 @@ void Game::hardDrop() {
 
     if(!correct && !softDrop){
         finesseFaults += difference;
+        finesseStreak = 0;
 
         if(trainingMode){
             canHold = true;
@@ -284,11 +404,14 @@ void Game::hardDrop() {
 
             return;
         }
+    }else{
+        finesseStreak++;
     }
 
     pawn.y = pawn.lowest;
 
-    place();
+    if(rotationSystem != ARS)
+        place();
 
     score += diff * 2;
 
@@ -298,93 +421,31 @@ void Game::hardDrop() {
 void Game::update() {
     if (lost)
         return;
-    timer++;
 
-    if(pawn.current == -1 && !entryDelay)
-        next();
+    if(!disappearing)
+        timer++;
+    else
+        eventTimer++;
 
     if(dropLockTimer)
         dropLockTimer--;
 
+    if(zoneTimer > 1){
+        zoneTimer--;
+    }
+
     if (clearLock)
         return;
 
+    if(!disappearing)
+        inGameTimer++;
+
     if (entryDelay){
         entryDelay--;
-        return;
-    }
-    
-    if(gameMode == BATTLE){
-        auto index = garbageQueue.begin();
-
-        while(index != garbageQueue.end()){
-            if(index->timer){
-                index->timer--;
-            }
-            ++index;
-        }
     }
 
-    if(gameMode == SURVIVAL){
-        int rate = 60 * (4-goal);
-        if(timer % rate == 0){
-            generateGarbage(1,0);
-            refresh = 1;
-
-            while(!checkRotation(0,0,pawn.rotation))
-                pawn.y--;
-        }
-    }
-
-    if((linesCleared >= goal && gameMode == SPRINT && goal && subMode == 0) ||
-       (linesSent >= goal && gameMode == SPRINT && goal && subMode == 1) ||
-       (linesCleared >= goal && gameMode == MARATHON) ||
-       (garbageCleared >= goal && gameMode == DIG) ||
-       (timer > goal && (gameMode == ULTRA || gameMode == BLITZ)) ||
-       (linesCleared >= goal && gameMode == CLASSIC && goal)){
-       won = 1;
-       if(gameMode == CLASSIC && goal){
-           score+= (level + bTypeHeight) * 1000;
-       }
-    }
-
-    if (gameMode == MARATHON)
-        speed = gravity[(level < 19) ? level - 1 : 18];
-    else if(gameMode == BLITZ)
-        speed = blitzGravity[(level < 15) ? level - 1 : 14];
-    else if(gameMode == CLASSIC)
-        speed = classicGravity[(level < 30) ? level: 29];
-    else
-        speed = gravity[0];
-
-    if(gracePeriod){
-        gracePeriod--;
-    }else
-        speedCounter += speed;
-
-    int n = (int)speedCounter;
-    for (int i = 0; i < n; i++) {
-        if (checkRotation(0, 1, pawn.rotation)){
-            pawn.y++;
-        }else if(gameMode == CLASSIC){
-            place();
-        }
-    }
-
-    speedCounter -= n;
-
-    pawn.lowest = lowest();
-
-    if(dropping){
-        hardDrop();
-        dropping = false;
-        return;
-    }else{
-        if (pawn.lowest == pawn.y)
-            lockTimer--;
-
-        if (lockTimer == 0 && gameMode != CLASSIC)
-            place();
+    if(pawn.current == -1 && !entryDelay){
+        next();
     }
 
     if (!(left || right)){
@@ -396,8 +457,11 @@ void Game::update() {
         das++;
     }
 
+    if(entryDelay)
+        return;
+
     if (das == maxDas && !(left && right)) {
-        if (--arrCounter <= 0) {
+        if (arr >= 0 && --arrCounter <= 0) {
             for(int i = 0; i < 1 + (arr == 0); i++){//move piece twice if arr is 0
                 if(gameMode == CLASSIC && down)
                     continue;
@@ -408,26 +472,131 @@ void Game::update() {
                     moveRight();
             }
             arrCounter = arr;
+        }else if(arr < 0){
+            bool c = true;
+            while(c){
+                if(left)
+                    c = moveLeft();
+                else if(right)
+                    c = moveRight();
+            }
+        }
+    }
+    
+    if(gameMode == BATTLE){
+        auto index = garbageQueue.begin();
+
+        while(index != garbageQueue.end()){
+            if(index->timer){
+                index->timer--;
+            }
+            ++index;
+        }
+    }else if(gameMode == SURVIVAL){
+        int rate = 60 * (4-goal);
+        if(timer % rate == 0){
+            generateGarbage(1,0);
+            refresh = 1;
+
+            while(!checkRotation(0,0,pawn.rotation))
+                pawn.y--;
+        }
+    }else if(gameMode == MASTER && !disappearing){
+        if(level < 500 && timer >= 25200)
+            won = 1;
+
+        if(decayTimer && comboCounter < 2){
+            decayTimer--;
+        }else{
+            decayTimer = gradeTable[internalGrade][1];
+            if(gradePoints)
+                gradePoints--;
+        }
+    }
+
+    if((linesCleared >= goal && gameMode == SPRINT && goal && subMode == 0) ||
+       (linesSent >= goal && gameMode == SPRINT && goal && subMode == 1) ||
+       (goal && linesCleared >= goal && gameMode == MARATHON) ||
+       (garbageCleared >= goal && gameMode == DIG) ||
+       (timer > goal && (gameMode == ULTRA || gameMode == BLITZ)) ||
+       (linesCleared >= goal && gameMode == CLASSIC && goal)){
+       won = 1;
+       if(gameMode == CLASSIC && goal){
+           score+= (level + bTypeHeight) * 1000;
+       }
+    }else if(disappearing && (eventTimer) >= CREDITS_LENGTH){
+        won = 1;
+
+        creditGrade += creditPoints[4][disappearing-1];
+    }
+
+    if(gracePeriod){
+        gracePeriod--;
+    }else if(!zoneTimer)
+        speedCounter += speed;
+
+    int n = (int)speedCounter;
+    for (int i = 0; i < n; i++) {
+        if (checkRotation(0, 1, pawn.rotation)){
+            pawn.y++;
+            if(rotationSystem == ARS)
+                lockTimer = maxLockTimer;
+        }else if(rotationSystem == NRS){
+            place();
+        }
+    }
+
+    speedCounter -= n;
+
+    pawn.lowest = lowest();
+
+    bool placed = false;
+
+    if(dropping){
+        hardDrop();
+        dropping = false;
+        return;
+    }else{
+        if (pawn.lowest == pawn.y && !zoneTimer)
+            lockTimer--;
+
+        if (lockTimer == 0 && rotationSystem != NRS){
+            place();
+            placed = true;
         }
     }
 
     if (down) {
-        if(gameMode == CLASSIC)
+        if(rotationSystem == NRS || gameMode == MASTER)
             softDropCounter = maxDas;
         else if (softDropCounter < maxDas)
             softDropCounter++;
     }else
         softDropCounter = 0;
 
-    if (softDropCounter == maxDas) {
-        if(++softDropRepeatTimer >= softDropSpeed){
-            for(int i = 0; i < 1 + (softDropSpeed ==0); i++) // move piece twice if softDropSpeed is 0
+    if (((!delaySoftDrop && down) || softDropCounter == maxDas) && !placed) {
+        if(softDropSpeed >= 0 && ++softDropRepeatTimer >= softDropSpeed){
+            int n = 1 + (softDropSpeed == 0); // move piece twice if softDropSpeed is 0
+
+            for(int i = 0; i < n; i++){
                 moveDown();
-            if (pawn.y != pawn.lowest)
-                score++;
+                if (pawn.y != pawn.lowest)
+                    score++;
+            }
             softDropRepeatTimer = 0;
+        }else if (softDropSpeed < 0){
+            int n = pawn.lowest - pawn.y;
+
+            pawn.y = pawn.lowest;
+            score+=n;
         }
     }
+
+    if(disappearing)
+        updateDisappear();
+
+    while((int)moveHistory.size() > 10)
+        moveHistory.pop_front();
 }
 
 int Game::lowest() {
@@ -468,7 +637,6 @@ int Game::lowest() {
                 }
             }
         }
-
     }
     
     return pawn.y;
@@ -490,7 +658,11 @@ void Game::place() {
                 if (y > lengthY - 1 || x > lengthX)
                     continue;
 
-                board[y][x] = pawn.current + 1;
+                board[y][x] = pawn.current + pawn.board[pawn.rotation][i][j];
+                if(disappearing == 1)
+                    disappearTimers[y][x] = MAX_DISAPPEAR;
+                else if(disappearing == 2)
+                    disappearTimers[y][x] = 1;
             }else{
                 x *=2;
                 y *=2;
@@ -500,7 +672,12 @@ void Game::place() {
                         if (y+k > lengthY - 1 || x+l > lengthX)
                             continue;
 
-                        board[y+k][x+l] = pawn.current + 1;
+                        // board[y+k][x+l] = pawn.current + 1;
+                        board[y+k][x+l] = pawn.current + pawn.board[pawn.rotation][i][j];
+                        if(disappearing == 1)
+                            disappearTimers[y+k][x+l] = MAX_DISAPPEAR;
+                        else if(disappearing == 2)
+                            disappearTimers[y][x] = 1;
                     }
                 }
             }
@@ -523,40 +700,22 @@ void Game::place() {
 
     lastDrop = calculateDrop();
 
+    int prevLevel = level;
+
     if (clear(lastDrop)){
-        if(gameMode != CLASSIC)
+        if(rotationSystem != NRS)
             comboCounter++;
         else
             comboCounter = 1;
 
-        if(gameMode == COMBO){
-            if(!pawn.big){
-                for(int i = lengthY/2-1; i < lengthY; i++){
-                    if(board[i][0] != 0)
-                        break;
-                    for(int j = 0; j < 10; j++){
-                        if(j > 2 && j < 7)
-                            continue;
-                        board[i][j] = (i+comboCounter) % 7 + 1;
-                    }
-                }
-            }else{
-                for(int i = (lengthY/2-1)/2; i < lengthY/2; i++){
-                    if(board[i*2][0] != 0)
-                        break;
-                    board[i*2][0] = (i*2+comboCounter) % 7 + 1;
-                    board[i*2][1] = (i*2+comboCounter) % 7 + 1;
-                    board[i*2+1][0] = (i*2+comboCounter) % 7 + 1;
-                    board[i*2+1][1] = (i*2+comboCounter) % 7 + 1;
-                }
-            }
-        }
+        if(gameMode == MASTER)
+            entryDelay = lineAre;
 
     } else{
         if(gameMode == COMBO && comboCounter)
             lost = 1;
-        comboCounter = 0;
 
+        comboCounter = 0;
 
         int targetHeight = 9;
         if(pawn.big)
@@ -581,33 +740,52 @@ void Game::place() {
             }
             generateGarbage(sum,1);
         }
-    }
 
+        if(gameMode == MASTER)
+            entryDelay = areMax;
+    }
 
     if(comboCounter > statTracker.maxCombo)
         statTracker.maxCombo = comboCounter;
 
-    if(gameMode == CLASSIC){
+    if(rotationSystem == NRS){
         int add = 0;
         while(pawn.y + add < lengthY-3)
             add+=4;
 
         entryDelay = 10 + add;
 
-        pawn.current = -1;
-
         down = 0;
+    }else if (gameMode == MASTER){
+
+        if(level % 100 < 99 && level < 998)
+            level++;
+
+        if (level % 100 >= 70 && prevLevel % 100 < 70){
+            if(sectionTimeGoal[(level / 100)][0] > timer-sectionStart && (timer-sectionStart < previousSectionTime+120))
+                cool = true;
+        }else if(cool && level % 100 >= 82 && prevLevel % 100 < 82){
+            sounds.section = 1;
+        }else if((level % 100 == 99 && prevLevel % 100 < 99 && level != 999) || (level == 998 && prevLevel != 998)){
+            sounds.section = 2;
+        }
     }
 
-    if (!clearLock && !entryDelay)
+    if(entryDelay)
+        pawn.current = -1;
+
+    if (!clearLock && !entryDelay && !(zoneTimer == 1 && comboCounter > 0))
         next();
 
     canHold = true;
+
     lockTimer = maxLockTimer;
     lockMoveCounter = 15;
+    dropLockTimer = dropLockMax;
+    stopLockReset = false;
+
     sounds.place = 1;
     refresh = 1;
-    dropLockTimer = dropLockMax;
 
     pushDir = 0;
     previousKey = 0;
@@ -615,11 +793,16 @@ void Game::place() {
 
     moveHistory.clear();
 
-    if(das == maxDas)
-        moveHistory.push_back(2+(right));
+    if(zoneTimer == 1)
+        endZone();
+
+    if(maxClearDelay == 1 && clearLock){
+        removeClearLock();
+    }
 }
 
 int Game::clear(Drop drop) {
+
     int clearCount = 0;
     int attack = 0;
     int isTSpin = 0;
@@ -648,7 +831,7 @@ int Game::clear(Drop drop) {
             if (x < 0)
                 backCount = 2;
             else
-                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
+                backCount += (board[y][x] != 0) + (board[y + offset][x] != 0);
             break;
         case 2:
             frontCount += (board[y + offset][x] != 0) + (board[y + offset][x + offset] != 0);
@@ -670,18 +853,61 @@ int Game::clear(Drop drop) {
 
     //check for lines to clear
     int garbageToRemove = 0;
+    int zonedBefore = zonedLines;
+
+    std::list<int> linesToMove;
+
     for (int i = 0; i < lengthY; i++) {
-        int toClear = 1;
+        bool toClear = true;
         for (int j = 0; j < lengthX; j++)
             if (board[i][j] == 0)
-                toClear = 0;
+                toClear = false;
 
         if (toClear) {
-            linesToClear.push_back(i);
-            clearCount++;
-            if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
-                garbageToRemove++;
+            if(!zoneTimer){
+                linesToClear.push_back(i);
+                clearCount++;
+                if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
+                    garbageToRemove++;
+            }else{
+                linesToMove.push_back(i);
+            }
         }
+    }
+
+    if(!linesToMove.empty()) {
+
+        fixConnected(linesToMove);
+
+        int offset = 0;
+        for(auto const& line : linesToMove){
+            int i = line - offset;
+            if(i >= lengthY-zonedLines)
+                break;
+
+            for(int ii = i; ii < lengthY-1-zonedLines; ii++)
+                for (int j = 0; j < lengthX; j++)
+                    board[ii][j] = board[ii+1][j];
+
+            zonedLines++;
+
+            for (int j = 0; j < lengthX; j++)
+                board[lengthY-zonedLines][j] = 9;
+
+            offset++;
+        }
+
+        if (zonedLines > zonedBefore) {
+            sounds.clear = 1;
+            clearCount = zonedLines - zonedBefore;
+        }
+
+        if (!inversion && zonedLines >= 8 && sounds.zone != -1) {
+            inversion = true;
+            sounds.zone = 2;
+        }
+
+        linesToMove.clear();
     }
 
     if(pawn.big)
@@ -694,7 +920,8 @@ int Game::clear(Drop drop) {
         if(pawn.big)
             clearCount/=2;
 
-        linesCleared+=clearCount;
+        if(!zoneTimer)
+            linesCleared+=clearCount;
 
         for (int j = 0; j < lengthY; j++) {
             bool skip = false;
@@ -719,10 +946,22 @@ int Game::clear(Drop drop) {
     if (clearCount == 0)
         return 0;
 
+    fixConnected(linesToClear);
+
     //check for level up
     int prevLevel = level;
     if(gameMode == MARATHON){
         level = ((int)linesCleared / 10) + 1;
+        if(subMode && !zonedLines){
+            if(zoneCharge < 32){
+                if(zoneCharge + clearCount >= 32){
+                    sounds.meter = 1;
+                    zoneCharge = 32;
+                } else
+                    zoneCharge += clearCount;
+            }
+
+        }
     }else if(gameMode == BLITZ){
         for(int i = 0; i < 15; i++){
             if(linesCleared < blitzLevels[i]){
@@ -739,6 +978,66 @@ int Game::clear(Drop drop) {
         }else{
             level = ((int)linesCleared / 10);
         }
+    }else if(gameMode == MASTER && level < 999){
+        level += clearCount + (clearCount > 2) + (clearCount > 3);
+
+        if(level > 999)
+            level = 999;
+
+        if(level == 999 && !disappearing){
+        // }else if(level >= 999 && !disappearing){
+
+            disappearing = 1 + (coolCount == 9);
+
+            disappearTimers = new u16*[lengthY];
+            for(int i = 0; i < lengthY; i++){
+                disappearTimers[i] = new u16[lengthX];
+                for(int j = 0; j < lengthX; j++)
+                    disappearTimers[i][j] = 0;
+            }
+
+            sectionStart = timer;
+
+            eventLock = true;
+
+            for(int i = 0; i < lengthY; i++)
+                for(int j = 0; j < lengthX; j++)
+                    board[i][j] = 0;
+        }
+
+        int currentSectionLevel = level / 100 ;
+
+        if(currentSectionLevel > prevLevel / 100){
+            int currentSession = timer-sectionStart;
+
+            if(cool){
+                coolCount++;
+                cool = false;
+            }
+
+            if(currentSession > sectionTimeGoal[currentSectionLevel-1][1]){//regret
+                if(grade){
+                    int newInternal = 31;
+                    while(newInternal != 0 && gradeTable[newInternal][0] >= grade)
+                        newInternal--;
+
+                    internalGrade = newInternal;
+                    grade--;
+                    gradePoints = 0;
+                    regretCount++;
+                }
+                sounds.section = -1;
+            }
+
+            previousSectionTime = currentSession;
+            sounds.levelUp = 1;
+            sectionStart = timer;
+            setMasterTuning();
+        }
+
+        if(disappearing && clearCount){
+            creditGrade += creditPoints[clearCount-1][disappearing-1];
+        }
     }
 
     if(level < prevLevel)
@@ -750,28 +1049,41 @@ int Game::clear(Drop drop) {
 
     //calculate score
     int add = 0;
-    if(isTSpin == 0){
-        //if no t-spin
-        if(gameMode != CLASSIC){
-            add += scoring[clearCount - 1][0] * prevLevel;
-            isDifficult = scoring[clearCount - 1][1];
-            attack = scoring[clearCount - 1][2];
-        } else
-            add += classicScoring[clearCount-1] * (level+1);
+    if(clearCount <= 4){
+        if(isTSpin == 0){
+            //if no t-spin
+            if(gameMode != CLASSIC){
+                add += scoring[clearCount - 1][0] * prevLevel;
+                isDifficult = scoring[clearCount - 1][1];
+                attack = scoring[clearCount - 1][2];
+            } else
+                add += classicScoring[clearCount-1] * (level+1);
 
-        statTracker.clears[clearCount-1]++;
-    }else if(isTSpin == 1){
-        //if t-spin mini
-        add += scoring[clearCount + 4][0] * prevLevel;
-        isDifficult = scoring[clearCount + 4][1];
-        attack = scoring[clearCount + 4][2];
-        statTracker.tspins++;
-    }else if(isTSpin == 2){
-        //if t-spin
-        add += scoring[clearCount  + 7][0] * prevLevel;
-        attack = scoring[clearCount + 7][2];
-        isDifficult = true;
-        statTracker.tspins++;
+            statTracker.clears[clearCount-1]++;
+        }else if(isTSpin == 1){
+            //if t-spin mini
+            add += scoring[clearCount + 4][0] * prevLevel;
+            isDifficult = scoring[clearCount + 4][1];
+            attack = scoring[clearCount + 4][2];
+            statTracker.tspins++;
+        }else if(isTSpin == 2){
+            //if t-spin
+            add += scoring[clearCount  + 7][0] * prevLevel;
+            attack = scoring[clearCount + 7][2];
+            isDifficult = true;
+            statTracker.tspins++;
+        }
+    }
+
+    if(clearCount && gameMode == MASTER && !disappearing){
+        gradePoints += (int) ((float) gradeTable[internalGrade][clearCount+1] * masterComboMultiplayer[(comboCounter < 10)?comboCounter:9][clearCount-1] + 1) * ((int)(level/250)+1);
+
+        if(gradePoints >= 100){
+            gradePoints = 0;
+            internalGrade++;
+        }
+
+        grade = gradeTable[internalGrade][0];
     }
 
     isBackToBack = previousClear.isDifficult && (clearCount == 4 || isTSpin == 2) && gameMode != CLASSIC;
@@ -791,7 +1103,7 @@ int Game::clear(Drop drop) {
     add += scoring[16][0] * level * comboCounter;
     attack += comboTable[comboCounter];
 
-    if (isPerfectClear && gameMode != CLASSIC){
+    if (isPerfectClear && gameMode != CLASSIC && clearCount <= 4){
         if(gameMode != BLITZ)
             add += scoring[clearCount - 1 + 11][0] * level;
         else
@@ -801,12 +1113,22 @@ int Game::clear(Drop drop) {
         statTracker.perfectClears++;
     }
 
-    score += add;
+    if(zoneTimer){
+        zoneScore += add;
+    } else if (zonedLines){
+        int n = (1 + fullZone + (zonedLines >= 8));
+        zoneScore = zoneScore * n;
+        score += zoneScore;
+        zoneScore = 0;
+    } else
+        score += add;
 
     previousClear = Score(clearCount, add, comboCounter, isTSpin, isPerfectClear, isBackToBack, isDifficult, drop);
 
     sounds.clear = 1;
-    clearLock = 1;
+
+    if(!zoneTimer)
+        clearLock = 1;
     specialTspin = false;
 
     if(garbageQueue.size()){
@@ -828,7 +1150,9 @@ int Game::clear(Drop drop) {
         attackQueue.push_back(Garbage(timer & 0xff,attack));
         linesSent+=attack;
     }
-    
+
+    setSpeed();
+
     return 1;
 }
 
@@ -842,9 +1166,27 @@ Color Game::color(int n) {
 }
 
 void Game::fillBag() {
-    for (int i = 0; i < 7; i++)
-        bag.push_back(i);
-    bagCounter++;
+    if(rotationSystem == SRS){
+        for (int i = 0; i < 7; i++)
+            bag.push_back(i);
+        bagCounter++;
+    }else if(rotationSystem == ARS){
+        bag.clear();
+
+        //fill bag
+        for(int i = 0; i < 35; i++)
+            bigBag[i] = i / 7;
+
+        //fill drought history
+        for(int i = 0; i < 7; i++)
+            pieceDrought[i] = 5;
+
+        //fill piece history
+        historyList.push_back(PIECE_Z);
+        historyList.push_back(PIECE_Z);
+        historyList.push_back(PIECE_S);
+        historyList.push_back(PIECE_S);
+    }
 }
 
 void Game::next() {
@@ -863,7 +1205,7 @@ void Game::next() {
     //for CLASSIC 2 in a row protection
     pieceHistory = pawn.current;
 
-    pawn.setBlock(gameMode == CLASSIC);
+    pawn.setBlock(rotationSystem);
 
     if(gameMode == CLASSIC){
         down = 0;
@@ -893,8 +1235,15 @@ void Game::next() {
 
     if (check || !checkRotation(0, 0, pawn.rotation) || gameMode == CLASSIC){
         pawn.y-=1;
-        if (!checkRotation(0, 0, pawn.rotation))
-            lost = 1;
+        if (!checkRotation(0, 0, pawn.rotation)){
+            if(zoneTimer && zonedLines)
+                endZone();
+            else if(gameMode == TRAINING)
+                clearBoard();
+            else{
+                lost = 1;
+            }
+        }
     }
 
     lastMoveDx = 0;
@@ -915,7 +1264,7 @@ void Game::fillQueue(int count) {
     }
 
     for (int i = 0; i < count; i++) {
-        if(gameMode != CLASSIC){
+        if(rotationSystem == SRS){
             int n = qran() % bag.size();
 
             std::list<int>::iterator index = bag.begin();
@@ -926,11 +1275,72 @@ void Game::fillQueue(int count) {
 
             if (bag.size() == 0)
                 fillBag();
-        }else{
+        }else if (rotationSystem == NRS){
             int n = qran() % 8;
 
             if(n == 7 || n == pieceHistory)
                 n = qran() % 7;
+
+            queue.push_back(n);
+        }else if (rotationSystem == ARS){
+            int n = -1;
+            int record = 0;
+            int droughted = 0;
+            if(queue.empty()){
+                while(n == -1 || n == PIECE_O || n == PIECE_Z || n == PIECE_S){
+                    n = qran() % 7;
+                }
+
+                queue.push_back(n);
+                continue;
+            }
+
+            int r = 0;
+            for(int i = 0; i < 6; i++){
+                r = qran() % 35;
+
+                n = bigBag[r];
+
+                if(std::find(historyList.begin(),historyList.end(),n) == historyList.end())
+                    break;
+
+                //find most droughted
+                for(int i = 0; i < 7; i++){
+                    if(record < pieceDrought[i]){
+                        record = pieceDrought[i];
+                        droughted = i;
+                    }
+                }
+
+                //insert droughted into bag
+                bigBag[r] = droughted;
+
+                //in case all previous rolls failed
+                if(i == 5){
+                    r = qran() % 35;
+                    n = bigBag[r];
+                }
+            }
+
+            //update droughted list
+            for(int i = 0; i < 7; i++)
+                pieceDrought[i]++;
+            pieceDrought[n] = 0;
+
+            //find most droughted
+            //record is intentionally not reset; this bug was in the original game
+            for(int i = 0; i < 7; i++){
+                if(record < pieceDrought[i]){
+                    record = pieceDrought[i];
+                    droughted = i;
+                }
+            }
+
+            //insert droughted into bag
+            bigBag[r] = droughted;
+
+            historyList.push_front(n);
+            historyList.pop_back();
 
             queue.push_back(n);
         }
@@ -941,7 +1351,8 @@ void Game::hold() {
     if((clearLock || entryDelay) && !initialHold && canHold && gameMode != CLASSIC)
         initialHold = true;
 
-    if (!canHold || clearLock || entryDelay || gameMode == CLASSIC)
+    // if (!canHold || clearLock || entryDelay || gameMode == CLASSIC || pawn.current == -1)
+    if (!canHold || gameMode == CLASSIC || pawn.current == -1)
         return;
 
     moveCounter++;
@@ -953,7 +1364,7 @@ void Game::hold() {
         int temp = held;
         held = pawn.current;
         pawn.current = temp;
-        pawn.setBlock(gameMode == CLASSIC);
+        pawn.setBlock(rotationSystem);
         pawn.x = (int)lengthX / 2 - 2;
 		pawn.y = (int)lengthY / 2 - 1;
 
@@ -972,27 +1383,99 @@ void Game::hold() {
     lockMoveCounter = 15;
     arrCounter = 0;
 
+    dropLockTimer = 0;
     moveHistory.clear();
 
     statTracker.holds++;
 
-    if(das == maxDas)
-        moveHistory.push_back(2+(right));
-
     initialHold = false;
 }
 
-int** Game::getShape(int n,int r) {
+int** Tetris::getShape(int n,int r, int rotationSystem) {
     int** result = 0;    
     result = new int*[4];
 
     for (int i = 0; i < 4; i++){
         result[i] = new int[4];
         for (int j = 0; j < 4; j++){
-            if(gameMode != CLASSIC)
+            switch(rotationSystem){
+            case SRS:
                 result[i][j] = tetraminos[n][r][i][j];
-            else
+                break;
+            case NRS:
                 result[i][j] = classic[n][r][i][j];
+                break;
+            case ARS:
+                result[i][j] = ars[n][r][i][j];
+                break;
+            default:
+                result[i][j] = tetraminos[n][r][i][j];
+                break;
+            }
+        }
+    }
+
+    if(bigMode)
+        return result;
+
+    for(int iy = 0; iy < 4; iy++){
+        for(int ix = 0; ix < 4; ix++){
+            if(!result[iy][ix])
+                continue;
+
+            int n = getNbr(result, ix, iy, 4 , 0 , 4);
+
+            if(n == 1){
+                if(iy > 0 && result[iy-1][ix])
+                    result[iy][ix] += 1 << 4;
+                else if(iy < 3 && result[iy+1][ix])
+                    result[iy][ix] += 2 << 4;
+                else if(ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 3 << 4;
+                else if(ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 4 << 4;
+            }else if(n == 2){
+                if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix])
+                    result[iy][ix] += 5 << 4;
+                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 6 << 4;
+                else if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 7 << 4;
+                else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 8 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 9 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 10 << 4;
+            }else if(n == 3){
+                if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1] && result[iy+1][ix+1])
+                    result[iy][ix] += 11 << 4;
+                else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1] && result[iy+1][ix-1])
+                    result[iy][ix] += 12 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1] && result[iy-1][ix+1])
+                    result[iy][ix] += 13 << 4;
+                else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1] && result[iy-1][ix-1])
+                    result[iy][ix] += 14 << 4;
+                else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
+                    result[iy][ix] += 15 << 4;
+                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy < 3 && result[iy+1][ix])
+                    result[iy][ix] += 16 << 4;
+                else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
+                    result[iy][ix] += 17 << 4;
+                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy > 0 && result[iy-1][ix])
+                    result[iy][ix] += 18 << 4;
+            // }else if(n == 5){
+            //     if(iy < 3 && ix < 3 && ix > 0 && result[iy+1][ix-1] && result[iy+1][ix+1])
+            //         result[iy][ix] += 19 << 4;
+            //     else if(iy > 0 && ix < 3 && ix > 0 && result[iy-1][ix-1] && result[iy-1][ix+1])
+            //         result[iy][ix] += 20 << 4;
+            //     else if(ix < 3 && iy < 3 && iy > 0 && result[iy-1][ix+1] && result[iy+1][ix+1])
+            //         result[iy][ix] += 21 << 4;
+            //     else if(ix > 0 && iy < 3 && iy > 0 && result[iy-1][ix-1] && result[iy+1][ix-1])
+            //         result[iy][ix] += 22 << 4;
+            // }else if(n == 8){
+            //     result[iy][ix] += 23 << 4;
+            }
         }
     }
 
@@ -1000,7 +1483,7 @@ int** Game::getShape(int n,int r) {
 }
 
 void Game::lockCheck() {
-    if (pawn.lowest == pawn.y && lockMoveCounter > 0) {
+    if (pawn.lowest == pawn.y && lockMoveCounter > 0 && rotationSystem == SRS) {
         lockTimer = maxLockTimer;
         lockMoveCounter--;
     }
@@ -1008,8 +1491,8 @@ void Game::lockCheck() {
 
 void Game::keyLeft(int dir) {
     moveCounter++;
-    if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-            left = dir;
+    if (clearLock || eventLock || entryDelay || (gameMode == CLASSIC && down)) {
+        left = dir;
         return;
     }
 
@@ -1018,19 +1501,15 @@ void Game::keyLeft(int dir) {
     left = dir;
     
     previousKey = -1;
+    dropLockTimer = 0;
 
-    if(gameMode == CLASSIC && dir && !(down)){
+    if(gameMode == CLASSIC && dir){
         das = 0;
         arrCounter = 0;
     }
 
     if(!dir){
         pushDir = 0;
-
-        if(das == maxDas)
-            moveHistory.push_back(2);
-        else
-            moveHistory.push_back(0);
 
         if(directionCancel && gameMode != CLASSIC){
             das = 0;
@@ -1041,8 +1520,8 @@ void Game::keyLeft(int dir) {
 
 void Game::keyRight(int dir) {
     moveCounter++;
-    if (clearLock || entryDelay || (gameMode == CLASSIC && down)) {
-            right = dir;
+    if (clearLock || eventLock || entryDelay || (gameMode == CLASSIC && down)) {
+        right = dir;
         return;
     }
 
@@ -1051,20 +1530,15 @@ void Game::keyRight(int dir) {
     right = dir;
     
     previousKey = 1;
+    dropLockTimer = 0;
 
-    if(gameMode == CLASSIC && dir && !(down)){
+    if(gameMode == CLASSIC && dir){
         das = 0;
         arrCounter = 0;
     }
 
     if(!dir){
         pushDir = 0;
-
-        if(das == maxDas)
-            moveHistory.push_back(3);
-        else
-            moveHistory.push_back(1);
-
         if(directionCancel && gameMode != CLASSIC){
             das = 0;
             arrCounter = 0;
@@ -1074,8 +1548,8 @@ void Game::keyRight(int dir) {
 
 void Game::keyDown(int dir) {
     moveCounter++;
-    if (clearLock || entryDelay) {
-        if(!entryDelay)
+    if (clearLock || eventLock || entryDelay) {
+        if(!(entryDelay && rotationSystem == NRS))
             down = dir;
         return;
     }
@@ -1085,8 +1559,10 @@ void Game::keyDown(int dir) {
         if (pawn.y != pawn.lowest)
             score++;
     }
+
     down = dir;
     softDrop = true;
+    dropLockTimer = 0;
     gracePeriod = 0;
 
 }
@@ -1095,20 +1571,50 @@ void Game::removeClearLock() {
     if(!clearLock)
         return;
     clearLock = 0;
-    std::list<int>::iterator index = linesToClear.begin();
+    auto index = linesToClear.begin();
 
     for (int i = 0; i < (int)linesToClear.size(); i++) {
-        for (int j = *index; j > 0; j--)
-            for (int k = 0; k < lengthX; k++)
+        for (int j = *index; j > 0; j--){
+            for (int k = 0; k < lengthX; k++){
                 board[j][k] = board[j - 1][k];
-        std::advance(index, 1);
+                if(disappearing)
+                    disappearTimers[j][k] = disappearTimers[j - 1][k];
+            }
+        }
+        ++index;
+    }
+
+    if(gameMode == COMBO){
+        if(!pawn.big){
+            for(int i = lengthY/2-1; i < lengthY; i++){
+                if(board[i][0] != 0)
+                    break;
+                for(int j = 0; j < 10; j++){
+                    if(j > 2 && j < 7)
+                        continue;
+                    board[i][j] = (i+comboCounter) % 7 + 1;
+                }
+                connectBoard(i, i);
+            }
+        }else{
+            for(int i = (lengthY/2-1)/2; i < lengthY/2; i++){
+                if(board[i*2][0] != 0)
+                    break;
+                board[i*2][0] = (i*2+comboCounter) % 7 + 1;
+                board[i*2][1] = (i*2+comboCounter) % 7 + 1;
+                board[i*2+1][0] = (i*2+comboCounter) % 7 + 1;
+                board[i*2+1][1] = (i*2+comboCounter) % 7 + 1;
+            }
+        }
     }
 
     linesToClear = std::list<int>();
 
     if(!entryDelay)
         next();
+
     refresh = 1;
+    zonedLines = 0;
 }
 
 void Game::resetSounds(){
@@ -1121,6 +1627,7 @@ void Game::resetRefresh() {
 
 void Game::setLevel(int newLevel){
     initialLevel = level = newLevel;
+    setSpeed();
 }
 
 void Game::setGoal(int newGoal){
@@ -1186,10 +1693,17 @@ void Game::generateGarbage(int height,int mode){
 
         garbageHeight+=height;
     }
+
+    if(bigMode)
+        return;
+
+    for(int i = lengthY-height; i < lengthY; i++){
+        connectBoard(i, i);
+    }
 }
 
 void Game::keyDrop(){
-    if(gameMode == CLASSIC)
+    if(gameMode == CLASSIC || entryDelay)
         return;
 
     dropping = true;
@@ -1225,7 +1739,7 @@ Drop Game::calculateDrop(){
     for(int i = 0; i < 4; i++){
         bool found = false;
         for(int j = 0; j < 4; j++){
-            if(pawn.board[pawn.rotation][j][i] == 1){
+            if(pawn.board[pawn.rotation][j][i] != 0){
                 found = true;
                 break;
             }
@@ -1246,7 +1760,7 @@ Drop Game::calculateDrop(){
     for(int i = 3; i >=0; i--){
         bool found = false;
         for(int j = 0; j < 4; j++){
-            if(pawn.board[pawn.rotation][i][j] == 1){
+            if(pawn.board[pawn.rotation][i][j] != 0){
                 found = true;
                 break;
             }
@@ -1282,15 +1796,34 @@ Drop Game::calculateDrop(){
     return result;
 }
 
-void Game::setTuning(int newDas, int newArr, int newSfr, int newDropProtection, bool directionalDas){
-    if(gameMode == CLASSIC)
+void Game::setTuning(Tuning newTune){
+    if(gameMode == CLASSIC || gameMode == MASTER)
         return;
 
-    maxDas = newDas;
-    arr = newArr;
-    softDropSpeed = newSfr;
-    dropLockMax = newDropProtection;
-    directionCancel = directionalDas;
+    maxDas = newTune.das;
+    arr = newTune.arr;
+    softDropSpeed = newTune.sfr;
+    dropLockMax = newTune.dropProtection;
+    directionCancel = newTune.directionalDas;
+    delaySoftDrop = newTune.delaySoftDrop;
+    maxClearDelay = 20;
+}
+
+void Game::setMasterTuning(){
+    int n = 0;
+    int speedLevel = level + coolCount * 100;
+
+    if(speedLevel >= 500){
+        n = (speedLevel - 400)/100;
+    }
+
+    arr = 1;
+    areMax = masterDelays[n][0];
+    lineAre = masterDelays[n][1];
+    maxDas = masterDelays[n][2];
+    maxLockTimer = masterDelays[n][3];
+    maxClearDelay = masterDelays[n][4];
+    softDropSpeed = 1;
 }
 
 void Game::clearAttack(int id){
@@ -1409,10 +1942,259 @@ void Game::bType(int height){
 }
 
 void Game::setSubMode(int sm){
+
+    if(gameMode == MASTER && sm){
+        setRotationSystem(ARS);
+
+        return;
+    }
+
     subMode = sm;
 
     if(sm && gameMode == CLASSIC){
         bType(bTypeHeight);
         goal = 25;
+    }
+}
+
+void Game::setSpeed(){
+    if ((gameMode == MARATHON || gameMode == TRAINING) && !(subMode && zoneTimer))
+        speed = gravity[(level < 19) ? level - 1 : 18];
+    else if(gameMode == BLITZ)
+        speed = blitzGravity[(level < 15) ? level - 1 : 14];
+    else if(gameMode == CLASSIC)
+        speed = classicGravity[(level < 30) ? level: 29];
+    else if(gameMode == MASTER){
+        int speedLevel = level + coolCount * 100;
+        if(speedLevel >= 500)
+            speed = masterGravity[29][1];
+        else{
+            for(int i = 28; i >= 0; i--){
+                if(speedLevel >= masterGravity[i][0]){
+                    speed = masterGravity[i][1];
+                    break;
+                }
+            }
+        }
+        setMasterTuning();
+    } else
+        speed = gravity[0];
+
+}
+
+void Game::setRotationSystem(int rs){
+    rotationSystem = rs;
+
+    if(rs == ARS){
+        queue.clear();
+
+        fillBag();
+        fillQueue(3);
+    }
+}
+
+int Game::checkITouching(int r, int oriantation){
+    int x = pawn.x;
+    int y = pawn.y;
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if(!pawn.big){
+                if(oriantation == 0){
+                    if((j == 1 || j == 3) && ((x + j < 0) || (x+j > lengthX - 1) || ((y + i >= 0 && y + i <= lengthY-1) && board[i+y][j+x])))
+                        return j;
+                }else{
+                    if(i == 2 && ((y + i > lengthY-1) || ((x + j >= 0 && x + j <= lengthX-1) && (board[y+i][x+j]))))
+                        return i;
+                }
+            }else{
+                for(int k = 0; k < 2; k++){
+                    int yoffset = (y+i) * 2 + k;
+                    for(int l = 0; l < 2; l++){
+                        int xoffset = (x+j) * 2 + l;
+                        if(oriantation == 0){
+                            if((j == 1 || j == 3) && ((xoffset < 0) || (xoffset > lengthX - 1) || ((yoffset >= 0 && yoffset <= lengthY-1) && board[yoffset][xoffset])))
+                                return j;
+                        }else{
+                            if(i == 2 && ((yoffset > lengthY-1) || ((xoffset >= 0 && yoffset <= lengthX-1) && (board[yoffset][xoffset]))))
+                                return i;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
+void Game::updateDisappear(){
+    if(!disappearing)
+        return;
+
+    bool found = false;
+
+    for(int i = 0; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            if(disappearTimers[i][j] <= 1)
+                continue;
+            disappearTimers[i][j]--;
+
+            if(disappearTimers[i][j] == 1){
+                found = true;
+                toDisappear.push_back(std::make_tuple(j,i));
+            }
+        }
+    }
+
+    if(found)
+        sounds.disappear = 1;
+}
+
+void Game::removeEventLock(){
+    eventLock = false;
+    inversion = false;
+}
+
+void Game::activateZone(){
+    if(zoneCharge < 8 && !DIAGNOSE)
+        return;
+
+    if(DIAGNOSE)
+        zoneCharge = 32;
+
+    fullZone = (zoneCharge == 32);
+
+    previousClear.isTSpin = 0;
+    previousClear.isBackToBack = 0;
+    previousClear.isPerfectClear = 0;
+
+    zoneTimer = (float) 37.5 * zoneCharge;
+
+    zoneStart = zoneTimer;
+
+    zoneCharge = 0;
+
+    sounds.zone = 1;
+}
+
+void Game::endZone(){
+    if(zonedLines > statTracker.maxZonedLines)
+        statTracker.maxZonedLines = zonedLines;
+
+    zoneTimer = 0;
+    sounds.zone = -1;
+    clear(Drop());
+    eventLock = true;
+}
+
+void Game::clearBoard(){
+    for(int i = 0; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            board[i][j] = 0;
+        }
+    }
+}
+
+void Game::fixConnected(std::list<int> sourceList){
+    std::list<std::tuple<int,int>> fixList;
+
+    for(auto const& line : sourceList){
+        bool found = false;
+        if(!fixList.empty()){
+            int n = std::get<0>(fixList.back());
+            if(n == line){
+                fixList.pop_back();
+                found = true;
+            }else if (n == line-1){
+                std::get<1>(fixList.back())++;
+                found = true;
+            }
+        }
+
+        if(!found && line > 0){
+            fixList.push_back(std::make_tuple(line-1,0));
+        }
+
+        if(line < lengthY-1){
+            fixList.push_back(std::make_tuple(line+1,1));
+        }
+    }
+
+    for(auto const & line : fixList){
+        int iy = std::get<0>(line);
+        int type = std::get<1>(line);
+        for(int ix = 0; ix < lengthX; ix++){
+            int n = board[iy][ix];
+            board[iy][ix] = (n & 0xf) + (GameInfo::connectedFix[type][n >> 4] << 4);
+        }
+    }
+}
+
+void Game::connectBoard(int startY,int endY){
+    int ex = lengthX;
+    int sy = startY;
+    int ey = endY;
+
+    for(int iy = startY; iy < endY+1; iy++){
+
+        for(int ix = 0; ix < lengthX; ix++){
+            if(!board[iy][ix] || (board[iy][ix] >> 4) != 0)
+                continue;
+
+            int n = getNbr(board, ix, iy, ex, sy, ey);
+
+            if(n == 1){
+                if(iy > sy && board[iy-1][ix])
+                    board[iy][ix] += 1 << 4;
+                else if(iy < ey && board[iy+1][ix])
+                    board[iy][ix] += 2 << 4;
+                else if(ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 3 << 4;
+                else if(ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 4 << 4;
+            }else if(n == 2){
+                if(iy > sy && board[iy-1][ix] && iy < ey && board[iy+1][ix])
+                    board[iy][ix] += 5 << 4;
+                else if(ix > 0 && board[iy][ix-1] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 6 << 4;
+                else if(iy < ey && board[iy+1][ix] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 7 << 4;
+                else if(iy < ey && board[iy+1][ix] && ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 8 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 9 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 10 << 4;
+            }else if(n == 3){
+                if(iy < ey && board[iy+1][ix] && ix < ex && board[iy][ix+1] && board[iy+1][ix+1])
+                    board[iy][ix] += 11 << 4;
+                else if(iy < ey && board[iy+1][ix] && ix > 0 && board[iy][ix-1] && board[iy+1][ix-1])
+                    board[iy][ix] += 12 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix < ex && board[iy][ix+1] && board[iy-1][ix+1])
+                    board[iy][ix] += 13 << 4;
+                else if(iy > sy && board[iy-1][ix] && ix > 0 && board[iy][ix-1] && board[iy-1][ix-1])
+                    board[iy][ix] += 14 << 4;
+                else if(iy > sy && board[iy-1][ix] && iy < ey && board[iy+1][ix] && ix < ex && board[iy][ix+1])
+                    board[iy][ix] += 15 << 4;
+                else if(ix > 0 && board[iy][ix-1] && ix < ex && board[iy][ix+1] && iy < ey && board[iy+1][ix])
+                    board[iy][ix] += 16 << 4;
+                else if(iy > sy && board[iy-1][ix] && iy < ey && board[iy+1][ix] && ix > 0 && board[iy][ix-1])
+                    board[iy][ix] += 17 << 4;
+                else if(ix > 0 && board[iy][ix-1] && ix < ex && board[iy][ix+1] && iy > sy && board[iy-1][ix])
+                    board[iy][ix] += 18 << 4;
+            }else if(n == 5){
+                if(iy < ey && ix < ex && ix > 0 && board[iy+1][ix-1] && board[iy+1][ix+1])
+                    board[iy][ix] += 19 << 4;
+                else if(iy > sy && ix < ex && ix > 0 && board[iy-1][ix-1] && board[iy-1][ix+1])
+                    board[iy][ix] += 20 << 4;
+                else if(ix < ex && iy < ey && iy > sy && board[iy-1][ix+1] && board[iy+1][ix+1])
+                    board[iy][ix] += 21 << 4;
+                else if(ix > 0 && iy < ey && iy > sy && board[iy-1][ix-1] && board[iy+1][ix-1])
+                    board[iy][ix] += 22 << 4;
+            }else if(n == 8){
+                board[iy][ix] += 23 << 4;
+            }
+        }
     }
 }

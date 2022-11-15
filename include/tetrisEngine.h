@@ -3,10 +3,19 @@
 #include <cstring>
 #include <list>
 #include <string>
+#include "tetromino.hpp"
 #include "tonc.h"
+#include <tuple>
 
 namespace Tetris
 {
+    #define MAX_DISAPPEAR 300
+    #define CREDITS_LENGTH 3240 //54 seconds * 60
+
+    extern const u16 connectedConversion[24];
+    extern const u16 connectedFix[3][24];
+    extern int** getShape(int piece,int rotation,int rotationSystem);
+
     enum Modes{
         NO_MODE,
         MARATHON,
@@ -18,6 +27,25 @@ namespace Tetris
         COMBO,
         SURVIVAL,
         CLASSIC,
+        MASTER,
+        TRAINING,
+    };
+
+    enum RotationSystems{
+        SRS,
+        NRS,
+        ARS,
+        A_SRS,
+    };
+
+    enum Pieces{
+        PIECE_I,
+        PIECE_J,
+        PIECE_L,
+        PIECE_O,
+        PIECE_S,
+        PIECE_T,
+        PIECE_Z,
     };
 
     class Stats{
@@ -28,7 +56,7 @@ namespace Tetris
         int maxStreak = 0;
         int maxCombo = 0;
         int holds = 0;
-
+        int maxZonedLines = 0;
 
         Stats(){}
     };
@@ -155,6 +183,10 @@ namespace Tetris
         int clear = 0;
         int levelUp = 0;
         int finesse = 0;
+        int section = 0;
+        int disappear = 0;
+        int zone = 0;
+        int meter = 0;
 
         SoundFlags() {}
         SoundFlags(const SoundFlags& oldFlags){
@@ -166,6 +198,10 @@ namespace Tetris
             clear = oldFlags.clear;
             levelUp = oldFlags.levelUp;
             finesse = oldFlags.finesse;
+            section = oldFlags.section;
+            disappear = oldFlags.disappear;
+            zone = oldFlags.zone;
+            meter = oldFlags.meter;
         }
     };
 
@@ -179,7 +215,7 @@ namespace Tetris
         int board[4][4][4];
         int lowest;
         bool big = false;
-        void setBlock(bool alt);
+        void setBlock(int system);
 
         Pawn(int newX, int newY) {
             x = newX;
@@ -202,13 +238,23 @@ namespace Tetris
         }
     };
 
+    class Tuning{
+    public:
+            int das = 8;
+            int arr = 2;
+            int sfr = 2;
+            int dropProtection = 8;
+            bool directionalDas = false;
+            bool delaySoftDrop = true;
+    };
+
     class Game {
     private:
         void fillBag();
         void fillQueue(int);
         void fillQueueSeed(int,int);
-        void moveLeft();
-        void moveRight();
+        bool moveLeft();
+        bool moveRight();
         void moveDown();
         int clear(Drop);
         void lockCheck();
@@ -216,10 +262,21 @@ namespace Tetris
         void place();
         void generateGarbage(int,int);
         Drop calculateDrop();
+        void setMasterTuning();
+        void rotate(int);
+        int checkSpecialRotation(int,int);
+        int checkITouching(int,int);
+        void rotatePlace(int,int,int,int);
+        void updateDisappear();
+        void endZone();
+        void clearBoard();
+        void fixConnected(std::list<int>);
+        void connectBoard(int startY, int endY);
+
+        int bigBag[35];
 
         std::list<int> bag;
 
-        float speed;
         float speedCounter = 0;
 
         //7  117
@@ -238,8 +295,6 @@ namespace Tetris
         int softDropSpeed = 2;
         int softDropRepeatTimer = 0;
 
-        int maxLockTimer = 30;
-        int lockTimer = maxLockTimer;
         int lockMoveCounter = 15;
 
         int left = 0;
@@ -267,19 +322,36 @@ namespace Tetris
 
         int gracePeriod = 0;
 
-        int initialLevel = 0;
-
         bool initialHold = false;
 
         int initialRotate = 0;
 
+        int section = 0;
+        int sectionStart = 0;
+        int previousSectionTime = 1000000;
+
+        int internalGrade = 0;
+        int gradePoints = 0;
+
+        bool cool = false;
+        bool regret = false;
+        int decayTimer = 0;
+
+        bool stopLockReset = false;
+
+        std::list<int> historyList;
+
+        int pieceDrought[7];
+        bool delaySoftDrop = true;
+
     public:
-        int lengthX = 10;
-        int lengthY = 40;
+        const int lengthX = 10;
+        const int lengthY = 40;
         int** board;
         std::list<int> queue;
         Pawn pawn = Pawn(0, 0);
         int held = -1;
+        float speed;
         int linesCleared = 0;
         int level = 0;
         int score = 0;
@@ -314,13 +386,50 @@ namespace Tetris
         bool trainingMode = false;
         int seed = 0;
         int initSeed = 0;
+        int initialLevel = 0;
+        int eventTimer = 0;
 
         int entryDelay = 0;
+        int areMax = 0;
+        int lineAre = 0;
+        int maxClearDelay = 1;
+
         int bTypeHeight = 0;
 
         Stats statTracker;
 
         int subMode = 0;
+        int zoneCharge = 0;
+        int zoneTimer = 0;
+        int zonedLines = 0;
+        int zoneClearCounter = 0;
+        int zoneScore = 0;
+        int zoneStart = 0;
+        bool fullZone = false;
+        bool inversion = false;
+
+        int grade = 0;
+        int coolCount = 0;
+        int regretCount = 0;
+
+        int rotationSystem = SRS;
+
+        int maxLockTimer = 30;
+        int lockTimer = maxLockTimer;
+
+        u16 ** disappearTimers;
+        int disappearing = 0;
+
+
+        std::list<std::tuple<u8,u8>> toDisappear;
+
+        float creditGrade = 0;
+
+        bool eventLock = false;
+
+        int finesseStreak = 0;
+
+        int inGameTimer = 0;
 
         int checkRotation(int, int, int);
         void rotateCW();
@@ -331,7 +440,6 @@ namespace Tetris
         int lowest();
         Color color(int);
         void hold();
-        int** getShape(int,int);
         void keyLeft(int);
         void keyRight(int);
         void keyDown(int);
@@ -342,7 +450,7 @@ namespace Tetris
         void setLevel(int);
         void setGoal(int);
         Drop getDrop();
-        void setTuning(int,int,int,int,bool);
+        void setTuning(Tuning);
         void clearAttack(int);
         void setWin();
         void addToGarbageQueue(int,int);
@@ -354,6 +462,10 @@ namespace Tetris
         void demoFill();
         void bType(int);
         void setSubMode(int);
+        void setSpeed();
+        void setRotationSystem(int);
+        void removeEventLock();
+        void activateZone();
 
         Game(){
             seed = initSeed = qran();
@@ -380,6 +492,8 @@ namespace Tetris
                 arr = 6;
                 softDropSpeed = 2;
                 gracePeriod = 90;
+
+                rotationSystem = NRS;
             }else
                 fillQueue(5);
 
@@ -404,6 +518,7 @@ namespace Tetris
                                 continue;
                             board[i][j] = i % 7 + 1;
                         }
+                        connectBoard(i, i);
                     }
                 }else{
                     for(int i = (lengthY/4-1); i < lengthY/2; i++){
@@ -417,6 +532,10 @@ namespace Tetris
                         }
                     }
                 }
+            }else if(gameMode == MASTER){
+                level = 0;
+                speed = GameInfo::masterGravity[0][1];
+                setMasterTuning();
             }
 
         }
@@ -451,6 +570,7 @@ namespace Tetris
             sounds = SoundFlags(oldGame.sounds);
             previousClear = Score(oldGame.previousClear);
             timer = oldGame.timer;
+            inGameTimer = oldGame.inGameTimer;
             refresh = oldGame.refresh;
             won = oldGame.won;
             goal = oldGame.goal;
@@ -464,6 +584,7 @@ namespace Tetris
             initSeed = oldGame.initSeed;
             subMode = oldGame.subMode;
             initialLevel = oldGame.initialLevel;
+            trainingMode = oldGame.trainingMode;
         }
 
 
@@ -472,6 +593,11 @@ namespace Tetris
                 delete[] board[i];
             delete[] board;
 
+            if(disappearing){
+                for(int i = 0; i < lengthY; i++)
+                    delete[] disappearTimers[i];
+                delete[] disappearTimers;
+            }
         }
     };
 
@@ -538,7 +664,7 @@ namespace Tetris
         void move(){
             if(--sleepTimer > 0)
                 return;
-            else
+            else
                 sleepTimer = maxSleep;
 
             if(rotation != current.rotation){

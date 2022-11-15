@@ -7,3 +7,4 @@ build/
 *.pnproj
 *.el
 compile_commands.json
+apotris*.png

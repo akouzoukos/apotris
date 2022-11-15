@@ -318,7 +318,7 @@ void save_sram_flash()
 
 	aprint("Saving...",21,19);
     irq_disable(II_VBLANK);
-    irq_disable(II_HBLANK);
+	gradient(false);
     int stat_value = REG_SNDSTAT;
     int dsc_value = REG_SNDDSCNT;
     int dmg_value = REG_SNDDMGCNT;
@@ -327,7 +327,11 @@ void save_sram_flash()
     REG_SNDDSCNT = 0;
     REG_SNDDMGCNT = 0;
 
-    linkConnection->deactivate();
+    bool isLinked = linkConnection->isActive();
+
+    if(isLinked)
+		linkConnection->deactivate();
+
     irq_disable(II_TIMER3);
     irq_disable(II_SERIAL);
 
@@ -337,7 +341,9 @@ void save_sram_flash()
     REG_SNDDSCNT = dsc_value;
     REG_SNDDMGCNT = dmg_value;
 
-    linkConnection->activate();
+    if(isLinked)
+		linkConnection->activate();
+
     irq_enable(II_TIMER3);
     irq_enable(II_SERIAL);
     irq_delete(II_KEYPAD);

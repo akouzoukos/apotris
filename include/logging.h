@@ -1,4 +1,5 @@
 #pragma once
+#include "def.h"
 #include "tonc_types.h"
 #include <string>
 
@@ -7,7 +8,7 @@
 #define REG_MGBA_FLAGS          VOLADDR(0x04FFF700, u16)
 #define MGBA_LOG_OUT            ((char*)0x04FFF600)
 
-static bool logInitMgba(void)
+inline bool logInitMgba(void)
 {
     REG_MGBA_ENABLE = 0xC0DE;
 
@@ -25,5 +26,7 @@ static void logOutputMgba(u8 level, const char *message)
 }
 
 static inline void log(std::string str){
+    if(!DIAGNOSE)
+        return;
     logOutputMgba(4, str.c_str());
 }

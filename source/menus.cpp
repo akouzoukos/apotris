@@ -1,11 +1,14 @@
 #include "maxmod.h"
 #include "rumble.h"
+#include "tetromino.hpp"
 #include "tonc.h"
 #include "def.h"
 #include "soundbank.h"
 #include "tetrisEngine.h"
 #include "logging.h"
 #include "text.h"
+#include "tonc_memmap.h"
+#include "tonc_oam.h"
 #include <string>
 #include <map>
 
@@ -16,6 +19,7 @@ void showScore();
 void showStats(bool, std::string, std::string);
 int onRecord();
 std::string nameInput(int);
+void showModeText();
 
 int mode = 0;
 bool showingStats = false;
@@ -23,7 +27,9 @@ bool showingStats = false;
 bool saveExists = false;
 Tetris::Game* quickSave;
 
-const std::string modeStrings[9] = {
+int igt = 0;
+
+const std::string modeStrings[11] = {
     "Marathon",
     "Sprint",
     "Dig",
@@ -33,9 +39,11 @@ const std::string modeStrings[9] = {
     "Combo",
     "Survival",
     "Classic",
+    "Master",
+    "Training",
 };
 
-const std::string modeOptionStrings[9][4] = {
+const std::string modeOptionStrings[11][4] = {
     {"150","200","300","Endless"},
     {"20","40","100"},
     {"10","20","100"},
@@ -45,6 +53,8 @@ const std::string modeOptionStrings[9][4] = {
     {""},
     {"EASY","MEDIUM","HARD"},
     {"",""},
+    {"Normal","Classic"},
+    {""},
 };
 
 void songListMenu() {
@@ -165,7 +175,7 @@ void songListMenu() {
 
 int endScreen() {
     clearSmallText();
-    setSmallTextArea(100, 1, 1, 10, 20);
+    setSmallTextArea(110, 1, 1, 10, 20);
 
     mmStop();
 
@@ -189,7 +199,7 @@ int endScreen() {
     endAnimation();
 
     int prevBld = REG_BLDCNT;
-    REG_BLDCNT = (1 << 6) + (0b1111 << 9) + (1);
+    REG_BLDCNT = (1 << 6) + (0b11111 << 9) + (1);
     memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
 
     if(savefile->settings.announcer){
@@ -199,7 +209,9 @@ int endScreen() {
             else if (game->lost == 1)
                 sfx(SFX_GAMEOVER);
         }else if (game->gameMode != BATTLE) {
-            if (game->won == 1)
+            if (game->gameMode == MASTER && game->won == 1 && game->level < 500 && game->timer >= 25200)
+                sfx(SFX_TIME);
+            else if (game->won == 1)
                 sfx(SFX_CLEAR);
             else if (game->lost == 1)
                 sfx(SFX_GAMEOVER);
@@ -210,6 +222,8 @@ int endScreen() {
                 sfx(SFX_YOULOSE);
         }
     }
+
+    igt = game->inGameTimer;
 
     playSongRandom(0);
 
@@ -225,13 +239,14 @@ int endScreen() {
     if(game->lost)
         savefile->stats.gamesLost++;
 
+    showStats(showingStats, totalTime, ppsStr);
+
     while (1) {
         handleMultiplayer();
         VBlankIntrWait();
         key_poll();
 
         showScore();
-        showStats(showingStats, totalTime, ppsStr);
 
         if (record != -1 && game->gameMode != BATTLE && (game->won || game->gameMode == MARATHON || game->gameMode >= ULTRA)){
             std::string str;
@@ -245,56 +260,7 @@ int endScreen() {
             aprint(str+" Place", 11, 5);
         }
 
-        if(game->gameMode > 0 && game->gameMode <= 9){
-            int counter = 0;
-            std::string str;
-            std::string str2;
-
-            str = modeStrings[game->gameMode-1];
-
-            if(game->gameMode == SPRINT && game->goal == 0)
-                str = "Training";
-
-            aprintColor(str,30-str.size(),counter++,0);
-
-            str = "";
-            if(game->gameMode == SPRINT && game->goal == 0){
-                if(game->trainingMode)
-                    str = "Finesse";
-            }else{
-                if(game->gameMode != CLASSIC)
-                    str = modeOptionStrings[game->gameMode-1][mode];
-                else
-                    str = modeOptionStrings[game->gameMode-1][0];
-            }
-
-            if(str != "")
-                aprintColor(str,30-str.size(),counter++,0);
-
-            str = "";
-            str2 = "";
-            if(game->subMode){
-                switch(game->gameMode){
-                case SPRINT: str = "Attack"; break;
-                case DIG: str = "Efficiency"; break;
-                case CLASSIC:
-                    str = "B-Type";
-                    str2 = std::to_string(initialLevel) + "-" + std::to_string(game->bTypeHeight);
-                    break;
-                }
-            }else{
-                if(game->gameMode == CLASSIC)
-                    str = "A-Type";
-            }
-
-            if(str != "")
-                aprintColor(str,30-str.size(),counter++,0);
-            if(str2 != "")
-                aprintColor(str2,30-str2.size(),counter++,0);
-
-            if(bigMode)
-                aprintColor("BIG MODE",22,counter++,0);
-        }
+        showModeText();
 
         aprint("Play", 12, 11);
         aprint("Again", 14, 12);
@@ -347,7 +313,7 @@ int endScreen() {
             if (selection == 0) {
                 shake = 0;
 
- if (!multiplayer) {
+                if (!multiplayer) {
                     sfx(SFX_MENUCONFIRM);
                     playAgain = true;
                     break;
@@ -369,6 +335,8 @@ int endScreen() {
             } else if (selection == 2){
                 sfx(SFX_MENUCANCEL);
                 REG_BLDCNT = prevBld;
+                goalSelection = 0;
+                level = 1;
                 return 1;
             }
         }
@@ -393,6 +361,7 @@ int endScreen() {
             sfx(SFX_MENUCONFIRM);
             showingStats = !showingStats;
             clearSmallText();
+            showStats(showingStats, totalTime, ppsStr);
         }
     }
 
@@ -413,12 +382,6 @@ void endAnimation() {
     REG_BG1VOFS = 0;
 
     rumble_set_state(RumbleState(rumble_stop));
-
-    // int timer = 0;
-    // int maxTimer = 20;
-
-    // while(timer++ < maxTimer)
-    // 	VBlankIntrWait();
 
     sfx(SFX_END);
 
@@ -476,6 +439,28 @@ void showScore(){
         aprint("Lines Sent", 10, 5);
         aprintf(game->linesSent, 14, 7);
 
+    } else if (game->gameMode == MASTER){
+        int grade = game->grade + game->coolCount + (int) game->creditGrade;
+        if(grade > 34)
+            grade = 34;
+
+        std::string gradeText = GameInfo::masterGrades[grade];
+
+        if(gradeText[0] == ' ')
+            gradeText.erase(0,1);
+
+        gradeText = "Grade: " + gradeText;
+
+        if(game-> won && game->level < 500 && game->timer >= 25200) {
+            aprint("TIME!", 13, 3);
+        }else if(game->won && game->level == 999){
+            aprint("CLEAR!", 12, 3);
+        }else{
+            aprint("GAME OVER", 11, 3);
+        }
+
+        aprint(gradeText, 15 - ((int)gradeText.size()/2),7);
+
     } else if (game->gameMode == MARATHON || game->lost || game->gameMode >= ULTRA || (game->gameMode == DIG && subMode == 1)) {
         std::string score;
 
@@ -518,15 +503,28 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     int g = game->gameMode;
 
     aprints("Time: " + time,0,7*counter++,2);
-    if(g == MARATHON || g == BLITZ || g == CLASSIC)
+    if(!proMode)
+        aprints("IGT: " + timeToString(igt),0,7*counter++,2);
+
+    if(g == MARATHON || g == BLITZ || g == CLASSIC){
+        if(g != BLITZ)
+            aprints("Start Level: " + std::to_string(game->initialLevel),0,7*counter++,2);
+
+        aprints("Final Level: " + std::to_string(game->level),0,7*counter++,2);
+        aprints("Score: " + std::to_string(game->score),0,7*counter++,2);
+    }else if (g == ULTRA){
+        aprints("Score: " + std::to_string(game->score),0,7*counter++,2);
+    }else if (g == MASTER){
         aprints("Level: " + std::to_string(game->level),0,7*counter++,2);
+    }
 
     aprints("Lines: " + std::to_string(game->linesCleared),0,7*counter++,2);
     aprints("Pieces: " + std::to_string(game->pieceCounter), 0, 7*counter++, 2);
 
     aprints("PPS: " + pps, 0, 7*counter++, 2);
 
-    aprints("Finesse: " + std::to_string(game->finesseFaults), 0, 7*counter++, 2);
+    if(game->rotationSystem == SRS)
+        aprints("Finesse: " + std::to_string(game->finesseFaults), 0, 7*counter++, 2);
 
     aprints("Singles: " + std::to_string(game->statTracker.clears[0]), 0, 7*counter++, 2);
     aprints("Doubles: " + std::to_string(game->statTracker.clears[1]), 0, 7*counter++, 2);
@@ -537,6 +535,15 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     aprints("Max Streak: " + std::to_string(game->statTracker.maxStreak), 0, 7*counter++, 2);
     aprints("Max Combo: " + std::to_string(game->statTracker.maxCombo), 0, 7*counter++, 2);
     aprints("Times Held: " + std::to_string(game->statTracker.holds), 0, 7*counter++, 2);
+
+    if(game->gameMode == MASTER){
+        aprints("Section Cools: " + std::to_string(game->coolCount), 0, 7*counter++, 2);
+        aprints("Section Regrets: " + std::to_string(game->regretCount), 0, 7*counter++, 2);
+    }
+
+    if(game->statTracker.maxZonedLines > 0){
+        aprints("Max MultiClear: " + std::to_string(game->statTracker.maxZonedLines), 0, 7*counter++, 2);
+    }
 }
 
 int pauseMenu(){
@@ -546,12 +553,50 @@ int pauseMenu(){
     int optionsHeight = 10;
     int optionsCounter = 0;
 
-    for (int i = 0; i < 20; i++)
-        aprint("          ", 10, i);
+    clearText();
+    setSmallTextArea(110, 1, 1, 10, 20);
+
+    int prevBld = REG_BLDCNT;
+    REG_BLDCNT = (1 << 6) + (0b11111 << 9) + (1);
+    memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
+
+    REG_BG0HOFS = 0;
+    REG_BG0VOFS = 0;
+
+    //hide Sprites
+    hideMinos();
+    obj_hide(&obj_buffer[23]); //hide meter
+    obj_hide(&obj_buffer[24]); //hide finesse combo counter
+    for(int i = 0; i < 3; i++)
+        obj_hide(&obj_buffer[16+i]);
+
+    oam_copy(oam_mem, obj_buffer, 128);
+
+    //calculate pps
+    FIXED t = gameSeconds * float2fx(0.0167f);
+    FIXED pps = 0;
+    if(t > 0)
+        pps =  fxdiv(int2fx(game->pieceCounter),(t));
+
+    std::string ppsStr = std::to_string(fx2int(pps)) + ".";
+
+    int fractional = pps & 0xff;
+    for(int i = 0; i < 2; i++){
+        fractional *= 10;
+        ppsStr += '0' + (fractional >> 8);
+        fractional &= 0xff;
+    }
+
+    std::string totalTime = timeToString(gameSeconds);
+    igt = game->inGameTimer;
+
+    showModeText();
+
+    bool shown = false;
 
     while (1) {
         if (!onStates){
-            if(game->goal == 0 && game->gameMode == SPRINT)
+            if(game->gameMode == TRAINING)
                 maxSelection = 5;
             else
                 maxSelection = 4;
@@ -561,12 +606,11 @@ int pauseMenu(){
         VBlankIntrWait();
         key_poll();
 
-        aprint("PAUSE!", 12, 4);
-
         for (int i = 0; i < maxSelection; i++)
             aprint(" ", 10, optionsHeight + 2 * i);
-
         aprint(">", 10, optionsHeight + 2 * selection);
+
+        aprint("PAUSE!", 12, 4);
 
         u16 key = key_hit(KEY_FULL);
 
@@ -575,7 +619,7 @@ int pauseMenu(){
             aprint("Resume", 12, optionsHeight + optionsCounter++ * 2);
             aprint("Restart", 12, optionsHeight + optionsCounter++ * 2);
 
-            if(game->goal == 0 && game->gameMode == SPRINT)
+            if(game->gameMode == TRAINING)
                 aprint("Saves", 12, optionsHeight + optionsCounter++ * 2);
 
             aprint("Sleep", 12, optionsHeight + optionsCounter++ * 2);
@@ -583,7 +627,7 @@ int pauseMenu(){
 
             if (key == KEY_A) {
                 int n = selection;
-                if(!(game->goal == 0 && game->gameMode == SPRINT) && selection >= 2)
+                if(!(game->gameMode == TRAINING) && selection >= 2)
                     n++;
 
                 if (n == 0) {
@@ -606,7 +650,10 @@ int pauseMenu(){
                     update();
                 } else if (n == 3) {
                     sleep();
+                    showStats(showingStats, totalTime, ppsStr);
+                    showModeText();
                 } else if (n == 4) {
+                    REG_BLDCNT = prevBld;
                     sfx(SFX_MENUCANCEL);
                     return 1;
                 }
@@ -622,15 +669,8 @@ int pauseMenu(){
                     if (saveExists) {
                         delete game;
                         game = new Game(*quickSave);
-                        game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+                        game->setTuning(getTuning());
                         game->pawn.big = bigMode;
-                        update();
-                        showBackground();
-                        showPawn();
-                        showShadow();
-                        showHold();
-                        showQueue();
-                        update();
                         floatingList.clear();
                         placeEffectList.clear();
                         clearGlow();
@@ -650,7 +690,7 @@ int pauseMenu(){
                     quickSave = new Game(*game);
                     saveExists = true;
 
-                    aprint("Saved!", 23, 18);
+                    aprint(" Saved!", 22, 18);
                     sfx(SFX_MENUCONFIRM);
                 } else if (selection == 2) {
                     sfx(SFX_MENUCONFIRM);
@@ -667,7 +707,6 @@ int pauseMenu(){
             clearText();
             update();
             pause = false;
-            onStates = false;
             mmResume();
             break;
         }
@@ -704,8 +743,25 @@ int pauseMenu(){
             sfx(SFX_MENUMOVE);
         }
 
+        if(key == KEY_L){
+            sfx(SFX_MENUCONFIRM);
+            showingStats = !showingStats;
+            clearSmallText();
+            showStats(showingStats, totalTime, ppsStr);
+        }
+
+        if(!shown){
+            shown = true;
+            showStats(showingStats, totalTime, ppsStr);
+        }
+
         oam_copy(oam_mem, obj_buffer, 128);
     }
+
+    REG_BLDCNT = prevBld;
+    memset16(&se_mem[25], 0 , 32 * 20);
+    showBackground();
+    setSmallTextArea(110, 3, 7, 9, 10);
 
     return 0;
 }
@@ -718,17 +774,29 @@ int onRecord() {
 
     for (int i = 0; i < 5; i++) {
         if (game->gameMode == MARATHON) {
-            if (game->score < savefile->marathon[mode].highscores[i].score)
-                continue;
+            if(subMode == 0){
+                if (game->score < savefile->marathon[mode].highscores[i].score)
+                    continue;
 
-            for (int j = 3; j >= i; j--)
-                savefile->marathon[mode].highscores[j + 1] = savefile->marathon[mode].highscores[j];
+                for (int j = 3; j >= i; j--)
+                    savefile->marathon[mode].highscores[j + 1] = savefile->marathon[mode].highscores[j];
 
-            std::string name = nameInput(i);
+                std::string name = nameInput(i);
 
-            savefile->marathon[mode].highscores[i].score = game->score;
-            strncpy(savefile->marathon[mode].highscores[i].name, name.c_str(), 9);
+                savefile->marathon[mode].highscores[i].score = game->score;
+                strncpy(savefile->marathon[mode].highscores[i].name, name.c_str(), 9);
+            }else{
+                if (game->score < savefile->zone[mode].highscores[i].score)
+                    continue;
 
+                for (int j = 3; j >= i; j--)
+                    savefile->zone[mode].highscores[j + 1] = savefile->zone[mode].highscores[j];
+
+                std::string name = nameInput(i);
+
+                savefile->zone[mode].highscores[i].score = game->score;
+                strncpy(savefile->zone[mode].highscores[i].name, name.c_str(), 9);
+            }
         } else if (game->gameMode == SPRINT && game->won == 1) {
             if(subMode == 0){
                 if (gameSeconds > savefile->sprint[mode].times[i].frames && savefile->sprint[mode].times[i].frames)
@@ -832,6 +900,25 @@ int onRecord() {
 
             savefile->classic[subMode].highscores[i].score = game->score;
             strncpy(savefile->classic[subMode].highscores[i].name, name.c_str(), 9);
+        } else if (game->gameMode == MASTER) {
+            int grade = game->grade + game->coolCount + (int) game->creditGrade;
+
+            if(grade > 34)
+                grade = 34;
+
+            if (grade < savefile->master[subMode].grade[i] || (grade == savefile->master[subMode].grade[i] && gameSeconds > savefile->master[subMode].times[i].frames))
+                continue;
+
+            for (int j = 3; j >= i; j--){
+                savefile->master[subMode].times[j + 1] = savefile->master[subMode].times[j];
+                savefile->master[subMode].grade[j + 1] = savefile->master[subMode].grade[j];
+            }
+
+            std::string name = nameInput(i);
+
+            savefile->master[subMode].times[i].frames = gameSeconds;
+            strncpy(savefile->master[subMode].times[i].name, name.c_str(), 9);
+            savefile->master[subMode].grade[i] = grade;
         }
 
         place = i;
@@ -841,4 +928,60 @@ int onRecord() {
     }
 
     return place;
+}
+
+void showModeText(){
+    if(game->gameMode > 0 && game->gameMode <= 11){
+        int counter = 0;
+        std::string str;
+        std::string str2;
+
+        str = modeStrings[game->gameMode-1];
+
+        if(game->gameMode == TRAINING)
+            str = "Training";
+
+        aprintColor(str,30-str.size(),counter++,0);
+
+        str = "";
+        if(game->gameMode == TRAINING){
+            if(game->trainingMode)
+                str = "Finesse";
+        }else{
+            if(game->gameMode != CLASSIC && game->gameMode != MASTER)
+                str = modeOptionStrings[game->gameMode-1][mode];
+            else if(game->gameMode == MASTER)
+                str = modeOptionStrings[game->gameMode-1][subMode];
+            else
+                str = modeOptionStrings[game->gameMode-1][0];
+        }
+
+        if(str != "")
+            aprintColor(str,30-str.size(),counter++,0);
+
+        str = "";
+        str2 = "";
+        if(game->subMode){
+            switch(game->gameMode){
+            case MARATHON: str = "Zone"; break;
+            case SPRINT: str = "Attack"; break;
+            case DIG: str = "Efficiency"; break;
+            case CLASSIC:
+                str = "B-Type";
+                str2 = std::to_string(initialLevel) + "-" + std::to_string(game->bTypeHeight);
+                break;
+            }
+        }else{
+            if(game->gameMode == CLASSIC)
+                str = "A-Type";
+        }
+
+        if(str != "")
+            aprintColor(str,30-str.size(),counter++,0);
+        if(str2 != "")
+            aprintColor(str2,30-str2.size(),counter++,0);
+
+        if(bigMode)
+            aprintColor("BIG MODE",22,counter++,0);
+    }
 }

@@ -3,6 +3,8 @@
 #include <maxmod.h>
 
 #include "def.h"
+#include "sprite37tiles_bin.h"
+#include "sprite5tiles_bin.h"
 #include "tetrisEngine.h"
 #include "sprites.h"
 
@@ -26,11 +28,19 @@
 
 #include "tetromino.hpp"
 #include "tonc_bios.h"
+#include "tonc_core.h"
+#include "tonc_input.h"
+#include "tonc_irq.h"
+#include "tonc_memdef.h"
+#include "tonc_memmap.h"
+#include "tonc_oam.h"
+#include "tonc_types.h"
+#include "tonc_video.h"
+
+#include "defaultGradient_bin.h"
 
 using namespace Tetris;
 
-void control();
-void showTimer();
 mm_word myEventHandler();
 bool unlock_gbp();
 void initRumble();
@@ -75,50 +85,35 @@ bool rumble_enabled = false;
 
 bool rumbleInitialized = false;
 
+Scene * scene = nullptr;
+
+u16 gradientTable[SCREEN_HEIGHT + 1];
+
+bool gradientEnabled = false;
+
 void onVBlank(void) {
 
     mmVBlank();
+    if(gradientEnabled)
+        DMA_TRANSFER(&pal_bg_mem[0], gradientTable, 1, 0, DMA_HDMA);
+
     LINK_ISR_VBLANK();
 
+    REG_IME = 1;
     if (canDraw) {
         canDraw = 0;
 
-        control();
-        showPawn();
-        showShadow();
-
-        showHold();
-        showQueue();
-
-        drawGrid();
-        screenShake();
-        showClearText();
-        showPlaceEffect();
-        checkSounds();
-
-        oam_copy(oam_mem, obj_buffer, 32);
-        obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
-        if (game->refresh) {
-            update();
-            showBackground();
-            game->resetRefresh();
-        }else if (game->clearLock){
-            showBackground();
-        }
-        showTimer();
+        scene->draw();
     }
 
+    REG_IME = 0;
     frameCounter++;
     mmFrame();
 }
 
 void onHBlank() {
-    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
-
     if(REG_VCOUNT < 160)
-        clr_fade((COLOR*)palette[n], GRADIENT_COLOR, pal_bg_mem, 1, (REG_VCOUNT / 20) * 2 + 16);
-    else
-        clr_fade((COLOR*)palette[n], GRADIENT_COLOR, pal_bg_mem, 1, 16);
+        pal_bg_mem[0] = gradientTable[REG_VCOUNT];
 }
 
 mm_word myEventHandler(mm_word msg, mm_word param){
@@ -145,13 +140,13 @@ void initialize(){
     mmInitDefault((mm_addr)soundbank_bin, 12);
     mmSetEventHandler((mm_callback)myEventHandler);
 
-    logInitMgba();
+    // logInitMgba();
 
     initRumble();
 
-    REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2);
-    REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3);
-    REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0);
+    REG_BG0CNT = BG_CBB(0) | BG_SBB(25) | BG_SIZE(0) | BG_PRIO(2) | BG_MOSAIC;
+    REG_BG1CNT = BG_CBB(0) | BG_SBB(26) | BG_SIZE(0) | BG_PRIO(3) | BG_MOSAIC;
+    REG_BG2CNT = BG_CBB(2) | BG_SBB(29) | BG_SIZE(0) | BG_PRIO(0) | BG_MOSAIC;
     REG_BG3CNT = BG_CBB(0) | BG_SBB(27) | BG_SIZE(0) | BG_PRIO(3);
     REG_DISPCNT = 0x1000 | 0x0040 | DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_BG3; //Set to Sprite mode, 1d rendering
 
@@ -184,7 +179,7 @@ void initialize(){
     memcpy16(&tile_mem[5][64], title1tiles_bin, title1tiles_bin_size / 2);
     memcpy16(&tile_mem[5][96], title2tiles_bin, title2tiles_bin_size / 2);
 
-    for(int i = 0; i < 8; i ++)
+    for(int i = 0; i < 8; i++)
         memcpy16(&tile_mem[5][128+i], moveSpriteTiles[i], 16);
 
     memcpy16(&tile_mem[2][0], fontTiles, fontTilesLen / 2);
@@ -197,15 +192,70 @@ void initialize(){
     // REG_BLDCNT = BLD_BUILD(BLD_BG1,BLD_BACKDROP,BLD_STD);
     REG_BLDCNT = (1 << 6) + (1 << 13) + (1 << 1);
     REG_BLDALPHA = BLD_EVA(31) | BLD_EVB(2);
+
+    setGradient(GRADIENT_COLOR);
 }
 
+
 int main(void) {
+    logInitMgba();
+
     if(ENABLE_FLASH_SAVE)
         flash_init();
 
     loadSave();
 
     initialize();
+
+    // u16 * dest = (u16 * ) &se_mem[25];
+
+    // for(int i = 0; i < 20; i++){
+    //     memset16(&dest[i*32 + 10], 1, 10);
+    // }
+
+    // for(int i = 0; i < 20; i++){
+    //     dest[i * 32 + 10] = 4 + 0x1000 * savefile->settings.palette;
+    // }
+
+    // bool state = false;
+    //
+    //
+    // setupCredits();
+
+    // while(1){
+    //     VBlankIntrWait();
+    //     key_poll();
+    //     if(key_hit(KEY_A))
+    //         break;
+
+    //     showCredits();
+
+    //     oam_copy(oam_mem, obj_buffer, 128);
+    // }
+
+    //     if(key_hit(KEY_B)){
+    //         state = !state;
+    //         gradient(state);
+    //     }
+    //     // DMA_TRANSFER(&pal_bg_mem[0], &gradientTable[1], 1, 3, DMA_HDMA);
+
+    //     // if(timer % 4 == 0)
+    //     //     test();
+    //     // setGradient(test);
+
+    //     // if(key_is_down(KEY_UP)){
+    //     //     if(test > 0)
+    //     //         test--;
+    //     // }
+
+    //     // if(key_is_down(KEY_DOWN)){
+    //     //     if(test < 0x7fff)
+    //     //         test++;
+    //     // }
+
+    //     // if(key_hit(KEY_START))
+    //     //     log(std::to_string(test));
+    // }
 
     //start screen animation
     while(1){
@@ -215,28 +265,25 @@ int main(void) {
             startScreen();
         }else{
             playAgain = false;
+
             int goal = game->goal;
             int training = game->trainingMode;
+            int rs = game->rotationSystem;
+
             delete game;
             game = new Game(game->gameMode,bigMode);
             game->setGoal(goal);
             game->setLevel(initialLevel);
-            game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtectionFrames,savefile->settings.directionalDas);
+            game->setTuning(getTuning());
             game->setTrainingMode(training);
             game->pawn.big = bigMode;
             game->bTypeHeight = goalSelection;
             game->setSubMode(subMode);
+            game->setRotationSystem(rs);
         }
 
         gameLoop();
     }
-}
-
-void update() {
-    clearText();
-    showText();
-    showTimer();
-    showClearText();
 }
 
 std::string timeToString(int frames) {
@@ -276,14 +323,24 @@ void reset() {
     rumbleTimer = 0;
     rumble_set_state(RumbleState(rumble_stop));
 
+    resetZonePalette();
+
     memset32(&se_mem[25], 0x0000, 32 * 20);
     memset32(&se_mem[26], 0x0000, 32 * 20);
     memset32(&se_mem[27], 0x0000, 32 * 20);
+
+    REG_MOSAIC = MOS_BUILD(0,0,0,0);
 
     //reset glow
     for (int i = 0; i < 20; i++)
         for (int j = 0; j < 10; j++)
             glow[i][j] = 0;
+
+    int g = savefile->settings.backgroundGradient;
+    if(g == 0)
+        memcpy16(gradientTable,defaultGradient_bin,defaultGradient_bin_size/2);
+    else
+        setGradient(g);
 }
 
 std::string nameInput(int place) {
@@ -478,6 +535,21 @@ void setSkin() {
     case 10:
         blockSprite = (u8*)sprite28tiles_bin;
         break;
+    case 11:
+        blockSprite = (u8*)&sprite38tiles_bin[12*32];
+
+        memcpy32(&tile_mem[0][128],sprite38tiles_bin,sprite38tiles_bin_size/4);
+        break;
+    case 12:
+        blockSprite = (u8*)&sprite39tiles_bin[12*32];
+
+        memcpy32(&tile_mem[0][128],sprite39tiles_bin,sprite39tiles_bin_size/4);
+        break;
+    case 13:
+        blockSprite = (u8*)&sprite40tiles_bin[12*32];
+
+        memcpy32(&tile_mem[0][128],sprite40tiles_bin,sprite40tiles_bin_size/4);
+        break;
     default:
         if(savefile->settings.skin < 0){
             int n = savefile->settings.skin;
@@ -503,15 +575,21 @@ void setSkin() {
 
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
-    // memcpy16(&pal_bg_mem[8 * 16], &palette[savefile->settings.palette * 16], 16);
 
     int** board;
     for (int i = 0; i < 7; i++) {
-        board = game->getShape(i, 0);
+        board = getShape(i, 0, game->rotationSystem);
+
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
                 if (board[j][k]) {
-                    if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
+                    if(savefile->settings.skin == 11)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite38tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                    else if(savefile->settings.skin == 12)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite39tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                    else if(savefile->settings.skin == 13)
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite40tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                    else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
                     else
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], classicTiles[savefile->settings.skin-7][i], sprite1tiles_bin_size / 2);
@@ -560,6 +638,8 @@ void setLightMode() {
         memset16(&pal_obj_mem[14 * 16 + 2], 0x318c, 1);//obj font main
         memset16(&pal_obj_mem[14 * 16 + 3], 0x0421, 1);//boj font shadow
     }
+
+    setGradient(savefile->settings.backgroundGradient);
 }
 
 void sleep() {
@@ -589,18 +669,14 @@ void sleep() {
 
         if (key_hit(KEY_B)) {
             REG_DISPCNT = display_value;
-            update();
-            showPawn();
-            showHold();
-            showShadow();
-            showQueue();
-            showTimer();
+            clearText();
+            sfx(SFX_MENUCANCEL);
             return;
         }
-
     }
 
     irq_disable(II_VBLANK);
+    gradient(false);
     int stat_value = REG_SNDSTAT;
     int dsc_value = REG_SNDDSCNT;
     int dmg_value = REG_SNDDMGCNT;
@@ -610,7 +686,11 @@ void sleep() {
     REG_SNDDSCNT = 0;
     REG_SNDDMGCNT = 0;
 
-    linkConnection->deactivate();
+    bool isLinked = linkConnection->isActive();
+
+    if(isLinked)
+        linkConnection->deactivate();
+
     irq_disable(II_TIMER3);
     irq_disable(II_SERIAL);
 
@@ -624,18 +704,14 @@ void sleep() {
     REG_SNDDSCNT = dsc_value;
     REG_SNDDMGCNT = dmg_value;
 
-    linkConnection->activate();
+    if(isLinked)
+        linkConnection->activate();
+
     irq_enable(II_TIMER3);
     irq_enable(II_SERIAL);
     irq_delete(II_KEYPAD);
     irq_enable(II_VBLANK);
-
-    update();
-    showPawn();
-    showHold();
-    showShadow();
-    showQueue();
-    showTimer();
+    gradient(true);
 }
 
 void diagnose() {
@@ -654,7 +730,6 @@ void diagnose() {
 
     // str += std::to_string(profileResults[0]);
 
-    // log(str);
 }
 
 void setPalette(){
@@ -694,9 +769,35 @@ void setPalette(){
 
     }else if(savefile->settings.colors == 4){
         for(int i = 0; i < 9; i++){
-            memcpy16(&pal_bg_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
-            memcpy16(&pal_obj_mem[i*16], &monoPalette[savefile->settings.lightMode],4);
+            memcpy16(&pal_bg_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
+            memcpy16(&pal_obj_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
         }
+
+        if(!savefile->settings.lightMode){
+            memset16(&pal_bg_mem[7], 0x7fff,2);
+            memset16(&pal_obj_mem[7], 0x7fff,2);
+        }else{
+            memset16(&pal_bg_mem[7], 0x0421,2);
+            memset16(&pal_obj_mem[7], 0x0421,2);
+        }
+
+    }else if(savefile->settings.colors == 5){
+        for(int i = 0; i < 8; i++){
+            memcpy16(&pal_bg_mem[i*16+1], &arsPalette[0][i],4);
+            memcpy16(&pal_obj_mem[i*16+1], &arsPalette[0][i],4);
+        }
+
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[0][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[0][color * 16], 16);
+    }else if(savefile->settings.colors == 6){
+        for(int i = 0; i < 8; i++){
+            memcpy16(&pal_bg_mem[i*16+1], &arsPalette[1][i],4);
+            memcpy16(&pal_obj_mem[i*16+1], &arsPalette[1][i],4);
+        }
+        //set frame color
+        memcpy16(&pal_obj_mem[8 * 16], &palette[1][color * 16], 16);
+        memcpy16(&pal_bg_mem[8 * 16], &palette[1][color * 16], 16);
     }else{
         //set frame color
         memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
@@ -765,15 +866,18 @@ int getClassicPalette(){
 
 void buildMini(TILE * customSkin){
     memset32(&tile_mem[4][9*16],0,8*8*7);
+
+    int add = (game->rotationSystem == NRS || game->rotationSystem == ARS);
+
     for (int i = 0; i < 7; i++){
 
         TILE * t;
-        int** p = game->getShape(i, 0);
+        int** p = getShape(i, 0, game->rotationSystem);
         int tileStart = 9 * 16 + i * 8;
 
         for(int y = 0; y < 2; y++){
             for(int x = 0; x < 4; x++){
-                if(!p[y][x])
+                if(!p[y+add][x])
                     continue;
 
                 for(int ii = 0; ii < 6; ii++){
@@ -790,4 +894,67 @@ void buildMini(TILE * customSkin){
             delete p[i];
         delete p;
     }
+}
+
+Tuning getTuning(){
+    Tuning t = {
+        t.das = savefile->settings.das,
+        t.arr = savefile->settings.arr,
+        t.sfr = savefile->settings.sfr,
+        t.dropProtection = savefile->settings.dropProtectionFrames,
+        t.directionalDas = savefile->settings.directionalDas,
+        t.delaySoftDrop = savefile->settings.delaySoftDrop,
+    };
+
+    return t;
+}
+
+void changeScene(Scene *newScene){
+    if(scene != nullptr){
+        delete scene;
+    }
+
+    scene = newScene;
+}
+
+void setGradient(int color){
+    REG_DMA0CNT &= ~(1 << 0x1f);
+
+    int n = (savefile->settings.colors < 2)?savefile->settings.colors:0;
+
+    COLOR * src = (COLOR *) &palette[n];
+
+    if(!(savefile->settings.lightMode && color == 0)){
+        for(int i = 0; i < SCREEN_HEIGHT; i++){
+            clr_fade(src, color, (COLOR *) &gradientTable[i], 1, ((SCREEN_HEIGHT-1-i) / 20) * 2 + 16);
+        }
+
+        gradientTable[SCREEN_HEIGHT-1] = gradientTable[0];
+    }else{
+        for(int i = 0; i < SCREEN_HEIGHT; i++)
+            gradientTable[i] = 0x5ad6;
+    }
+
+}
+
+void sfx(int s){
+	mm_sfxhand h = mmEffect(s);
+	mmEffectVolume(h, 255 * (float)savefile->settings.sfxVolume / 10);
+
+    if((s == SFX_PLACE) && game->zoneTimer){
+        mmEffectRate(h,512);
+    }
+}
+
+void setDefaultGradient(){
+    memcpy16(gradientTable,defaultGradient_bin,defaultGradient_bin_size/2);
+}
+
+void gradient(bool state){
+    if(state){
+    }else{
+        REG_DMA0CNT &= ~(1 << 0x1f);
+    }
+
+    gradientEnabled = state;
 }
