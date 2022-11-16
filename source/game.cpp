@@ -1981,6 +1981,9 @@ void resetZonePalette(){
 
     memcpy16(&tile_mem[0][4],sprite5tiles_bin,16);
 
+    if(game->lost)
+        return;
+
     u16 * dest = (u16*) &se_mem[26];
     for(int i = 0; i < 20; i++){
         dest[i * 32 + 9] = 4 + 0x8000;

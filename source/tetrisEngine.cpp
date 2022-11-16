@@ -1817,6 +1817,9 @@ void Game::setMasterTuning(){
         n = (speedLevel - 400)/100;
     }
 
+    if(n > 8)
+        n = 8;
+
     arr = 1;
     areMax = masterDelays[n][0];
     lineAre = masterDelays[n][1];
