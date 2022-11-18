@@ -129,7 +129,7 @@ int getNbr(int **board, int x, int y, int ex, int sy , int ey){
 }
 
 void Game::rotateCW(int dir) {
-    rotating += flipSign(1,(!dir * -1));
+    rotates[0] = dir;
 
     if(!dir)
         return;
@@ -138,7 +138,7 @@ void Game::rotateCW(int dir) {
 }
 
 void Game::rotateCCW(int dir) {
-    rotating += flipSign(-1,(!dir * -1));
+    rotates[1] = dir;
 
     if(!dir)
         return;
@@ -147,19 +147,12 @@ void Game::rotateCCW(int dir) {
 }
 
 void Game::rotateTwice(int dir) {
-    int n = 2;
-    if(rotationSystem == NRS){
-        return;
-    }else if(rotationSystem == ARS){
-        n = -1;
-    }
-
-    rotating += flipSign(n,(!dir * -1));
+    rotates[2] = dir;
 
     if(!dir)
         return;
 
-    rotate(n);
+    rotate(2);
 }
 
 void Game::rotate(int dir){
@@ -168,6 +161,9 @@ void Game::rotate(int dir){
     }else if(eventLock){
         return;
     }
+
+    if(rotationSystem == ARS && dir == 2)
+        dir = -1;
 
     int dx = 0;
     int dy = 0;
@@ -787,10 +783,10 @@ void Game::place() {
     if(entryDelay)
         pawn.current = -1;
 
+    canHold = true;
+
     if (!clearLock && !entryDelay && !(zoneTimer == 1 && comboCounter > 0))
         next();
-
-    canHold = true;
 
     lockTimer = maxLockTimer;
     lockMoveCounter = 15;
@@ -1206,9 +1202,11 @@ void Game::next() {
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
 
-    if((fromLock && irs) || rotationSystem == ARS)
-        pawn.rotation = rotating + (rotating < 0) * 4;
-    else
+    if((fromLock && irs) || rotationSystem == ARS){
+        int sum = rotates[0] + (rotates[1] * -1) + (rotates[2] * ((rotationSystem == ARS)? -1 : 2));
+
+        pawn.rotation = sum + 4 * (sum < 0);
+    } else
         pawn.rotation = 0;
 
     speedCounter = 0;
@@ -1394,9 +1392,11 @@ void Game::hold(int dir) {
         }
     }
 
-    if(rotationSystem == ARS || irs)
-        pawn.rotation = rotating + (rotating < 0) * 4;
-    else
+    if(rotationSystem == ARS || irs){
+        int sum = rotates[0] + (rotates[1] * -1) + (rotates[2] * ((rotationSystem == ARS)? -1 : 2));
+
+        pawn.rotation = sum + (sum < 0) * 4;
+    } else
         pawn.rotation = 0;
 
     canHold = false;
@@ -2235,7 +2235,9 @@ void Game::connectBoard(int startY,int endY){
 }
 
 void Game::liftKeys(){
-    rotating = 0;
+    for(int i = 0; i < 3; i++)
+        rotates[0] = false;
+
     holding = 0;
     left = 0;
     right = 0;

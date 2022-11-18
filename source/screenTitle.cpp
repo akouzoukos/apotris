@@ -910,6 +910,9 @@ void startScreen() {
             if (key == KEY_B) {
                 if (toStart != -1) {
                     if (selection == 0 || toStart == -2) {
+                        if(onSettings)
+                            moving = false;
+
                         onSettings = false;
                         if (onPlay)
                             options = (int)gameOptions.size();
@@ -1055,7 +1058,7 @@ void startText() {
     const int titleY = 1;
 
     if (!onSettings) {
-        aprint("v3.4.3", 0, 19);
+        aprint("v3.4.4", 0, 19);
 
         aprint("akouzoukos", 20, 19);
 

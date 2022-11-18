@@ -359,7 +359,7 @@ void handlingText(){
         aprint("]", endX + 2 + (!savefile->settings.delaySoftDrop), startY + space * (selection + 1));
     } else if (selection == 4) {
         if (savefile->settings.dropProtectionFrames > 0)
-            aprint("<", endX - 1, startY + space * selection);
+            aprint("<", endX - 1, startY + space * selection + 1);
         if (savefile->settings.dropProtectionFrames < 20)
             aprint(">", endX + 1 + (savefile->settings.dropProtectionFrames > 9), startY + space * (selection + 1));
     } else if (selection == 5) {

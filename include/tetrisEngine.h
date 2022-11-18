@@ -347,6 +347,8 @@ namespace Tetris
         bool ihs = false;
         bool irs = false;
 
+        bool rotates[3] = {false,false,false};
+
     public:
         const int lengthX = 10;
         const int lengthY = 40;
