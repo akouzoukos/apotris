@@ -247,6 +247,21 @@ namespace Tetris
             bool delaySoftDrop = true;
     };
 
+    class Options{
+    public:
+            int mode = 0;
+            int goal = 0;
+            int level = 0;
+            Tuning tuning;
+
+            bool trainingMode = false;
+            bool bigMode = false;
+
+            int bTypeHeight = 0;
+            int subMode = 0;
+            int rotationSystem = SRS;
+    };
+
     class Game {
     private:
         void fillBag();
@@ -465,6 +480,7 @@ namespace Tetris
         void setRotationSystem(int);
         void removeEventLock();
         void activateZone(int);
+        void setOptions(Options newOptions);
 
         Game(){
             seed = initSeed = qran();

@@ -1,11 +1,8 @@
 #pragma once
 
-#include <string>
+#include "tetrisEngine.h"
 #include <tonc_types.h>
 #include <maxmod.h>
-#include "tetrisEngine.h"
-#include "tonc_core.h"
-#include "tonc_video.h"
 
 INLINE FIXED lerp(FIXED a, FIXED b, FIXED mix){
     return a + (((b-a)*mix)>>8);
@@ -311,6 +308,10 @@ extern void setDefaultGraphics(Save * save, int depth);
 extern void showCredits();
 extern void setupCredits();
 extern void refreshCredits();
+extern void setPawnPalette(int dest, int n, int blend);
+
+extern void startGame(Tetris::Options options);
+extern void startGame();
 
 extern OBJ_ATTR obj_buffer[128];
 extern OBJ_AFFINE* obj_aff_buffer;
@@ -346,10 +347,10 @@ extern int gameSeconds;
 
 extern bool playAgain;
 
-extern bool resumeJourney;
-extern bool journeyLevelUp;
-extern bool journeySaveExists;
-extern Tetris::Game* journeySave;
+// extern bool resumeJourney;
+// extern bool journeyLevelUp;
+// extern bool journeySaveExists;
+// extern Tetris::Game* journeySave;
 
 extern int connected;
 extern int multiplayerStartTimer;
@@ -388,6 +389,8 @@ extern TILE* customSkin;
 extern bool proMode;
 
 extern bool gradientEnabled;
+
+extern Tetris::Options *previousGameOptions;
 
 #define shakeMax 10
 

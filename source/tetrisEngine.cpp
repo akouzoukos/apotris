@@ -1,8 +1,7 @@
-#include "def.h"
+
 #include "tetromino.hpp"
 #include "tetrisEngine.h"
 #include <iostream>
-#include <string>
 #include <algorithm>
 #include <tuple>
 #include "tonc.h"
@@ -2230,4 +2229,16 @@ void Game::connectBoard(int startY,int endY){
             }
         }
     }
+}
+
+void Game::setOptions(Options newOptions){
+    goal = newOptions.goal;
+    setLevel(newOptions.level);
+    setTuning(newOptions.tuning);
+
+    trainingMode = newOptions.trainingMode;
+
+    bTypeHeight = newOptions.bTypeHeight;
+    setRotationSystem(newOptions.rotationSystem);
+    setSubMode(newOptions.subMode);
 }

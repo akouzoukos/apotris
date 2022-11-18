@@ -27,15 +27,6 @@
 #include "classic_pal_bin.h"
 
 #include "tetromino.hpp"
-#include "tonc_bios.h"
-#include "tonc_core.h"
-#include "tonc_input.h"
-#include "tonc_irq.h"
-#include "tonc_memdef.h"
-#include "tonc_memmap.h"
-#include "tonc_oam.h"
-#include "tonc_types.h"
-#include "tonc_video.h"
 
 #include "defaultGradient_bin.h"
 
@@ -45,6 +36,7 @@ mm_word myEventHandler();
 bool unlock_gbp();
 void initRumble();
 int getClassicPalette();
+void setPawnPalette(int dest, int n, int blend);
 
 LinkConnection* linkConnection = new LinkConnection();
 
@@ -91,10 +83,12 @@ u16 gradientTable[SCREEN_HEIGHT + 1];
 
 bool gradientEnabled = false;
 
-bool resumeJourney = false;
-bool journeyLevelUp = false;
-bool journeySaveExists = false;
-Tetris::Game* journeySave;
+Options *previousGameOptions = nullptr;
+
+// bool resumeJourney = false;
+// bool journeyLevelUp = false;
+// bool journeySaveExists = false;
+// Tetris::Game* journeySave;
 
 void onVBlank(void) {
 
@@ -215,45 +209,26 @@ int main(void) {
     while(1){
         reset();
 
-        if(!playAgain && !journeyLevelUp){
+        if(!playAgain){
             startScreen();
-        }else if(journeyLevelUp){
-			journeyLevelUp = false;
-			if (journeySaveExists){		
-				int goal = game->goal;
-				int training = game->trainingMode;
-				int rs = game->rotationSystem;
-				
-				delete game;
-					
-				game = new Game(*journeySave);				
-				game->setGoal(goal);
-				game->setTuning(getTuning());
-				game->setTrainingMode(training);
-				game->pawn.big = bigMode;
-				game->bTypeHeight = goalSelection;
-				game->setSubMode(subMode);
-				game->setRotationSystem(rs);
-				
-				resumeJourney = true;
-			}
-		}else{
+        }else{
             playAgain = false;
 
-            int goal = game->goal;
-            int training = game->trainingMode;
-            int rs = game->rotationSystem;
+            startGame();
+            // int goal = game->goal;
+            // int training = game->trainingMode;
+            // int rs = game->rotationSystem;
 
-            delete game;
-            game = new Game(game->gameMode,bigMode);
-            game->setGoal(goal);
-            game->setLevel(initialLevel);
-            game->setTuning(getTuning());
-            game->setTrainingMode(training);
-            game->pawn.big = bigMode;
-            game->bTypeHeight = goalSelection;
-            game->setSubMode(subMode);
-            game->setRotationSystem(rs);
+            // delete game;
+            // game = new Game(game->gameMode,bigMode);
+            // game->setGoal(goal);
+            // game->setLevel(initialLevel);
+            // game->setTuning(getTuning());
+            // game->setTrainingMode(training);
+            // game->pawn.big = bigMode;
+            // game->bTypeHeight = goalSelection;
+            // game->setSubMode(subMode);
+            // game->setRotationSystem(rs);
         }
 
         gameLoop();
@@ -742,9 +717,16 @@ void setPalette(){
         }
 
     }else if(savefile->settings.colors == 4){
+        COLOR c;
+        if(savefile->settings.palette < 7){
+            int *clr = (int *) GameInfo::colors[savefile->settings.palette];
+            c = RGB15_SAFE(clr[0] >> 3, clr[1] >> 3, clr[2] >> 3);
+        } else
+            c = monoPalette[savefile->settings.lightMode][0];
+
         for(int i = 0; i < 9; i++){
-            memcpy16(&pal_bg_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
-            memcpy16(&pal_obj_mem[i*16+1], &monoPalette[savefile->settings.lightMode],4);
+            memset16(&pal_bg_mem[i*16+1], c,4);
+            memset16(&pal_obj_mem[i*16+1], c,4);
         }
 
         if(!savefile->settings.lightMode){
@@ -925,10 +907,70 @@ void setDefaultGradient(){
 }
 
 void gradient(bool state){
-    if(state){
-    }else{
+    if(!state){
         REG_DMA0CNT &= ~(1 << 0x1f);
     }
 
     gradientEnabled = state;
+}
+
+void startGame(Tetris::Options options){
+    delete game;
+    game = new Game(options.mode,options.bigMode);
+
+    game->setOptions(options);
+
+    if(previousGameOptions != nullptr)
+        delete previousGameOptions;
+    previousGameOptions = new Options();
+
+    *previousGameOptions = options;
+}
+
+void startGame(){
+    if(previousGameOptions == nullptr)
+        previousGameOptions = new Options();
+
+    startGame(*previousGameOptions);
+}
+
+void setPawnPalette(int dest, int n, int blend){
+    // COLOR c;
+    // if(savefile->settings.palette < 7){
+    //     int *clr = (int *) GameInfo::colors[savefile->settings.palette];
+    //     c = RGB15_SAFE(clr[0] >> 3, clr[1] >> 3, clr[2] >> 3);
+    // } else
+    //     c = monoPalette[savefile->settings.lightMode][0];
+
+    if (!savefile->settings.lightMode){
+        if(savefile->settings.colors == 2)
+            clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[dest * 16], 8, blend);
+        else if(savefile->settings.colors == 3){
+            clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[dest * 16+1], 4, blend);
+        }else if(savefile->settings.colors == 4){
+            clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[dest * 16+1], 4, blend);
+        }else if(savefile->settings.colors == 5){
+            clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[dest * 16+1], 4, blend);
+        }else if(savefile->settings.colors == 6){
+            clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[dest * 16+1], 4, blend);
+        } else
+            clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[dest * 16], 8, blend);
+    }else{
+        if(dest == 11)
+            blend = int2fx(blend) >> 5;
+        else if(dest == 10)
+            blend = float2fx(0.25);
+        if(savefile->settings.colors == 2)
+            clr_adj_brightness(&pal_obj_mem[dest * 16], (COLOR*)classic_pal_bin, 8, blend);
+        else if(savefile->settings.colors == 3){
+            clr_adj_brightness(&pal_obj_mem[dest * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, blend);
+        }else if(savefile->settings.colors == 4){
+            clr_adj_brightness(&pal_obj_mem[dest * 16+1], (COLOR*)&monoPalette[1][0], 4, blend);
+        }else if(savefile->settings.colors == 5){
+            clr_adj_brightness(&pal_obj_mem[dest * 16+1], (COLOR*)&arsPalette[0][n], 4, blend);
+        }else if(savefile->settings.colors == 6){
+            clr_adj_brightness(&pal_obj_mem[dest * 16+1], (COLOR*)&arsPalette[1][n], 4, blend);
+        }else
+            clr_adj_brightness(&pal_obj_mem[dest * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, blend);
+    }
 }

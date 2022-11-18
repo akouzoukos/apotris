@@ -53,7 +53,7 @@ void frameSnow();
 void showZoneText();
 void showFullMeter();
 Function getActionFromKey(int key);
-void journeyFlash();
+// void journeyFlash();
 void setJourneyGraphics(Save * save, int level);
 
 Game* game;
@@ -151,9 +151,6 @@ void GameScene::draw(){
 }
 
 void update() {
-    // aprintClearArea(0, 0, 10, 6);
-    // aprintClearArea(0, 13, 10, 7);
-
     if(!game->zoneTimer)
         showText();
     else{
@@ -300,9 +297,9 @@ void checkSounds() {
         if(game->gameMode == MASTER){
             maxClearTimer = game->maxClearDelay;
         }
-		else if(game->gameMode == MARATHON){			
-			journeyLevelUp = true;
-        }
+		// else if(game->gameMode == MARATHON){
+		// 	journeyLevelUp = true;
+        // }
     }
 
     std::string sectionText = "";
@@ -568,33 +565,7 @@ void showPawn() {
         blend += 16-(game->lockTimer * 16) / game->maxLockTimer;
 
     if(!game->zoneTimer){
-        if (!savefile->settings.lightMode){
-            if(savefile->settings.colors == 2)
-                clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[11 * 16], 8, blend);
-            else if(savefile->settings.colors == 3){
-                clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-            }else if(savefile->settings.colors == 4){
-                clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-            }else if(savefile->settings.colors == 5){
-                clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-            }else if(savefile->settings.colors == 6){
-                clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[11 * 16+1], 4, blend);
-            } else
-                clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[11 * 16], 8, blend);
-        }else{
-            if(savefile->settings.colors == 2)
-                clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)classic_pal_bin, 8, int2fx(blend) >> 5);
-            else if(savefile->settings.colors == 3){
-                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, int2fx(blend) >> 5);
-            }else if(savefile->settings.colors == 4){
-                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&monoPalette[1][0], 4, int2fx(blend) >> 5);
-            }else if(savefile->settings.colors == 5){
-                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[0][n], 4, int2fx(blend) >> 5);
-            }else if(savefile->settings.colors == 6){
-                clr_adj_brightness(&pal_obj_mem[11 * 16+1], (COLOR*)&arsPalette[1][n], 4, int2fx(blend) >> 5);
-            }else
-                clr_adj_brightness(&pal_obj_mem[11 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, int2fx(blend) >> 5);
-        }
+        setPawnPalette(11, n, blend);
     }
 
     if(!game->pawn.big){
@@ -647,33 +618,34 @@ void showShadow() {
     int n = game->pawn.current;
 
     if(!game->zoneTimer){
-        if (!savefile->settings.lightMode){
-            if(savefile->settings.colors == 2)
-                clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
-            else if(savefile->settings.colors == 3){
-                clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-            }else if(savefile->settings.colors == 4){
-                clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, 14);
-            }else if(savefile->settings.colors == 5){
-                clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-            }else if(savefile->settings.colors == 6){
-                clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-            } else
-                clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
-        }else{
-            if(savefile->settings.colors == 2)
-                clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 8, float2fx(0.25));
-            else if(savefile->settings.colors == 3){
-                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, float2fx(0.25));
-            }else if(savefile->settings.colors == 4){
-                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
-            }else if(savefile->settings.colors == 5){
-                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[0][n], 4, float2fx(0.25));
-            }else if(savefile->settings.colors == 6){
-                clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[1][n], 4, float2fx(0.25));
-            }else
-                clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, float2fx(0.25));
-        }
+        setPawnPalette(10, n, 14*bld);
+        // if (!savefile->settings.lightMode){
+        //     if(savefile->settings.colors == 2)
+        //         clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
+        //     else if(savefile->settings.colors == 3){
+        //         clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+        //     }else if(savefile->settings.colors == 4){
+        //         clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, 14);
+        //     }else if(savefile->settings.colors == 5){
+        //         clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+        //     }else if(savefile->settings.colors == 6){
+        //         clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
+        //     } else
+        //         clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
+        // }else{
+        //     if(savefile->settings.colors == 2)
+        //         clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 8, float2fx(0.25));
+        //     else if(savefile->settings.colors == 3){
+        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, float2fx(0.25));
+        //     }else if(savefile->settings.colors == 4){
+        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
+        //     }else if(savefile->settings.colors == 5){
+        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[0][n], 4, float2fx(0.25));
+        //     }else if(savefile->settings.colors == 6){
+        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[1][n], 4, float2fx(0.25));
+        //     }else
+        //         clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, float2fx(0.25));
+        // }
     }
 
     if(!game->pawn.big){
@@ -1141,12 +1113,13 @@ void gameLoop(){
 
     oam_copy(oam_mem, obj_buffer, 128);
 
-	if (!resumeJourney){
-		countdown();
-	}
-	else{
-		resumeJourney = false;
-	}
+    countdown();
+
+	// if (!resumeJourney){
+	// }
+	// else{
+	// 	resumeJourney = false;
+	// }
 
     if (!(game->gameMode == TRAINING)) {
         playSongRandom(1);
@@ -1306,17 +1279,17 @@ void gameLoop(){
 
         sqran(qran() % frameCounter);
 		
-		if(!game->eventLock && journeyLevelUp){
-			// flashTimer = flashTimerMax;
-			// journeyFlash();
-			
-			setJourneyGraphics(savefile, game->level);
+		// if(!game->eventLock && journeyLevelUp){
+		// 	// flashTimer = flashTimerMax;
+		// 	// journeyFlash();
 
-			delete journeySave;
-			journeySave = new Game(*game);
-			journeySaveExists = true;
-			return;
-		}
+		// 	setJourneyGraphics(savefile, game->level);
+
+		// 	delete journeySave;
+		// 	journeySave = new Game(*game);
+		// 	journeySaveExists = true;
+		// 	return;
+		// }
     }
 }
 
@@ -2312,36 +2285,47 @@ Function getActionFromKey(int key){
     return gameFunctions[k];
 }
 
-void journeyFlash(){
+// void journeyFlash(){
 
-    if(flashTimer == flashTimerMax){
-        if(previousPalette != nullptr)
-            delete previousPalette;
-        previousPalette = new COLOR [512];
-        memcpy32(&previousPalette[0], pal_bg_mem, 256);
-    }
+//     if(flashTimer == flashTimerMax){
+//         if(previousPalette != nullptr)
+//             delete previousPalette;
+//         previousPalette = new COLOR [512];
+//         memcpy32(&previousPalette[0], pal_bg_mem, 256);
+//     }
 
-    flashTimer--;
+//     flashTimer--;
 
-    REG_MOSAIC = MOS_BUILD(flashTimer,flashTimer,flashTimer,flashTimer);
+//     REG_MOSAIC = MOS_BUILD(flashTimer,flashTimer,flashTimer,flashTimer);
 
-    int n = ((float)flashTimer/flashTimerMax) * 31;
+//     int n = ((float)flashTimer/flashTimerMax) * 31;
 
-    clr_fade_fast(previousPalette, 0x7fff, pal_obj_mem, 128, n);
+//     clr_fade_fast(previousPalette, 0x7fff, pal_obj_mem, 128, n);
 
-    bool cond = ((flashTimer < flashTimerMax/2) && eventPauseTimer);
+//     bool cond = ((flashTimer < flashTimerMax/2) && eventPauseTimer);
 
-    if(cond && game->gameMode == MARATHON)
-        gradient(true);
+//     if(cond && game->gameMode == MARATHON)
+//         gradient(true);
 
-    memcpy16(&pal_bg_mem[cond],&pal_obj_mem[cond],(8 * 16));
+//     memcpy16(&pal_bg_mem[cond],&pal_obj_mem[cond],(8 * 16));
 
-    if(flashTimer < flashTimerMax/2 && game->gameMode == MASTER){
-        if(!savefile->settings.lightMode)
-            memset16(pal_bg_mem, 0x0000, 1);
-        else
-            memset16(pal_bg_mem, 0x5ad6, 1);//background gray
-    }
+//     if(flashTimer < flashTimerMax/2 && game->gameMode == MASTER){
+//         if(!savefile->settings.lightMode)
+//             memset16(pal_bg_mem, 0x0000, 1);
+//         else
+//             memset16(pal_bg_mem, 0x5ad6, 1);//background gray
+//     }
+// }
+
+void setRandomGraphics(Save *save){
+    save->settings.edges = true;
+    save->settings.backgroundGrid = qran() % (MAX_BACKGROUNDS - 1);
+    save->settings.skin = qran() % (MAX_SKINS - 1);
+    save->settings.palette = qran() % 8;
+    save->settings.shadow = qran() % (MAX_SHADOWS - 1);
+    save->settings.lightMode = qran() % 2;
+    save->settings.colors = qran() % (MAX_COLORS - 1);
+    save->settings.backgroundGradient = RGB15(qran() % 31, qran() % 31, qran() % 31);
 }
 
 void setJourneyGraphics(Save *save, int level){
@@ -2377,14 +2361,7 @@ void setJourneyGraphics(Save *save, int level){
 			save->settings.lightMode = false;
 			break;
 		default:
-			save->settings.edges = true;
-			save->settings.backgroundGrid = qran() % (MAX_BACKGROUNDS - 1);
-			save->settings.skin = qran() % (MAX_SKINS - 1);
-			save->settings.palette = qran() % 6;
-			save->settings.shadow = qran() % (MAX_SHADOWS - 1);
-			save->settings.lightMode = (qran() % 2 == 0);
-			save->settings.colors = qran() % (MAX_COLORS - 1);
-			save->settings.backgroundGradient = RGB15(qran() % 31, qran() % 31, qran() % 31);
+            setRandomGraphics(save);
 			break;
 	}
 }
