@@ -2229,17 +2229,21 @@ void refreshCredits(){
 
 void showFullMeter(){
     if(game->zoneCharge != 32){
+        if(fullMeterTimer < fullMeterAnimationLength){
+            fullMeterTimer = 0;
+            memcpy32(&tile_mem[4][256+3],meterTiles[0],meter1_tiles_bin_size/4);
+        }
         return;
     }
 
     if(--fullMeterTimer <= 0){
         fullMeterTimer = fullMeterTimerMax;
-        memcpy16(&tile_mem[4][256+3],meterTiles[0],meter1_tiles_bin_size/2);
+        memcpy32(&tile_mem[4][256+3],meterTiles[0],meter1_tiles_bin_size/4);
         return;
     }
 
     if(fullMeterTimer < fullMeterAnimationLength){
         int n = 2 - (fullMeterTimer/(fullMeterAnimationLength/3));
-        memcpy16(&tile_mem[4][256+3],meterTiles[n+1],meter1_tiles_bin_size/2);
+        memcpy32(&tile_mem[4][256+3],meterTiles[n+1],meter1_tiles_bin_size/4);
     }
 }
