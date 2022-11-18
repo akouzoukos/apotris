@@ -906,9 +906,7 @@ void showText() {
 
         aprint("Score", 3, 3);
 
-        char buff[30];
-        posprintf(buff, "%d",game->score);
-        std::string score = buff;
+        std::string score = std::to_string(100000000);
 
         int x = 8 - score.size();
         aprintClearArea(0, 5, 10, 1);
