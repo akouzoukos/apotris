@@ -245,6 +245,8 @@ namespace Tetris
             int dropProtection = 8;
             bool directionalDas = false;
             bool delaySoftDrop = true;
+            bool ihs = false;
+            bool irs = false;
     };
 
     class Game {
@@ -341,6 +343,9 @@ namespace Tetris
 
         int pieceDrought[7];
         bool delaySoftDrop = true;
+
+        bool ihs = false;
+        bool irs = false;
 
     public:
         const int lengthX = 10;
@@ -465,6 +470,7 @@ namespace Tetris
         void setRotationSystem(int);
         void removeEventLock();
         void activateZone(int);
+        void liftKeys();
 
         Game(){
             seed = initSeed = qran();

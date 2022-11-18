@@ -93,8 +93,10 @@ typedef struct Settings{
     bool delaySoftDrop;
     int backgroundGradient;
     bool customDas;
+    int ihs;
+    int irs;
 
-    int placeHolder[96];
+    int placeHolder[94];
 }ALIGN(4) Settings;
 
 typedef struct Test{

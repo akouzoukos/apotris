@@ -853,6 +853,8 @@ Tuning getTuning(){
         t.dropProtection = savefile->settings.dropProtectionFrames,
         t.directionalDas = savefile->settings.directionalDas,
         t.delaySoftDrop = savefile->settings.delaySoftDrop,
+        t.ihs = savefile->settings.ihs,
+        t.irs = savefile->settings.irs,
     };
 
     return t;

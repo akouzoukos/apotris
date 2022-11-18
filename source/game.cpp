@@ -53,6 +53,7 @@ void frameSnow();
 void showZoneText();
 void showFullMeter();
 Function getActionFromKey(int key);
+void liftKeys();
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -1244,21 +1245,12 @@ void gameLoop(){
         }
 
         if (pause){
-            Keys k = savefile->settings.keys;
 
             if(pauseMenu()){
                 pause = false;
                 return;
             }
-
-            if(!key_is_down(k.moveLeft))
-                game->keyLeft(0);
-
-            if(!key_is_down(k.moveRight))
-                game->keyRight(0);
-
-            if(!key_is_down(k.softDrop))
-                game->keyDown(0);
+            liftKeys();
         }
 
         if (playAgain) {
@@ -2288,4 +2280,8 @@ Function getActionFromKey(int key){
     }
 
     return gameFunctions[k];
+}
+
+void liftKeys(){
+    game->liftKeys();
 }

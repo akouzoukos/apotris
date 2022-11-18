@@ -1206,7 +1206,7 @@ void Game::next() {
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
 
-    if(fromLock || gameMode == MASTER)
+    if((fromLock && irs) || rotationSystem == ARS)
         pawn.rotation = rotating + (rotating < 0) * 4;
     else
         pawn.rotation = 0;
@@ -1268,7 +1268,7 @@ void Game::next() {
 
     softDrop = false;
 
-    if(holding && canHold)
+    if(holding && canHold && (ihs || rotationSystem == ARS))
         hold(1);
 }
 
@@ -1394,7 +1394,7 @@ void Game::hold(int dir) {
         }
     }
 
-    if(gameMode == MASTER)
+    if(rotationSystem == ARS || irs)
         pawn.rotation = rotating + (rotating < 0) * 4;
     else
         pawn.rotation = 0;
@@ -1834,6 +1834,8 @@ void Game::setTuning(Tuning newTune){
     directionCancel = newTune.directionalDas;
     delaySoftDrop = newTune.delaySoftDrop;
     maxClearDelay = 20;
+    ihs = newTune.ihs;
+    irs = newTune.irs;
 }
 
 void Game::setMasterTuning(){
@@ -2230,4 +2232,11 @@ void Game::connectBoard(int startY,int endY){
             }
         }
     }
+}
+
+void Game::liftKeys(){
+    rotating = 0;
+    holding = 0;
+    left = 0;
+    right = 0;
 }

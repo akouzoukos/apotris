@@ -11,9 +11,9 @@ bool handlingControl();
 void setDas(int index);
 
 static const int startX = 3;
-static const int startY = 3;
+static const int startY = 4;
 static const int endX = 23;
-static const int space = 2;
+static const int space = 1;
 
 static int selection;
 
@@ -35,11 +35,13 @@ static std::list<std::string> options = {
     "Delay Soft Drop",
     "Drop Protection",
     "Directional Delay",
-    "Disable Diagonals"
+    "Disable Diagonals",
+    "Initial Holding",
+    "Initial Rotation",
 };
 
 void handlingSettings(){
-    setSmallTextArea(110, endX, 2, endX+5, 2);
+    setSmallTextArea(110, endX, startY-1, endX+5, startY-1);
     clearSmallText();
     clearText();
 
@@ -114,6 +116,10 @@ bool handlingControl(){
                 savefile->settings.diagonalType--;
             else if (key_hit(KEY_RIGHT) && savefile->settings.diagonalType < 2)
                 savefile->settings.diagonalType++;
+        }else if (selection == 7){
+            savefile->settings.ihs = !savefile->settings.ihs;
+        }else if (selection == 8){
+            savefile->settings.irs = !savefile->settings.irs;
         }
 
         sfx(SFX_MENUMOVE);
@@ -248,13 +254,11 @@ void handlingText(){
 
     auto option = options.begin();
     for(int i = 0; option != options.end(); i++){
-        aprint(*option,startX,startY+space*i);
+        aprint(*option,startX,startY+space*i + (i > 2) + (i > 6));
         option++;
     }
 
-    for(int i = 0; i < (int) options.size(); i++){
-       aprint("        ",endX-2,startY+space*i);
-    }
+    aprintClearArea(endX-2,startY,8,options.size()+2);
 
     if(!savefile->settings.customDas){
         if (savefile->settings.das == 8)
@@ -299,16 +303,16 @@ void handlingText(){
         aprint("SLOW", endX, startY + space * 2);
 
     if (savefile->settings.delaySoftDrop)
-        aprint("ON", endX, startY + space * 3);
+        aprint("ON", endX, startY + space * 4);
     else
-        aprint("OFF", endX, startY + space * 3);
+        aprint("OFF", endX, startY + space * 4);
 
-    aprintf(savefile->settings.dropProtectionFrames,endX,startY + space * 4);
+    aprintf(savefile->settings.dropProtectionFrames,endX,startY + space * 5);
 
     if (savefile->settings.directionalDas)
-        aprint("ON", endX, startY + space * 5);
+        aprint("ON", endX, startY + space * 6);
     else
-        aprint("OFF", endX, startY + space * 5);
+        aprint("OFF", endX, startY + space * 6);
 
     std::string diagonalString;
     switch(savefile->settings.diagonalType){
@@ -317,7 +321,17 @@ void handlingText(){
     case 2: diagonalString = "STRICT"; break;
     }
 
-    aprint(diagonalString, endX, startY + space * 6);
+    aprint(diagonalString, endX, startY + space * 7);
+
+    if (savefile->settings.ihs)
+        aprint("ON", endX, startY + space * 9);
+    else
+        aprint("OFF", endX, startY + space * 9);
+
+    if (savefile->settings.irs)
+        aprint("ON", endX, startY + space * 10);
+    else
+        aprint("OFF", endX, startY + space * 10);
 
     //show cursor
     if (selection == 0) {
@@ -341,21 +355,27 @@ void handlingText(){
         if (savefile->settings.sfr > - 1)
             aprint(">", endX + 3 + (savefile->settings.sfr != 2) + (savefile->settings.sfr <= 0), startY + space * selection);
     } else if (selection == 3) {
-        aprint("[", endX - 1, startY + space * selection);
-        aprint("]", endX + 2 + (!savefile->settings.delaySoftDrop), startY + space * selection);
+        aprint("[", endX - 1, startY + space * (selection + 1));
+        aprint("]", endX + 2 + (!savefile->settings.delaySoftDrop), startY + space * (selection + 1));
     } else if (selection == 4) {
         if (savefile->settings.dropProtectionFrames > 0)
             aprint("<", endX - 1, startY + space * selection);
         if (savefile->settings.dropProtectionFrames < 20)
-            aprint(">", endX + 1 + (savefile->settings.dropProtectionFrames > 9), startY + space * selection);
+            aprint(">", endX + 1 + (savefile->settings.dropProtectionFrames > 9), startY + space * (selection + 1));
     } else if (selection == 5) {
-        aprint("[", endX - 1, startY + space * selection);
-        aprint("]", endX + 2 + (!savefile->settings.directionalDas), startY + space * selection);
+        aprint("[", endX - 1, startY + space * (selection + 1));
+        aprint("]", endX + 2 + (!savefile->settings.directionalDas), startY + space * (selection + 1));
     } else if (selection == 6) {
         if(savefile->settings.diagonalType != 0)
-            aprint("<", endX - 1, startY + space * selection);
+            aprint("<", endX - 1, startY + space * (selection + 1));
         if(savefile->settings.diagonalType != 2)
-            aprint(">", endX + diagonalString.size(), startY + space * selection);
+            aprint(">", endX + diagonalString.size(), startY + space * (selection + 1));
+    } else if (selection == 7) {
+        aprint("[", endX - 1, startY + space * (selection + 2));
+        aprint("]", endX + 2 + (!savefile->settings.ihs), startY + space * (selection + 2));
+    } else if (selection == 8) {
+        aprint("[", endX - 1, startY + space * (selection + 2));
+        aprint("]", endX + 2 + (!savefile->settings.irs), startY + space * (selection + 2));
     }else if (selection == (int) options.size()){
         aprint("[",12,17);
         aprint("]",17,17);

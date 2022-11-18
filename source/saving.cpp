@@ -145,6 +145,11 @@ void loadSave() {
     if ((savefile->settings.rumble < 0) || (savefile->settings.rumble > 4))
         savefile->settings.rumble = 0;
 
+    if(savefile->settings.irs < 0 || savefile->settings.irs > 1)
+        savefile->settings.irs = 0;
+    if(savefile->settings.ihs < 0 || savefile->settings.ihs > 1)
+        savefile->settings.ihs = 0;
+
     if(savefile->newGame != SAVE_TAG){
 
         Save* temp = new Save();
@@ -298,6 +303,8 @@ void setDefaults(Save *save, int depth){
         save->settings.diagonalType = save->settings.noDiagonals;
         save->settings.delaySoftDrop = false;
         save->settings.customDas = false;
+        save->settings.irs = 0;
+        save->settings.ihs = 0;
 
         //check if select is already bound - if not, bind it to zone activation
         int* keys = (int*) &save->settings.keys;
