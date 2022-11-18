@@ -1116,6 +1116,7 @@ void gameLoop(){
 
     memset32(&tile_mem[2][110], 0, 400*8);
     setSmallTextArea(110, 3, 7, 9, 10);
+    clearText();
     gameSeconds = 0;
 
     memcpy16(&tile_mem[4][256+3],meterTiles[0],meter1_tiles_bin_size/2);

@@ -379,6 +379,18 @@ void graphicTest() {
                 if(savefile->settings.floatText){
                     floatingList.push_back(FloatText("quad"));
                 }else{
+                    for(auto const & floating : floatingList){
+                        int height;
+                        if (floating.timer < 2 * 100 / 3)
+                            height = 5 * (float)floating.timer / ((float)2 * 100 / 3);
+                        else
+                            height = (30 * (float)(floating.timer) / 100) - 15;
+                        aprintClearArea(9, 15-height, 12, 1);
+                    }
+
+                    if(showOptions)
+                        showLabels();
+
                     floatingList.clear();
                 }
                 sfx(SFX_MENUMOVE);
