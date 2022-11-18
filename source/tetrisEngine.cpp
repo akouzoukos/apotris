@@ -1361,11 +1361,11 @@ void Game::fillQueue(int count) {
 }
 
 void Game::hold(int dir) {
+    holding = dir;
     if((clearLock || entryDelay) && gameMode != CLASSIC){
-        holding = dir;
+        // holding = dir;
         return;
     }else if(dir == 0){
-        holding = dir;
         return;
     }
 
