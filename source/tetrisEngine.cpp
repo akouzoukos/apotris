@@ -1367,6 +1367,7 @@ void Game::hold(int dir) {
         holding = dir;
         return;
     }else if(dir == 0){
+        holding = dir;
         return;
     }
 
