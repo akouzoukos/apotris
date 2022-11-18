@@ -26,7 +26,7 @@ void addStats();
 void resetSkins(Save * save);
 void setDefaults(Save * save, int depth);
 void setDefaultGraphics(Save * save, int depth);
-void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize);
+void applySaveChanges(u8* newSave, u8* oldSave,  int newSize);
 
 const std::list<SaveChange> saveChanges = {
     SaveChange(0x50,132,20 * 4),//add zone + buffer to keys
@@ -61,27 +61,15 @@ void loadSave() {
     savefile = new Save();
     loadFromSram();
 
+    const int pmSettings = 540;
+    const int pmSave = 3876;
+
     if (savefile->newGame == 0x4f) {
-        const int oldSize = 3876;
-        Save* temp = new Save();
-        u8* tmp = (u8*)temp;
-
-        u8* sf = (u8*)savefile;
-
-        applySaveChanges(tmp, sf, 0x4f, sizeof(Save), oldSize);
-
-        setDefaults(temp,5);
-
-        memcpy32(savefile, temp, sizeof(Save) / 4);
-
-        delete temp;
     }else if (savefile->newGame == 0x4e) {
-        savefile->newGame = SAVE_TAG;
-
         setDefaults(savefile,4);
     }else if (savefile->newGame == 0x4d) {
         Save* temp = new Save();
-        int oldSize = sizeof(Test3);
+        const int oldSize = sizeof(Test3);
 
         u8* tmp = (u8*)temp;
 
@@ -90,16 +78,16 @@ void loadSave() {
         for (int i = 0; i < oldSize; i++)
             tmp[i] = sf[i];
 
-        memcpy16(&tmp[sizeof(Settings)+ sizeof(u8)], &sf[oldSize], (sizeof(Save) - oldSize) / 2);
+        memcpy16(&tmp[pmSettings+ sizeof(u8)], &sf[oldSize], (pmSave - oldSize) / 2);
 
         setDefaults(temp,3);
 
-        memcpy32(savefile, temp, sizeof(Save) / 4);
+        memcpy32(savefile, temp, pmSave / 4);
 
         delete temp;
     }else if (savefile->newGame == 0x4c) {
         Save* temp = new Save();
-        int oldSize = sizeof(Test2) + sizeof(u8);
+        const int oldSize = sizeof(Test2) + sizeof(u8);
 
         u8* tmp = (u8*)temp;
 
@@ -119,7 +107,7 @@ void loadSave() {
         delete temp;
     }else if (savefile->newGame == 0x4b) {
         Save* temp = new Save();
-        int oldSize = sizeof(Test) + sizeof(u8);
+        const int oldSize = sizeof(Test) + sizeof(u8);
 
         u8* tmp = (u8*)temp;
 
@@ -146,6 +134,8 @@ void loadSave() {
         setDefaultKeys();
 
         resetSkins(savefile);
+
+        savefile->newGame = SAVE_TAG;
     }
 
     //fix invalid values, since I messed up conversion at some point
@@ -155,7 +145,22 @@ void loadSave() {
     if ((savefile->settings.rumble < 0) || (savefile->settings.rumble > 4))
         savefile->settings.rumble = 0;
 
-    savefile->newGame = SAVE_TAG;
+    if(savefile->newGame != SAVE_TAG){
+
+        Save* temp = new Save();
+        u8* tmp = (u8*)temp;
+
+        u8* sf = (u8*)savefile;
+
+        applySaveChanges(tmp, sf, sizeof(Save));
+
+        setDefaults(temp,5);
+
+        memcpy32(savefile, temp, sizeof(Save) / 4);
+
+        delete temp;
+        savefile->newGame = SAVE_TAG;
+    }
 
     u8* dump = (u8*)savefile;
     int sum = 0;
@@ -337,9 +342,13 @@ bool compareLocation(const SaveChange & first,const SaveChange & second){
     return first.location < second.location;
 }
 
-void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int oldSize){
+void applySaveChanges(u8* newSave, u8* oldSave, int newSize){
 
-    const int diff = newSize - oldSize;
+    const int migSize = 3876;
+    const int version = savefile->newGame;
+
+    int diff = newSize - migSize;
+    int oldSize = migSize;
 
     std::list<SaveChange> sorted = saveChanges;
 
@@ -350,11 +359,20 @@ void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int ol
     //sort by ascending save id
     sorted.sort(compareVersion);
 
+    int applyingVersion = 0;
+    int extraSize = 0;
+
     int sum = 0;
     SaveChange previous = SaveChange(0,0,0);
     for(auto const & change : sorted){
         if(change.saveId <= version)
             continue;
+
+        if(change.saveId != applyingVersion){
+            applyingVersion = change.saveId;
+            oldSize += extraSize;
+            extraSize = 0;
+        }
 
         if(previous.saveId != 0 && previous.saveId != change.saveId){
             memcpy16(newSave,oldSave,previous.location / 2);
@@ -374,6 +392,7 @@ void applySaveChanges(u8* newSave, u8* oldSave, int version, int newSize, int ol
 
         previous = change;
         sum += previous.size;
+        extraSize += change.size;
     }
 
     if(previous.saveId != 0){

@@ -228,7 +228,7 @@ public:
 #define GRADIENT_COLOR 0x71a6
 
 #define SHOW_FINESSE 1
-#define DIAGNOSE 0
+#define DIAGNOSE 1
 #define SAVE_TAG 0x50
 #define ENABLE_BOT 0
 

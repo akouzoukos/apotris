@@ -585,6 +585,8 @@ namespace Tetris
             subMode = oldGame.subMode;
             initialLevel = oldGame.initialLevel;
             trainingMode = oldGame.trainingMode;
+            clearLock = oldGame.clearLock;
+            linesToClear = oldGame.linesToClear;
         }
 
 
