@@ -20,6 +20,7 @@
 #include "logging.h"
 #include "posprintf.h"
 #include "tonc_core.h"
+#include "tonc_input.h"
 #include "tonc_memdef.h"
 #include "tonc_memmap.h"
 #include "tonc_video.h"
@@ -51,6 +52,7 @@ void rainbowPalette();
 void frameSnow();
 void showZoneText();
 void showFullMeter();
+Function getActionFromKey(int key);
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -813,7 +815,11 @@ void control() {
     }
 
     if (key_hit(k.hold) && !checkDiagonal(k.hold)) {
-        game->hold();
+        game->hold(1);
+    }
+
+    if (key_released(k.hold)){
+        game->hold(0);
     }
 
     if (key_hit(k.moveLeft) && !checkDiagonal(k.moveLeft))
@@ -822,23 +828,37 @@ void control() {
         game->keyRight(1);
 
     if (key_hit(k.hardDrop) && !checkDiagonal(k.hardDrop))
-        game->keyDrop();
+        game->keyDrop(1);
 
     if (key_hit(k.softDrop) && !checkDiagonal(k.softDrop))
         game->keyDown(1);
 
     if (key_is_down(KEY_A) && key_is_down(KEY_B) && savefile->settings.abHold){
-        game->hold();
+        game->hold(1);
     }else{
         if (key_hit(k.rotateCW) && !checkDiagonal(k.rotateCW))
-            game->rotateCW();
+            game->rotateCW(1);
 
         if (key_hit(k.rotateCCW) && !checkDiagonal(k.rotateCCW))
-            game->rotateCCW();
+            game->rotateCCW(1);
     }
 
-    if (key_hit(k.rotate180)){
-        game->rotateTwice();
+    if (key_hit(k.rotate180) && !checkDiagonal(k.rotate180)){
+        game->rotateTwice(1);
+    }
+
+    if(savefile->settings.abHold && key_released(KEY_A) && key_released(KEY_B)){
+        game->hold(0);
+    }
+
+    if (key_released(k.rotateCW))
+        game->rotateCW(0);
+
+    if (key_released(k.rotateCCW))
+        game->rotateCCW(0);
+
+    if (key_released(k.rotate180)){
+        game->rotateTwice(0);
     }
 
     if (key_released(k.softDrop))
@@ -846,27 +866,13 @@ void control() {
 
     if (key_released(k.moveLeft)){
         game->keyLeft(0);
-
-        if(savefile->settings.diagonalType == 1){
-            if(key_is_down(KEY_UP))
-                game->keyDrop();
-            else if(key_is_down(KEY_DOWN))
-                game->keyDown(1);
-        }
     }
 
     if (key_released(k.moveRight)){
         game->keyRight(0);
-
-        if(savefile->settings.diagonalType == 1){
-            if(key_is_down(KEY_UP))
-                game->keyDrop();
-            else if(key_is_down(KEY_DOWN))
-                game->keyDown(1);
-        }
     }
 
-    if (key_is_down(KEY_L) && key_is_down(KEY_R) && (game->gameMode != BATTLE) && !eventPauseTimer) {
+    if (key_is_down(KEY_L) && key_is_down(KEY_R) && !(game->gameMode == BATTLE || game->gameMode == MASTER) && !eventPauseTimer) {
         if(restartTimer++ > maxRestartTimer || !savefile->settings.resetHold)
             playAgain = true;
     }else{
@@ -874,7 +880,19 @@ void control() {
     }
 
     if(key_is_down(k.zone) && game->gameMode == MARATHON && subMode && !game->zoneTimer){
-        game->activateZone();
+        game->activateZone(1);
+    }
+
+    if(savefile->settings.diagonalType == 1 || game->rotationSystem == ARS){
+        if(key_released(KEY_RIGHT) || key_released(KEY_LEFT)){
+            if(key_is_down(KEY_UP)){
+                Function f = getActionFromKey(KEY_UP);
+                (game->*f.gameFunction)(1);
+            }else if(key_is_down(KEY_DOWN)){
+                Function f = getActionFromKey(KEY_DOWN);
+                (game->*f.gameFunction)(1);
+            }
+        }
     }
 }
 
@@ -906,7 +924,7 @@ void showText() {
 
         aprint("Score", 3, 3);
 
-        std::string score = std::to_string(100000000);
+        std::string score = std::to_string(game->score);
 
         int x = 8 - score.size();
         aprintClearArea(0, 5, 10, 1);
@@ -1646,7 +1664,7 @@ void showBestMove(){
 }
 
 bool checkDiagonal(int key){
-    if(!savefile->settings.diagonalType)
+    if(!savefile->settings.diagonalType && game->rotationSystem != ARS)
         return false;
     return ((key == KEY_DOWN || key == KEY_UP) && (key_is_down(KEY_LEFT) || key_is_down(KEY_RIGHT)));
 }
@@ -2244,4 +2262,30 @@ void showFullMeter(){
         int n = 2 - (fullMeterTimer/(fullMeterAnimationLength/3));
         memcpy32(&tile_mem[4][256+3],meterTiles[n+1],meter1_tiles_bin_size/4);
     }
+}
+
+const Function gameFunctions[9] ={
+    {&Game::keyLeft},
+    {&Game::keyRight},
+    {&Game::rotateCW},
+    {&Game::rotateCCW},
+    {&Game::rotateTwice},
+    {&Game::keyDown},
+    {&Game::keyDrop},
+    {&Game::hold},
+    {&Game::activateZone},
+};
+
+Function getActionFromKey(int key){
+    int *keys = (int *) &savefile->settings.keys;
+
+    int k = 0;
+    for(int i = 0; i < 9; i++){
+        if(keys[i] == key){
+            k = i;
+            break;
+        }
+    }
+
+    return gameFunctions[k];
 }

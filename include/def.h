@@ -11,6 +11,10 @@ INLINE FIXED lerp(FIXED a, FIXED b, FIXED mix){
     return a + (((b-a)*mix)>>8);
 }
 
+INLINE int flipSign(int x, int y){
+    return (((x > 0) - (x < 0)) ^ y) - y;
+}
+
 extern const u16 fontTiles[1552];
 #define fontTilesLen 3104
 extern const u16 font3x5[96];
@@ -510,3 +514,10 @@ public:
 
 #define MAX_WORD_SPRITES 15
 extern WordSprite* wordSprites[MAX_WORD_SPRITES];
+
+class Function{
+    private:
+
+    public:
+        void (Tetris::Game::*gameFunction)(int);
+};

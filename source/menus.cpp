@@ -11,6 +11,7 @@
 #include "tonc_oam.h"
 #include <string>
 #include <map>
+#include <cstring>
 
 using namespace Tetris;
 

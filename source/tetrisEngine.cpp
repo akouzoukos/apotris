@@ -128,30 +128,42 @@ int getNbr(int **board, int x, int y, int ex, int sy , int ey){
     return count;
 }
 
-void Game::rotateCW() {
+void Game::rotateCW(int dir) {
+    rotating += flipSign(1,(!dir * -1));
+
+    if(!dir)
+        return;
+
     rotate(1);
 }
 
-void Game::rotateCCW() {
+void Game::rotateCCW(int dir) {
+    rotating += flipSign(-1,(!dir * -1));
+
+    if(!dir)
+        return;
+
     rotate(-1);
 }
 
-void Game::rotateTwice() {
-    if(rotationSystem != SRS)
+void Game::rotateTwice(int dir) {
+    int n = 2;
+    if(rotationSystem == NRS){
+        return;
+    }else if(rotationSystem == ARS){
+        n = -1;
+    }
+
+    rotating += flipSign(n,(!dir * -1));
+
+    if(!dir)
         return;
 
-    rotate(2);
+    rotate(n);
 }
 
 void Game::rotate(int dir){
     if ((clearLock || entryDelay)){
-        initialRotate += dir;
-
-        if(initialRotate > 3)
-            initialRotate -= 4;
-        else if(initialRotate < 0)
-            initialRotate += 4;
-
         return;
     }else if(eventLock){
         return;
@@ -419,6 +431,7 @@ void Game::hardDrop() {
 }
 
 void Game::update() {
+
     if (lost)
         return;
 
@@ -1193,8 +1206,10 @@ void Game::next() {
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
 
-    pawn.rotation = initialRotate;
-    initialRotate = 0;
+    if(fromLock || gameMode == MASTER)
+        pawn.rotation = rotating + (rotating < 0) * 4;
+    else
+        pawn.rotation = 0;
 
     speedCounter = 0;
 
@@ -1253,8 +1268,8 @@ void Game::next() {
 
     softDrop = false;
 
-    if(initialHold)
-        hold();
+    if(holding && canHold)
+        hold(1);
 }
 
 void Game::fillQueue(int count) {
@@ -1347,9 +1362,13 @@ void Game::fillQueue(int count) {
     }
 }
 
-void Game::hold() {
-    if((clearLock || entryDelay) && !initialHold && canHold && gameMode != CLASSIC)
-        initialHold = true;
+void Game::hold(int dir) {
+    if((clearLock || entryDelay) && gameMode != CLASSIC){
+        holding = dir;
+        return;
+    }else if(dir == 0){
+        return;
+    }
 
     // if (!canHold || clearLock || entryDelay || gameMode == CLASSIC || pawn.current == -1)
     if (!canHold || gameMode == CLASSIC || pawn.current == -1)
@@ -1374,7 +1393,11 @@ void Game::hold() {
         }
     }
 
-    pawn.rotation = 0;
+    if(gameMode == MASTER)
+        pawn.rotation = rotating + (rotating < 0) * 4;
+    else
+        pawn.rotation = 0;
+
     canHold = false;
     sounds.hold = 1;
     holdCounter++;
@@ -1387,8 +1410,6 @@ void Game::hold() {
     moveHistory.clear();
 
     statTracker.holds++;
-
-    initialHold = false;
 }
 
 int** Tetris::getShape(int n,int r, int rotationSystem) {
@@ -1610,8 +1631,10 @@ void Game::removeClearLock() {
 
     linesToClear = std::list<int>();
 
+    fromLock = true;
     if(!entryDelay)
         next();
+    fromLock = false;
 
     refresh = 1;
     zonedLines = 0;
@@ -1702,7 +1725,10 @@ void Game::generateGarbage(int height,int mode){
     }
 }
 
-void Game::keyDrop(){
+void Game::keyDrop(int dir){
+    if(!dir)
+        return;
+
     if(gameMode == CLASSIC || entryDelay)
         return;
 
@@ -2059,7 +2085,10 @@ void Game::removeEventLock(){
     inversion = false;
 }
 
-void Game::activateZone(){
+void Game::activateZone(int dir){
+    if(!dir)
+        return;
+
     if(zoneCharge < 8 && !DIAGNOSE)
         return;
 

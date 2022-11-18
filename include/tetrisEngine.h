@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstring>
 #include <list>
 #include <string>
 #include "tetromino.hpp"
@@ -322,9 +321,7 @@ namespace Tetris
 
         int gracePeriod = 0;
 
-        bool initialHold = false;
-
-        int initialRotate = 0;
+        int rotating = 0;
 
         int section = 0;
         int sectionStart = 0;
@@ -338,6 +335,7 @@ namespace Tetris
         int decayTimer = 0;
 
         bool stopLockReset = false;
+        bool fromLock = false;
 
         std::list<int> historyList;
 
@@ -382,6 +380,7 @@ namespace Tetris
         int previousKey = 0;
         bool softDrop = false;
         bool canHold = true;
+        bool holding = false;
         int holdCounter = 0;
         bool trainingMode = false;
         int seed = 0;
@@ -432,18 +431,18 @@ namespace Tetris
         int inGameTimer = 0;
 
         int checkRotation(int, int, int);
-        void rotateCW();
-        void rotateCCW();
-        void rotateTwice();
+        void rotateCW(int dir);
+        void rotateCCW(int dir);
+        void rotateTwice(int dir);
         void hardDrop();
         void update();
         int lowest();
         Color color(int);
-        void hold();
+        void hold(int dir);
         void keyLeft(int);
         void keyRight(int);
         void keyDown(int);
-        void keyDrop();
+        void keyDrop(int);
         void removeClearLock();
         void resetSounds();
         void resetRefresh();
@@ -465,7 +464,7 @@ namespace Tetris
         void setSpeed();
         void setRotationSystem(int);
         void removeEventLock();
-        void activateZone();
+        void activateZone(int);
 
         Game(){
             seed = initSeed = qran();
@@ -670,7 +669,7 @@ namespace Tetris
                 sleepTimer = maxSleep;
 
             if(rotation != current.rotation){
-                game->rotateCW();
+                game->rotateCW(1);
                 rotation++;
             }else if(dx > current.dx){
                 game->keyLeft(1);
@@ -681,7 +680,7 @@ namespace Tetris
                 game->keyRight(0);
                 dx++;
             }else{
-                game->keyDrop();
+                game->keyDrop(1);
                 dx = 0;
                 rotation = 0;
                 thinking = true;
