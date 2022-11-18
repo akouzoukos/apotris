@@ -91,6 +91,11 @@ u16 gradientTable[SCREEN_HEIGHT + 1];
 
 bool gradientEnabled = false;
 
+bool resumeJourney = false;
+bool journeyLevelUp = false;
+bool journeySaveExists = false;
+Tetris::Game* journeySave;
+
 void onVBlank(void) {
 
     mmVBlank();
@@ -210,9 +215,29 @@ int main(void) {
     while(1){
         reset();
 
-        if(!playAgain){
+        if(!playAgain && !journeyLevelUp){
             startScreen();
-        }else{
+        }else if(journeyLevelUp){
+			journeyLevelUp = false;
+			if (journeySaveExists){		
+				int goal = game->goal;
+				int training = game->trainingMode;
+				int rs = game->rotationSystem;
+				
+				delete game;
+					
+				game = new Game(*journeySave);				
+				game->setGoal(goal);
+				game->setTuning(getTuning());
+				game->setTrainingMode(training);
+				game->pawn.big = bigMode;
+				game->bTypeHeight = goalSelection;
+				game->setSubMode(subMode);
+				game->setRotationSystem(rs);
+				
+				resumeJourney = true;
+			}
+		}else{
             playAgain = false;
 
             int goal = game->goal;
