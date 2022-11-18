@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tonc.h"
+#include "tonc_types.h"
 
 #define AGB_ROM  ((u8*)0x8000000)
 #define AGB_SRAM ((u8*)0xE000000)

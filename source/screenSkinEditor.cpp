@@ -1,6 +1,4 @@
 #include "def.h"
-#include "tonc.h"
-
 #include "logging.h"
 #include "text.h"
 #include "posprintf.h"
@@ -19,8 +17,6 @@
 
 #include "soundbank.h"
 #include "tetrisEngine.h"
-#include "tonc_bios.h"
-#include "tonc_input.h"
 
 const int xoffset = 15-8;
 const int yoffset = 10-8;

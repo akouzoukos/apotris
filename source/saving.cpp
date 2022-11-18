@@ -1,9 +1,7 @@
 #include "def.h"
 #include "flashSaves.h"
-#include "tonc.h"
 #include "sprite1tiles_bin.h"
 #include "sprites.h"
-#include "tonc_core.h"
 #include <string>
 #include "logging.h"
 #include <algorithm>

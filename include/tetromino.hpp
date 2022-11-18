@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tonc_types.h"
+#include <cstdint>
 #include <string>
 #include <list>
 

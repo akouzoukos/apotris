@@ -1,12 +1,10 @@
 #include "def.h"
-#include "tonc.h"
 #include "text.h"
 #include "soundbank.h"
 #include "sprites.h"
 #include <string>
 #include "posprintf.h"
 #include "logging.h"
-#include "tonc_irq.h"
 
 using namespace Tetris;
 

@@ -1,9 +1,7 @@
 
 #include "def.h"
-#include "tonc.h"
 #include "soundbank.h"
 #include "text.h"
-#include "tonc_memdef.h"
 #include <string>
 
 void handlingText();

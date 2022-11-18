@@ -1,7 +1,7 @@
 #pragma once
 
 #include "tetrisEngine.h"
-#include <tonc_types.h>
+#include "platform.h"
 #include <maxmod.h>
 
 INLINE FIXED lerp(FIXED a, FIXED b, FIXED mix){

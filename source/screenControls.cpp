@@ -1,5 +1,4 @@
 #include "def.h"
-#include "tonc.h"
 #include "soundbank.h"
 #include "text.h"
 #include <map>

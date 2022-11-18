@@ -1,7 +1,5 @@
 #include "tetromino.hpp"
 
-#include "tonc_types.h"
-
 #include <string>
 #include <list>
 

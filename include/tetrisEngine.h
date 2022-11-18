@@ -3,8 +3,8 @@
 #include <list>
 #include <string>
 #include "tetromino.hpp"
-#include "tonc.h"
 #include <tuple>
+#include "platform.h"
 
 namespace Tetris
 {

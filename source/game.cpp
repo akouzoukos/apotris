@@ -8,7 +8,6 @@
 #include "sprites.h"
 #include "tetrisEngine.h"
 #include "tetromino.hpp"
-#include "tonc.h"
 #include "logging.h"
 #include <string>
 #include <tuple>
@@ -19,11 +18,6 @@
 #include "classic_pal_bin.h"
 #include "logging.h"
 #include "posprintf.h"
-#include "tonc_core.h"
-#include "tonc_input.h"
-#include "tonc_memdef.h"
-#include "tonc_memmap.h"
-#include "tonc_video.h"
 
 using namespace Tetris;
 

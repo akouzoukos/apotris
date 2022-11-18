@@ -1,5 +1,4 @@
 #include "def.h"
-#include "tonc.h"
 #include "LinkConnection.h"
 #include "tetrisEngine.h"
 #include "text.h"

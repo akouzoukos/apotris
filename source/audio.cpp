@@ -1,6 +1,4 @@
 #include "def.h"
-#include "tonc_types.h"
-#include "tonc_irq.h"
 #include "maxmod.h"
 #include "soundbank_bin.h"
 
