@@ -1034,6 +1034,7 @@ void startScreen() {
 
         oam_copy(oam_mem, obj_buffer, 128);
     }
+
     VBlankIntrWait();
     clearText();
     onSettings = false;

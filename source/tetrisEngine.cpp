@@ -1374,6 +1374,7 @@ void Game::hold(int dir) {
         return;
 
     moveCounter++;
+    canHold = false;
 
     if (held == -1) {
         held = pawn.current;
@@ -1399,7 +1400,6 @@ void Game::hold(int dir) {
     } else
         pawn.rotation = 0;
 
-    canHold = false;
     sounds.hold = 1;
     holdCounter++;
 
