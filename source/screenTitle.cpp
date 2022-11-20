@@ -335,8 +335,8 @@ void startScreen() {
                         options = 2;
                         n = MASTER;
 
-                        if(DIAGNOSE)
-                            level = 997;
+                        // if(DIAGNOSE)
+                        //     level = 997;
                     } else if (selection == 9) {//2p Battle
                         n = -3;
                         linkConnection->activate();
