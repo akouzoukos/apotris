@@ -1169,7 +1169,9 @@ void gameLoop(){
     while (1) {
         diagnose();
         if (!game->lost && !pause && !game->eventLock) {
+            // profile_start();
             game->update();
+            // log(std::to_string(profile_stop()));
         }
         handleMultiplayer();
 
