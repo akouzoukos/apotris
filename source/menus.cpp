@@ -683,8 +683,8 @@ int pauseMenu(){
                         clearGlow();
 
                         if (ENABLE_BOT) {
-                            delete testBot;
-                            testBot = new Bot(game);
+                            // delete testBot;
+                            // testBot = new Bot(game);
                         }
 
                         aprint("Loaded!", 22, 18);

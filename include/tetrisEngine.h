@@ -763,13 +763,13 @@ namespace Tetris
                 }
             }
 
-            return sum;   
+            return sum;
         }
 
         int findBestDrop(int ii,int jj){
             if(!game->checkRotation(ii,0,jj))
                 return 0;
-            
+
             int blocks[4];
 
             for(int i = 0; i < 4; i++)//initialize height array
@@ -798,7 +798,7 @@ namespace Tetris
                 if(escape)
                     break;
             }
-            
+
             for(int i = 0; i < 20; i++)
                 for(int j = 0; j < game->lengthX; j++)
                     testBoard[i][j] = game->board[i+20][j];
@@ -820,7 +820,7 @@ namespace Tetris
             int afterHoles = countHoles(testBoard,game->lengthX,20);
             int clears = countClears(testBoard,game->lengthX,20);
             int afterHeight = getHeight(testBoard,game->lengthX,20);
-            
+
             int holeDiff = afterHoles-currentHoles;
             int heightDiff = afterHeight-currentHeight;
 

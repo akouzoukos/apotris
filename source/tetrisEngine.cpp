@@ -97,6 +97,9 @@ void Pawn::setBlock(int system) {
             for(int ix = 0; ix < 4; ix++){
                 board[i][iy][ix] = shape[iy][ix];
 
+                if(!shape[iy][ix])
+                    continue;
+
                 if(shape[iy][ix] && boardLowest[i][ix] < iy)
                     boardLowest[i][ix] = iy;
             }
@@ -360,18 +363,9 @@ void Game::hardDrop() {
         lastMoveRotation = 0;
 
     int offset = 0;
-    for(int j = 0; j < 4; j++){
-        bool escape = false;
-        for(int i = 0; i < 4; i++){
-            if(pawn.board[pawn.rotation][i][j] != 0){
-                offset = j;
-                escape = true;
-                break;
-            }
-        }
-        if(escape)
-            break;
-    }
+    for(int i = 0; i < 4; i++)
+        if(pawn.boardLowest[pawn.rotation][i] != -1)
+            offset = i;
 
     std::list<int> bestFinesse = getBestFinesse(pawn.current,pawn.x+offset,pawn.rotation);
     previousBest = bestFinesse;
@@ -391,6 +385,7 @@ void Game::hardDrop() {
     }else{
         correct = true;
     }
+
 
     if(!correct && !softDrop){
         finesseFaults += difference;
@@ -422,8 +417,10 @@ void Game::hardDrop() {
 
     pawn.y = pawn.lowest;
 
+    // profile_start();
     if(rotationSystem != ARS)
         place();
+    // log(std::to_string(profile_stop()));
 
     score += diff * 2;
 
@@ -431,7 +428,6 @@ void Game::hardDrop() {
 }
 
 void Game::update() {
-
     if(!disappearing)
         timer++;
     else
@@ -605,6 +601,7 @@ void Game::update() {
 
     while((int)moveHistory.size() > 10)
         moveHistory.pop_front();
+
 }
 
 int Game::lowest() {
@@ -696,8 +693,6 @@ void Game::place() {
 
     int prevLevel = level;
 
-    // profile_start();
-
     if (clear(lastDrop)){
         if(rotationSystem != NRS)
             comboCounter++;
@@ -707,7 +702,7 @@ void Game::place() {
         if(gameMode == MASTER)
             entryDelay = lineAre;
 
-    } else{
+    } else {
         if(gameMode == COMBO && comboCounter)
             lost = 1;
 
@@ -740,7 +735,6 @@ void Game::place() {
         if(gameMode == MASTER)
             entryDelay = areMax;
     }
-    // log(std::to_string(profile_stop()));
 
     if(comboCounter > statTracker.maxCombo)
         statTracker.maxCombo = comboCounter;
@@ -773,8 +767,10 @@ void Game::place() {
 
     canHold = true;
 
+    // profile_start();
     if (!clearLock && !entryDelay && !(zoneTimer == 1 && comboCounter > 0))
         next();
+    // log(std::to_string(profile_stop()));
 
     lockTimer = maxLockTimer;
     lockMoveCounter = 15;
@@ -799,7 +795,6 @@ void Game::place() {
 }
 
 int Game::clear(Drop drop) {
-    profile_start();
 
     int clearCount = 0;
     int attack = 0;
@@ -854,24 +849,6 @@ int Game::clear(Drop drop) {
     int zonedBefore = zonedLines;
 
     std::list<int> linesToMove;
-
-    // for (int i = 0; i < lengthY; i++) {
-    //     bool toClear = true;
-    //     for (int j = 0; j < lengthX; j++)
-    //         if (board[i][j] == 0)
-    //             toClear = false;
-
-    //     if (toClear) {
-    //         if(!zoneTimer){
-    //             linesToClear.push_back(i);
-    //             clearCount++;
-    //             if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
-    //                 garbageToRemove++;
-    //         }else{
-    //             linesToMove.push_back(i);
-    //         }
-    //     }
-    // }
 
     int start = lastDrop.startY + 20;
     int end = lastDrop.rawEndY + 1;
@@ -943,7 +920,6 @@ int Game::clear(Drop drop) {
     garbageCleared+=garbageToRemove;
 
     if (clearCount == 0){
-        log(std::to_string(profile_stop()));
         return 0;
     }
 
@@ -953,10 +929,10 @@ int Game::clear(Drop drop) {
     if(!zoneTimer)
         linesCleared+=clearCount;
 
-    auto index = linesToClear.begin();
-    for (int j = 0; j < lengthY; j++) {
+    auto index = linesToClear.end();
+    for (int j = lengthY-1; j >= 0; j--) {
         if(j == *index){
-            ++index;
+            --index;
             continue;
         }
 
@@ -1188,8 +1164,6 @@ int Game::clear(Drop drop) {
 
     setSpeed();
 
-    log(std::to_string(profile_stop()));
-
     return 1;
 }
 
@@ -1261,17 +1235,13 @@ void Game::next() {
         pawn.y/=2;
     }
 
-    //check if stack has reached top 3 lines
+    //check if stack has reached top half of board
     bool check = false;
-    for(int i = 0; i < 3; i++){
-        for(int j = 0; j < 10; j++){
-            if(board[21+i][j] != 0){
-                check = true;
-                break;
-            }
-        }
-        if(check)
+    for(int j = 0; j < 10; j++){
+        if(board[30][j] != 0){
+            check = true;
             break;
+        }
     }
 
     if (check || !checkRotation(0, 0, pawn.rotation) || gameMode == CLASSIC){
@@ -1442,7 +1412,7 @@ void Game::hold(int dir) {
 }
 
 int** Tetris::getShape(int n,int r, int rotationSystem) {
-    int** result = 0;    
+    int** result = 0;
     result = new int*[4];
 
     for (int i = 0; i < 4; i++){
@@ -1473,9 +1443,10 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
             if(!result[iy][ix])
                 continue;
 
-            int n = getNbr(result, ix, iy, 4 , 0 , 4);
+            const int n = getNbr(result, ix, iy, 4 , 0 , 4);
 
-            if(n == 1){
+            switch(n){
+            case 1:
                 if(iy > 0 && result[iy-1][ix])
                     result[iy][ix] += 1 << 4;
                 else if(iy < 3 && result[iy+1][ix])
@@ -1484,7 +1455,8 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
                     result[iy][ix] += 3 << 4;
                 else if(ix < 3 && result[iy][ix+1])
                     result[iy][ix] += 4 << 4;
-            }else if(n == 2){
+                break;
+            case 2:
                 if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix])
                     result[iy][ix] += 5 << 4;
                 else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1])
@@ -1497,7 +1469,8 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
                     result[iy][ix] += 9 << 4;
                 else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1])
                     result[iy][ix] += 10 << 4;
-            }else if(n == 3){
+                break;
+            case 3:
                 if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1] && result[iy+1][ix+1])
                     result[iy][ix] += 11 << 4;
                 else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1] && result[iy+1][ix-1])
@@ -1514,6 +1487,8 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
                     result[iy][ix] += 17 << 4;
                 else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy > 0 && result[iy-1][ix])
                     result[iy][ix] += 18 << 4;
+                break;
+            }
             // }else if(n == 5){
             //     if(iy < 3 && ix < 3 && ix > 0 && result[iy+1][ix-1] && result[iy+1][ix+1])
             //         result[iy][ix] += 19 << 4;
@@ -1525,7 +1500,6 @@ int** Tetris::getShape(int n,int r, int rotationSystem) {
             //         result[iy][ix] += 22 << 4;
             // }else if(n == 8){
             //     result[iy][ix] += 23 << 4;
-            }
         }
     }
 
