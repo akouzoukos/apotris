@@ -74,6 +74,7 @@ namespace Tetris
         int endX = 0;
         int startY = 0;
         int endY = 0;
+        int rawEndY = 0;
 
         int x;
         int y;
@@ -212,11 +213,16 @@ namespace Tetris
         int current = -1;
         int rotation = 0;
         int board[4][4][4];
+        int boardLowest[4][4];
         int lowest;
         bool big = false;
         void setBlock(int system);
 
         Pawn(int newX, int newY) {
+            for(int i = 0; i < 4; i++)
+                for(int j = 0; j < 4; j++)
+                    boardLowest[i][j] = -1;
+
             x = newX;
             y = newY;
         }
@@ -234,6 +240,10 @@ namespace Tetris
                 for(int j = 0; j < 4; j++)
                     for(int k = 0; k < 4; k++)
                         board[i][j][k] = oldPawn.board[i][j][k];
+
+            for(int i = 0; i < 4; i++)
+                for(int j = 0; j < 4; j++)
+                    boardLowest[i][j] = oldPawn.boardLowest[i][j];
         }
     };
 
