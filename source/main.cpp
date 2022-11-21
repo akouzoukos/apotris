@@ -525,19 +525,19 @@ void setSkin() {
     memcpy16(&tile_mem[0][1], blockSprite, sprite1tiles_bin_size / 2);
     memcpy16(&tile_mem[2][97], blockSprite, sprite1tiles_bin_size / 2);
 
-    int** board;
+    int* board;
     for (int i = 0; i < 7; i++) {
         board = getShape(i, 0, game->rotationSystem);
 
         for (int j = 0; j < 4; j++) {
             for (int k = 0; k < 4; k++) {
-                if (board[j][k]) {
+                if (board[j * 4 + k]) {
                     if(savefile->settings.skin == 11)
-                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite38tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite38tiles_bin[GameInfo::connectedConversion[(board[j * 4 + k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin == 12)
-                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite39tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite39tiles_bin[GameInfo::connectedConversion[(board[j * 4 + k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin == 13)
-                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite40tiles_bin[GameInfo::connectedConversion[(board[j][k])>>4] * 32], sprite1tiles_bin_size / 2);
+                        memcpy16(&tile_mem[4][16 * i + j * 4 + k], &sprite40tiles_bin[GameInfo::connectedConversion[(board[j * 4 + k])>>4] * 32], sprite1tiles_bin_size / 2);
                     else if(savefile->settings.skin < 7 || savefile->settings.skin > 8)
                         memcpy16(&tile_mem[4][16 * i + j * 4 + k], blockSprite, sprite1tiles_bin_size / 2);
                     else
@@ -548,8 +548,8 @@ void setSkin() {
             }
         }
 
-        for (int i = 0; i < 4; i++)
-            delete[] board[i];
+        // for (int i = 0; i < 4; i++)
+        //     delete[] board[i];
         delete[] board;
     }
 }
@@ -821,12 +821,12 @@ void buildMini(TILE * customSkin){
     for (int i = 0; i < 7; i++){
 
         TILE * t;
-        int** p = getShape(i, 0, game->rotationSystem);
+        int* p = getShape(i, 0, game->rotationSystem);
         int tileStart = 9 * 16 + i * 8;
 
         for(int y = 0; y < 2; y++){
             for(int x = 0; x < 4; x++){
-                if(!p[y+add][x])
+                if(!p[(y+add)*4+x])
                     continue;
 
                 for(int ii = 0; ii < 6; ii++){
@@ -839,8 +839,8 @@ void buildMini(TILE * customSkin){
             }
         }
 
-        for(int i = 0; i < 4; i++)
-            delete p[i];
+        // for(int i = 0; i < 4; i++)
+        //     delete p[i];
         delete p;
     }
 }

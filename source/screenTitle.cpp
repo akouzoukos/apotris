@@ -1787,7 +1787,7 @@ void fallingBlocks() {
     if (bgSpawnBlock > bgSpawnBlockMax) {
 
         int n = qran() % 7;
-        int** p = Tetris::getShape(n, qran() % 4,SRS);
+        int* p = Tetris::getShape(n, qran() % 4,SRS);
 
         bool found = false;
 
@@ -1802,8 +1802,8 @@ void fallingBlocks() {
             if(!found)
                 for (i = 0; i < 4; i++)
                     for (j = 0; j < 4; j++)
-                        if (p[i][j])
-                            backgroundArray[i][j + x] = n + p[i][j];
+                        if (p[i * 4 + j])
+                            backgroundArray[i][j + x] = n + p[i * 4 + j];
         }else{
             int x = (qran() % 13) * 2;
 
@@ -1818,7 +1818,7 @@ void fallingBlocks() {
                         int xoffset = (j+x)*2;
                         int yoffset = i*2;
 
-                        if (!p[i][j] || yoffset < 0 || yoffset > 23 || xoffset < 0 || xoffset > 29)
+                        if (!p[i * 4 + j] || yoffset < 0 || yoffset > 23 || xoffset < 0 || xoffset > 29)
                             continue;
 
                         backgroundArray[yoffset][xoffset] = n + 1;
@@ -1830,8 +1830,8 @@ void fallingBlocks() {
             }
         }
 
-        for(i = 0; i < 4; i++)
-            delete[] p[i];
+        // for(i = 0; i < 4; i++)
+        //     delete[] p[i];
         delete[] p;
 
         bgSpawnBlock = 0;
