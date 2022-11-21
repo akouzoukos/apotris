@@ -13,7 +13,7 @@ namespace Tetris
 
     extern const u16 connectedConversion[24];
     extern const u16 connectedFix[3][24];
-    extern int** getShape(int piece,int rotation,int rotationSystem);
+    extern int* getShape(int piece,int rotation,int rotationSystem);
 
     enum Modes{
         NO_MODE,
@@ -214,14 +214,17 @@ namespace Tetris
         int rotation = 0;
         int board[4][4][4];
         int boardLowest[4][4];
+        int heighest[4];
         int lowest;
         bool big = false;
         void setBlock(int system);
 
         Pawn(int newX, int newY) {
-            for(int i = 0; i < 4; i++)
+            for(int i = 0; i < 4; i++){
+                heighest[i] = -1;
                 for(int j = 0; j < 4; j++)
                     boardLowest[i][j] = -1;
+            }
 
             x = newX;
             y = newY;
@@ -244,6 +247,9 @@ namespace Tetris
             for(int i = 0; i < 4; i++)
                 for(int j = 0; j < 4; j++)
                     boardLowest[i][j] = oldPawn.boardLowest[i][j];
+
+            for(int i = 0; i < 4; i++)
+                heighest[i] = oldPawn.heighest[i];
         }
     };
 
@@ -446,6 +452,8 @@ namespace Tetris
         int finesseStreak = 0;
 
         int inGameTimer = 0;
+
+        int stackHeight = lengthY;
 
         int checkRotation(int, int, int);
         void rotateCW(int dir);

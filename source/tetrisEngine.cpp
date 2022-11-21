@@ -16,7 +16,6 @@ using namespace GameInfo;
 int getNbr(int** board,int x, int y, int ex, int sy, int ey);
 
 int Game::checkRotation(int dx, int dy, int r) {
-
     const int x = dx + pawn.x;
     const int y = dy + pawn.y;
 
@@ -86,27 +85,25 @@ int Game::checkSpecialRotation(int dx, int r){
 }
 
 void Pawn::setBlock(int system) {
-    for(int i = 0; i < 4; i++)
-        for(int j = 0; j < 4; j++)
-            boardLowest[i][j] = -1;
+    memset32(boardLowest,-1,16);
+    memset32(heighest,-1,4);
 
     for (int i = 0; i < 4; i++){
-        int ** shape = getShape(current,i,system);
+        int * shape = getShape(current,i,system);
 
         for(int iy = 0; iy < 4; iy++){
             for(int ix = 0; ix < 4; ix++){
-                board[i][iy][ix] = shape[iy][ix];
+                board[i][iy][ix] = shape[iy * 4 + ix];
 
-                if(!shape[iy][ix])
-                    continue;
-
-                if(shape[iy][ix] && boardLowest[i][ix] < iy)
-                    boardLowest[i][ix] = iy;
+                if(shape[iy * 4 + ix]){
+                    if(boardLowest[i][ix] < iy)
+                        boardLowest[i][ix] = iy;
+                    if(heighest[i] == -1)
+                        heighest[i] = iy;
+                }
             }
         }
 
-        for(int j = 0; j < 4; j++)
-            delete[] shape[j];
         delete[] shape;
     }
 }
@@ -607,14 +604,18 @@ void Game::update() {
 int Game::lowest() {
 
     if(!pawn.big){
-        for(int i = 0; i < lengthY - pawn.y; i++){
+        int start = stackHeight-4;
+        if(stackHeight-4 < pawn.y)
+            start = pawn.y;
+
+        for(int i = start; i < lengthY; i++){
             for(int j = 0; j < 4; j++){
                 if(pawn.boardLowest[pawn.rotation][j] == -1)
                     continue;
                 int x = pawn.x+j;
-                int y = pawn.y+i+pawn.boardLowest[pawn.rotation][j];
+                int y = i+pawn.boardLowest[pawn.rotation][j];
                 if(y >= lengthY || board[y][x])
-                    return pawn.y+i-1;
+                    return i-1;
             }
         }
     }else{
@@ -634,13 +635,14 @@ int Game::lowest() {
         }
     }
 
-
     return pawn.y;
 }
 
 void Game::place() {
     if(pawn.current == -1)
         return;
+
+    lastDrop = calculateDrop();
 
     for (int j = 0; j < 4; j++) {
         for (int i = pawn.boardLowest[pawn.rotation][j]; i >= 0; i--) {
@@ -688,8 +690,6 @@ void Game::place() {
         lost = 1;
         return;
     }
-
-    lastDrop = calculateDrop();
 
     int prevLevel = level;
 
@@ -1081,7 +1081,9 @@ int Game::clear(Drop drop) {
         }
     }
 
-    if(clearCount && gameMode == MASTER && !disappearing){
+    stackHeight += clearCount;
+
+    if(gameMode == MASTER && !disappearing){
         gradePoints += (int) ((float) gradeTable[internalGrade][clearCount+1] * masterComboMultiplayer[(comboCounter < 10)?comboCounter:9][clearCount-1] + 1) * ((int)(level/250)+1);
 
         if(gradePoints >= 100){
@@ -1200,7 +1202,7 @@ void Game::fillBag() {
     }
 }
 
-void Game::next() {
+void Game::next() {//~21-29k cycles
     pawn.y = (int)lengthY / 2;
     pawn.x = (int)lengthX / 2 - 2;
 
@@ -1220,7 +1222,7 @@ void Game::next() {
     //for CLASSIC 2 in a row protection
     pieceHistory = pawn.current;
 
-    pawn.setBlock(rotationSystem);
+    pawn.setBlock(rotationSystem); //~15k cycles
 
     if(gameMode == CLASSIC){
         down = 0;
@@ -1411,97 +1413,101 @@ void Game::hold(int dir) {
     statTracker.holds++;
 }
 
-int** Tetris::getShape(int n,int r, int rotationSystem) {
-    int** result = 0;
-    result = new int*[4];
+int* Tetris::getShape(int n,int r, int rotationSystem) {
+    int* result;
+    result = new int[4* 4];
 
-    for (int i = 0; i < 4; i++){
-        result[i] = new int[4];
-        for (int j = 0; j < 4; j++){
-            switch(rotationSystem){
-            case SRS:
-                result[i][j] = tetraminos[n][r][i][j];
-                break;
-            case NRS:
-                result[i][j] = classic[n][r][i][j];
-                break;
-            case ARS:
-                result[i][j] = ars[n][r][i][j];
-                break;
-            default:
-                result[i][j] = tetraminos[n][r][i][j];
-                break;
-            }
-        }
+    int * source;
+
+    switch(rotationSystem){
+    case SRS:
+        source = (int * )tetraminos[n][r];
+        break;
+    case NRS:
+        source = (int * )classic[n][r];
+        break;
+    case ARS:
+        source = (int * )ars[n][r];
+        break;
+    default:
+        source = (int * )tetraminos[n][r];
+        break;
     }
 
-    if(bigMode)
-        return result;
+    memcpy32(result,source,16);
 
-    for(int iy = 0; iy < 4; iy++){
-        for(int ix = 0; ix < 4; ix++){
-            if(!result[iy][ix])
-                continue;
+    // for (int i = 0; i < 4; i++){
+    //     for (int j = 0; j < 4; j++){
+    //     }
+    // }
 
-            const int n = getNbr(result, ix, iy, 4 , 0 , 4);
+    // if(bigMode)
+    //     return result;
 
-            switch(n){
-            case 1:
-                if(iy > 0 && result[iy-1][ix])
-                    result[iy][ix] += 1 << 4;
-                else if(iy < 3 && result[iy+1][ix])
-                    result[iy][ix] += 2 << 4;
-                else if(ix > 0 && result[iy][ix-1])
-                    result[iy][ix] += 3 << 4;
-                else if(ix < 3 && result[iy][ix+1])
-                    result[iy][ix] += 4 << 4;
-                break;
-            case 2:
-                if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix])
-                    result[iy][ix] += 5 << 4;
-                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1])
-                    result[iy][ix] += 6 << 4;
-                else if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
-                    result[iy][ix] += 7 << 4;
-                else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
-                    result[iy][ix] += 8 << 4;
-                else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1])
-                    result[iy][ix] += 9 << 4;
-                else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1])
-                    result[iy][ix] += 10 << 4;
-                break;
-            case 3:
-                if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1] && result[iy+1][ix+1])
-                    result[iy][ix] += 11 << 4;
-                else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1] && result[iy+1][ix-1])
-                    result[iy][ix] += 12 << 4;
-                else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1] && result[iy-1][ix+1])
-                    result[iy][ix] += 13 << 4;
-                else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1] && result[iy-1][ix-1])
-                    result[iy][ix] += 14 << 4;
-                else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
-                    result[iy][ix] += 15 << 4;
-                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy < 3 && result[iy+1][ix])
-                    result[iy][ix] += 16 << 4;
-                else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
-                    result[iy][ix] += 17 << 4;
-                else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy > 0 && result[iy-1][ix])
-                    result[iy][ix] += 18 << 4;
-                break;
-            }
-            // }else if(n == 5){
-            //     if(iy < 3 && ix < 3 && ix > 0 && result[iy+1][ix-1] && result[iy+1][ix+1])
-            //         result[iy][ix] += 19 << 4;
-            //     else if(iy > 0 && ix < 3 && ix > 0 && result[iy-1][ix-1] && result[iy-1][ix+1])
-            //         result[iy][ix] += 20 << 4;
-            //     else if(ix < 3 && iy < 3 && iy > 0 && result[iy-1][ix+1] && result[iy+1][ix+1])
-            //         result[iy][ix] += 21 << 4;
-            //     else if(ix > 0 && iy < 3 && iy > 0 && result[iy-1][ix-1] && result[iy+1][ix-1])
-            //         result[iy][ix] += 22 << 4;
-            // }else if(n == 8){
-            //     result[iy][ix] += 23 << 4;
-        }
-    }
+    // for(int iy = 0; iy < 4; iy++){
+    //     for(int ix = 0; ix < 4; ix++){
+    //         if(!result[iy][ix])
+    //             continue;
+
+    //         const int n = getNbr(result, ix, iy, 4 , 0 , 4);
+
+    //         switch(n){
+    //         case 1:
+    //             if(iy > 0 && result[iy-1][ix])
+    //                 result[iy][ix] += 1 << 4;
+    //             else if(iy < 3 && result[iy+1][ix])
+    //                 result[iy][ix] += 2 << 4;
+    //             else if(ix > 0 && result[iy][ix-1])
+    //                 result[iy][ix] += 3 << 4;
+    //             else if(ix < 3 && result[iy][ix+1])
+    //                 result[iy][ix] += 4 << 4;
+    //             break;
+    //         case 2:
+    //             if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix])
+    //                 result[iy][ix] += 5 << 4;
+    //             else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1])
+    //                 result[iy][ix] += 6 << 4;
+    //             else if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
+    //                 result[iy][ix] += 7 << 4;
+    //             else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
+    //                 result[iy][ix] += 8 << 4;
+    //             else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1])
+    //                 result[iy][ix] += 9 << 4;
+    //             else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1])
+    //                 result[iy][ix] += 10 << 4;
+    //             break;
+    //         case 3:
+    //             if(iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1] && result[iy+1][ix+1])
+    //                 result[iy][ix] += 11 << 4;
+    //             else if(iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1] && result[iy+1][ix-1])
+    //                 result[iy][ix] += 12 << 4;
+    //             else if(iy > 0 && result[iy-1][ix] && ix < 3 && result[iy][ix+1] && result[iy-1][ix+1])
+    //                 result[iy][ix] += 13 << 4;
+    //             else if(iy > 0 && result[iy-1][ix] && ix > 0 && result[iy][ix-1] && result[iy-1][ix-1])
+    //                 result[iy][ix] += 14 << 4;
+    //             else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix < 3 && result[iy][ix+1])
+    //                 result[iy][ix] += 15 << 4;
+    //             else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy < 3 && result[iy+1][ix])
+    //                 result[iy][ix] += 16 << 4;
+    //             else if(iy > 0 && result[iy-1][ix] && iy < 3 && result[iy+1][ix] && ix > 0 && result[iy][ix-1])
+    //                 result[iy][ix] += 17 << 4;
+    //             else if(ix > 0 && result[iy][ix-1] && ix < 3 && result[iy][ix+1] && iy > 0 && result[iy-1][ix])
+    //                 result[iy][ix] += 18 << 4;
+    //             break;
+    //         }
+    //         // }else if(n == 5){
+    //         //     if(iy < 3 && ix < 3 && ix > 0 && result[iy+1][ix-1] && result[iy+1][ix+1])
+    //         //         result[iy][ix] += 19 << 4;
+    //         //     else if(iy > 0 && ix < 3 && ix > 0 && result[iy-1][ix-1] && result[iy-1][ix+1])
+    //         //         result[iy][ix] += 20 << 4;
+    //         //     else if(ix < 3 && iy < 3 && iy > 0 && result[iy-1][ix+1] && result[iy+1][ix+1])
+    //         //         result[iy][ix] += 21 << 4;
+    //         //     else if(ix > 0 && iy < 3 && iy > 0 && result[iy-1][ix-1] && result[iy+1][ix-1])
+    //         //         result[iy][ix] += 22 << 4;
+    //         // }else if(n == 8){
+    //         //     result[iy][ix] += 23 << 4;
+    //     }
+    // }
 
     return result;
 }
@@ -1595,6 +1601,7 @@ void Game::removeClearLock() {
     if(!clearLock)
         return;
     clearLock = 0;
+
     auto index = linesToClear.begin();
 
     for (int i = 0; i < (int)linesToClear.size(); i++) {
@@ -1773,7 +1780,7 @@ Drop Game::calculateDrop(){
     result.startX += start;
     result.endX = pawn.x + end + 1;
 
-    result.startY = pawn.y;
+    result.startY = pawn.y + pawn.heighest[pawn.rotation];
     
     int add = 0;
     for(int i = 0; i < 4; i++)
@@ -1789,6 +1796,9 @@ Drop Game::calculateDrop(){
         if(((pawn.current == 2 && pawn.rotation == 1) || (pawn.current == 1 && pawn.rotation == 3)))
             result.endY--;
     }
+
+    if(result.startY < stackHeight)
+        stackHeight = result.startY;
 
     if(pawn.big){
         result.startX *=2;

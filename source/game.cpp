@@ -1030,7 +1030,7 @@ void showPPS(){
         fractional &= 0xff;
     }
 
-	memset32(&tile_mem[2][113],0,8*3);
+    memset32(&tile_mem[2][113],0,8*3);
     aprints(str,25,0,2);
 
     aprints("PPS:",0,0,2);
@@ -1169,9 +1169,9 @@ void gameLoop(){
     while (1) {
         diagnose();
         if (!game->lost && !pause && !game->eventLock) {
-            // profile_start();
+            profile_start();
             game->update();
-            // log(std::to_string(profile_stop()));
+            log(std::to_string(profile_stop()) + " " + std::to_string(game->stackHeight));
         }
         handleMultiplayer();
 
@@ -1869,6 +1869,7 @@ void showSpeedMeter(int fill){
     memset16(&pal_obj_mem[13*16+2],0x001f,1); //red
     memset16(&pal_obj_mem[13*16+3],0x4a52,1); //gray
 
+    //initialize tile with 0s
     TILE *dest;
     for(int x = 0; x < 4; x++){
         dest = (TILE *) &tile_mem[4][256 + x];
@@ -1880,16 +1881,17 @@ void showSpeedMeter(int fill){
     if(fill > maxLength)
         fill = maxLength;
 
+    //write color c at specific location depending on if x is less than max length
     for(int x = 0; x < maxLength+1; x++){
         dest = (TILE *) &tile_mem[4][256 + x / 8];
         int shift = ((x%8) * 4);
-        int c = (1 + (x < fill)) << shift;
+        int c = (1 + (x < fill)) << shift;//color
         if(x < maxLength){
-            dest->data[0] |= c;
+            dest->data[0] |= c;//set color
             if(x > 0)
-                dest->data[1] |= 3 << shift;
+                dest->data[1] |= 3 << shift;//gray
         }else{
-            dest->data[1] |= 3 << shift;
+            dest->data[1] |= 3 << shift;//gray
         }
     }
 
