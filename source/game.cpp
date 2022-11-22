@@ -102,6 +102,8 @@ std::list<PlaceEffect> placeEffectList;
 
 int eventPauseTimer = 0;
 
+Tetris::Drop latestDrop;
+
 static bool holdingSave = false;
 static Settings previousSettings;
 
@@ -153,8 +155,8 @@ void GameScene::draw(){
     showPlaceEffect();// 300 idle, 3600 per effect when on
     // prof+= std::to_string(profile_stop()) + " ";
 
-    // profile_start();
     oam_copy(oam_mem, obj_buffer, 32);
+    // profile_start();
     if(game->eventTimer)
         oam_copy(&oam_mem[64], &obj_buffer[64], 27);
     obj_aff_copy(obj_aff_mem, obj_aff_buffer, 32);
@@ -171,7 +173,7 @@ void GameScene::draw(){
 
     // prof+= std::to_string(profile_stop()) + " ";
 
-    log(prof);
+    // log(prof);
 }
 
 void update() {
@@ -429,7 +431,22 @@ void showBackground() {
     bool before = false, after = false;
 
     dest += 10;
-    for (int i = 20; i < 40; i++) {
+
+    int start = 20;
+    int end = 40;
+
+    // if(!game->clearLock){
+    //     start = latestDrop.startY - 1 + 20;
+    //     end = latestDrop.endY + 1 + 20;
+
+    //     if(end > 40)
+    //         end = 40;
+
+    //     // log("start: " + std::to_string(start) + " end: " + std::to_string(end));
+    // }
+    // dest += (start-20) * 32;
+
+    for (int i = start; i < end; i++) {
         if (game->linesToClear.size() > 0) {
             before = after = false;
             for(auto const& l : game->linesToClear){
@@ -1246,7 +1263,7 @@ void gameLoop(){
                 game->removeEventLock();
         }
 
-        Tetris::Drop latestDrop = game->getDrop();
+        latestDrop = game->getDrop();
 
         if (latestDrop.on){
             addGlow(latestDrop);
