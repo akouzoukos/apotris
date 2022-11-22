@@ -1604,13 +1604,13 @@ void Game::removeClearLock() {
 
     auto index = linesToClear.begin();
 
-    for (int i = 0; i < (int)linesToClear.size(); i++) {
-        for (int j = *index; j > 0; j--){
-            for (int k = 0; k < lengthX; k++){
-                board[j][k] = board[j - 1][k];
-                if(disappearing)
-                    disappearTimers[j][k] = disappearTimers[j - 1][k];
-            }
+    const int len = (int)linesToClear.size();
+
+    for (int i = 0; i < len; i++) {
+        for (int j = *index; j >= stackHeight-len; j--){
+            memcpy32(board[j],board[j-1],10);
+            if(disappearing)
+                memcpy16(disappearTimers[j],disappearTimers[j-1],10);
         }
         ++index;
     }
