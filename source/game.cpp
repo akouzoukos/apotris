@@ -120,19 +120,38 @@ static u16 fullMeterTimer = 0;
 // Bot *testBot;
 
 void GameScene::draw(){
+    std::string prof;
+    // profile_start();
     control();
     checkSounds();
     showPawn();
     showShadow();
 
+    // prof+= std::to_string(profile_stop()) + " ";
+    // profile_start();
+
     showHold();
     showQueue();
 
-    drawGrid();
-    screenShake();
-    showClearText();
-    showPlaceEffect();
+    // prof+= std::to_string(profile_stop()) + " ";
 
+    // profile_start();
+    drawGrid();//10k idle, 20k when clearing
+    // prof+= std::to_string(profile_stop()) + " ";
+
+    // profile_start();
+    screenShake();//~320
+    // prof+= std::to_string(profile_stop()) + " ";
+
+    // profile_start();
+    showClearText();//~1200
+    // prof+= std::to_string(profile_stop()) + " ";
+
+    // profile_start();
+    showPlaceEffect();// 300 idle, 3600 per effect when on
+    // prof+= std::to_string(profile_stop()) + " ";
+
+    // profile_start();
     oam_copy(oam_mem, obj_buffer, 32);
     if(game->eventTimer)
         oam_copy(&oam_mem[64], &obj_buffer[64], 27);
@@ -147,6 +166,10 @@ void GameScene::draw(){
     }else{
         showTimer();
     }
+
+    // prof+= std::to_string(profile_stop()) + " ";
+
+    log(prof);
 }
 
 void update() {
@@ -1064,9 +1087,10 @@ void showClearText() {
     if(game->zoneTimer && !game->lost)
         return;
 
-    std::list<FloatText>::iterator index = floatingList.begin();
+    auto index = floatingList.begin();
+    const int l = (int)floatingList.size();
 
-    for (int i = 0; i < (int)floatingList.size(); i++) {
+    for (int i = 0; i < l; i++) {
         std::string text = (*index).text;
         if (index->timer++ > maxClearTextTimer) {
             index = floatingList.erase(index);
@@ -1159,9 +1183,9 @@ void gameLoop(){
     while (1) {
         diagnose();
         if (!game->lost && !pause && !game->eventLock) {
-            profile_start();
+            // profile_start();
             game->update();
-            log(std::to_string(profile_stop()) + " " + std::to_string(game->stackHeight));
+            // log(std::to_string(profile_stop()) + " " + std::to_string(game->stackHeight));
         }
         handleMultiplayer();
 
@@ -1218,6 +1242,8 @@ void gameLoop(){
             addGlow(latestDrop);
             addPlaceEffect(latestDrop);
         }
+
+        // log(std::to_string(REG_VCOUNT));
 
         canDraw = true;
         VBlankIntrWait();
@@ -1460,7 +1486,7 @@ void drawGrid() {
             index = effectList.erase(index);
         }
 
-        std::advance(index, 1);
+        index++;
     }
 
     u32 gridTile;
@@ -1689,7 +1715,7 @@ void showPlaceEffect(){
 
         switch(it->piece){
         case 0:
-            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n],size);
+            memcpy32(&tile_mem[5][138 + 32 * i],placeEffectTiles[n],size/2);
             if(game->rotationSystem == NRS){
                 if(r % 2 == 1)
                     r = 1;
@@ -1703,7 +1729,7 @@ void showPlaceEffect(){
             }
             break;
         case 1:
-            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
+            memcpy32(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size/2);
             xoffset = yoffset = -4;
 
             if (game->rotationSystem == ARS && r == 2)
@@ -1714,7 +1740,7 @@ void showPlaceEffect(){
 
             break;
         case 2:
-            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size);
+            memcpy32(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+3],size/2);
             xoffset = yoffset = -4;
             flip = true;
 
@@ -1725,12 +1751,12 @@ void showPlaceEffect(){
                 r = (r+2) % 4;
             break;
         case 3:
-            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+6],size);
+            memcpy32(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+6],size/2);
             yoffset = -4 + (game->rotationSystem == NRS || game-> rotationSystem == ARS) * 8;
             r = 0;
             break;
         case 4:
-            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
+            memcpy32(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size/2);
             xoffset = -4;
             yoffset = -4;
             if(game->rotationSystem == NRS || game-> rotationSystem == ARS){
@@ -1741,7 +1767,7 @@ void showPlaceEffect(){
             }
             break;
         case 5:
-            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+12],size);
+            memcpy32(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+12],size/2);
             xoffset = yoffset = -4;
 
             if (game->rotationSystem == ARS && r == 2)
@@ -1751,7 +1777,7 @@ void showPlaceEffect(){
                 r = (r+2) % 4;
             break;
         case 6:
-            memcpy16(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size);
+            memcpy32(&tile_mem[5][138 + 32 * i],placeEffectTiles[n+9],size/2);
             xoffset = -4;
             yoffset = -4;
             flip = true;
