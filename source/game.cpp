@@ -427,21 +427,10 @@ void showBackground() {
 
     dest += 10;
 
-    int start = 20;
-    int end = 40;
+    int startY = 20;
+    int endY = 40;
 
-    // if(!game->clearLock){
-    //     start = latestDrop.startY - 1 + 20;
-    //     end = latestDrop.endY + 1 + 20;
-
-    //     if(end > 40)
-    //         end = 40;
-
-    //     // log("start: " + std::to_string(start) + " end: " + std::to_string(end));
-    // }
-    // dest += (start-20) * 32;
-
-    for (int i = start; i < end; i++) {
+    for (int i = startY; i < endY; i++) {
         if (game->linesToClear.size() > 0) {
             before = after = false;
             for(auto const& l : game->linesToClear){
@@ -1208,13 +1197,13 @@ void gameLoop(){
 
         progressBar();
 
-        // if(ENABLE_BOT){
-        //     profile_start();
-        //     // testBot->run();
-        //     botGame->update();
-        //     handleBotGame();
-        //     addToResults(profile_stop(),0);
-        // }
+        if(ENABLE_BOT){
+            profile_start();
+            testBot->run();
+            // botGame->update();
+            // handleBotGame();
+            log(std::to_string(profile_stop()));
+        }
 
         if(creditRefresh && !game->clearLock)
             refreshCredits();

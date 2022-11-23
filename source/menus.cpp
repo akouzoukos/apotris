@@ -27,6 +27,7 @@ bool showingStats = false;
 
 bool saveExists = false;
 Tetris::Game* quickSave;
+Tetris::Bot *testBot;
 
 int igt = 0;
 
@@ -683,8 +684,8 @@ int pauseMenu(){
                         clearGlow();
 
                         if (ENABLE_BOT) {
-                            // delete testBot;
-                            // testBot = new Bot(game);
+                            delete testBot;
+                            testBot = new Bot(game);
                         }
 
                         aprint("Loaded!", 22, 18);
