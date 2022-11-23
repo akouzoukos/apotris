@@ -236,7 +236,7 @@ public:
 #define SHOW_FINESSE 1
 #define DIAGNOSE 1
 #define SAVE_TAG 0x50
-#define ENABLE_BOT 0
+#define ENABLE_BOT 1
 
 #define ENABLE_FLASH_SAVE 1
 

@@ -10,6 +10,7 @@ namespace Tetris
 {
     #define MAX_DISAPPEAR 300
     #define CREDITS_LENGTH 3240 //54 seconds * 60
+    #define maxSleep 1;
 
     extern const u16 connectedConversion[24];
     extern const u16 connectedFix[3][24];
@@ -94,6 +95,7 @@ namespace Tetris
             endX = oldDrop.endX;
             startY = oldDrop.startY;
             endY = oldDrop.endY;
+            rawEndY = oldDrop.rawEndY;
             x = oldDrop.x;
             y = oldDrop.y;
             dx = oldDrop.dx;
@@ -113,6 +115,7 @@ namespace Tetris
         int piece = -1;
         int clears = 0;
         int wells = 0;
+        int score = -0x7fff;
 
         Move(){}
 
@@ -123,6 +126,7 @@ namespace Tetris
             holes = oldMove.holes;
             piece = oldMove.piece;
             clears = oldMove.clears;
+            score = oldMove.score;
         }
     };
 
@@ -635,7 +639,6 @@ namespace Tetris
         int thinkingJ = 0;
         Move current;
         Move best;
-        int maxSleep = 5;
         int sleepTimer = 0;
 
         int dx = 0;
@@ -644,206 +647,13 @@ namespace Tetris
         int **testBoard;
 
         int currentHoles = 0;
-        int currentHeight = 0;
+        int currentJag = 0;
 
-        void run(){
-            if(thinking){
-                if(game->clearLock)
-                    return;
+        void run();
 
-                if(thinkingI == -6){
-                    currentHoles = countHoles(game->board,game->lengthX,game->lengthY);
-                    currentHeight = getHeight(game->board,game->lengthX,game->lengthY);
-                }
+        void move();
 
-                if(thinkingI < 6){
-                    for(int i = 0; i < 1; i++){
-                        if(thinkingJ < 4){
-                            while(!findBestDrop(thinkingI,thinkingJ)){
-                                if(thinkingJ < 3){
-                                    thinkingJ++;
-                                }else{
-                                    thinkingJ = 0;
-                                    if(thinkingI < 6)
-                                        thinkingI++;
-                                    else
-                                        break;
-                                }
-                            }
-                            thinkingJ++;
-                        }else{
-                            thinkingJ = 0;
-                            thinkingI++;
-                        }
-                    }
-                }else{
-                    thinkingI = -6;
-                    thinkingJ = 0;
-                    thinking = false;
-                    current = best;
-                    best = Move();
-                }
-            }else{
-                move();
-            }
-        }
-
-        void move(){
-            if(--sleepTimer > 0)
-                return;
-            else
-                sleepTimer = maxSleep;
-
-            if(rotation != current.rotation){
-                game->rotateCW(1);
-                rotation++;
-            }else if(dx > current.dx){
-                game->keyLeft(1);
-                game->keyLeft(0);
-                dx--;
-            }else if(dx < current.dx){
-                game->keyRight(1);
-                game->keyRight(0);
-                dx++;
-            }else{
-                game->keyDrop(1);
-                dx = 0;
-                rotation = 0;
-                thinking = true;
-                sleepTimer = maxSleep;
-            }
-        }
-
-        int getHeight(int **board, int lengthX, int lengthY){
-            int max = 40;
-            for(int j = 0; j < lengthX; j++){
-                for(int i = 0; i < lengthY; i++){
-                    if(board[i][j]){
-                        if(i < max)
-                            max = i;
-                        break;
-                    }
-                }
-            }
-
-            return 40-max;
-        }
-
-        int countHoles(int **board,int lengthX, int lengthY){
-            int holes = 0;
-            for(int i = 0; i < lengthY-1; i++){
-                for(int j = 0; j < lengthX; j++){
-                    if(board[i][j] != 0 && board[i+1][j] == 0)
-                        holes++;
-                }
-            }
-
-            return holes;
-        }
-
-        int countClears(int **board,int lengthX, int lengthY){
-            int clears = 0;
-            for(int i = 0; i < lengthY; i++){
-                bool found = false;
-                for(int j = 0; j < lengthX; j++){
-                    if(board[i][j] == 0)
-                        found = true;
-                }
-
-                if(!found)
-                    clears++;
-            }
-
-            return clears;
-        }
-
-        int countWells(int **board,int lengthX, int lengthY){
-            int sum = 0;
-            for(int j = lengthX-1; j >= 0; j--){
-                int counter = 0;
-                for(int i = 0; i < lengthY; i++){
-                    if(j == 0 || board[i][j] || ((j != 0 && !board[i][j-1]) && (j != lengthX-1 && !board[i][j+1]))){
-                        if(counter > 2)
-                            sum++;
-                        counter = 0;
-                    }else
-                        counter++;
-                }
-            }
-
-            return sum;
-        }
-
-        int findBestDrop(int ii,int jj){
-            if(!game->checkRotation(ii,0,jj))
-                return 0;
-
-            int blocks[4];
-
-            for(int i = 0; i < 4; i++)//initialize height array
-                blocks[i] = -1;
-
-            for(int i = 3; i >= 0; i--)//find height of lowest block in column
-                for(int j = 0; j < 4; j++)
-                    if(game->pawn.board[jj][i][j] && blocks[j] == -1)
-                        blocks[j] = i;
-
-            int lowest = game->pawn.y;
-            bool escape = false;
-
-            for(int i = 0; i < game->lengthY - game->pawn.y; i++){
-                for(int j = 0; j < 4; j++){
-                    if(blocks[j] == -1)
-                        continue;
-                    int x = game->pawn.x+j+ii;
-                    int y = game->pawn.y+i;
-                    if(y+blocks[j] >= game->lengthY || game->board[y+blocks[j]][x]){
-                        lowest = y-1;
-                        escape = true;
-                        break;
-                    }
-                }
-                if(escape)
-                    break;
-            }
-
-            for(int i = 0; i < 20; i++)
-                for(int j = 0; j < game->lengthX; j++)
-                    testBoard[i][j] = game->board[i+20][j];
-
-            for(int i = 0; i < 4; i++){
-                for(int j = 0; j < 4; j++){
-                    if(game->pawn.board[jj][i][j] == 0)
-                        continue;
-                    int x = game->pawn.x+ii+j;
-                    int y = lowest+i;
-
-                    if(y > game->lengthY-1 || x > game->lengthX)
-                        continue;
-
-                    testBoard[lowest+i-20][x] = 1;
-                }
-            }
-
-            int afterHoles = countHoles(testBoard,game->lengthX,20);
-            int clears = countClears(testBoard,game->lengthX,20);
-            int afterHeight = getHeight(testBoard,game->lengthX,20);
-
-            int holeDiff = afterHoles-currentHoles;
-            int heightDiff = afterHeight-currentHeight;
-
-            if((clears > best.clears) || ((holeDiff < best.holes) || (heightDiff < best.height && holeDiff == best.holes) || (heightDiff-best.height < -1 && holeDiff <= best.holes+1))){
-                best.height = heightDiff;
-                best.dx = ii;
-                best.rotation = jj;
-                best.holes = holeDiff;
-                best.piece = game->pawn.current;
-                best.clears = clears;
-            }
-
-            return 1;
-        }
-
+        int findBestDrop(int ii,int jj);
 
         Bot(){}
         Bot(Game* _game){

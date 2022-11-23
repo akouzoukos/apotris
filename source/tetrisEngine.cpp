@@ -1646,7 +1646,7 @@ void Game::removeClearLock() {
         next();
     fromLock = false;
 
-    refresh = 1;
+    refresh = 2;
     zonedLines = 0;
 }
 
@@ -1726,6 +1726,8 @@ void Game::generateGarbage(int height,int mode){
 
         garbageHeight+=height;
     }
+
+    stackHeight -= height;
 
     if(bigMode)
         return;

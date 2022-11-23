@@ -146,15 +146,14 @@ void aprints(std::string str, int x, int y, int colorIndex){//x and y are pixel
         //drawn 1 pixel down (for characters like q g j)
 		int drop = character & 1;
 
+		const int rowSize = (textArea->endX-textArea->startX+1);
+
 		int counter = 0;
 		for(int j = 0; j < 5; j++){
 			for(int k = 0; k < 3; k++){
-				dest2 = (TILE *) &tile_mem[2][textArea->tileId+((y+j+drop)/8)*(textArea->endX-textArea->startX+1)+(x+w+k)/8];
+				dest2 = (TILE *) &tile_mem[2][textArea->tileId+((y+j+drop)/8)*rowSize+(x+w+k)/8];
 
-                //figure out if pixel at j,k should be drawn
-                int draw = (character >> (15-counter)) & 1;
-
-				if(draw)
+				if((character >> (15-counter)) & 1) //figure out if pixel at j,k should be drawn
 					dest2->data[(y+j+drop)%8] |= colorIndex << (((x+w+k)%8)*4);
 				counter++;
 			}
