@@ -929,10 +929,15 @@ int Game::clear(Drop drop) {
     if(!zoneTimer)
         linesCleared+=clearCount;
 
-    auto index = linesToClear.end();
-    for (int j = lengthY-1; j >= 0; j--) {
+    for(auto const & line : linesToClear){
+        log(std::to_string(line));
+
+    }
+
+    auto index = linesToClear.begin();
+    for (int j = 0; j < lengthY-1; j++) {
         if(j == *index){
-            --index;
+            ++index;
             continue;
         }
 
@@ -1143,16 +1148,14 @@ int Game::clear(Drop drop) {
         auto index = garbageQueue.begin();
         while(attack > 0 && index != garbageQueue.end()){
             bool cleared = false;
-            if(index->timer == 0){
-                if(attack > index->amount){
-                    attack -= index->amount;
-                    cleared = true;
+            if(attack > index->amount){
+                attack -= index->amount;
+                cleared = true;
 
-                    garbageQueue.erase(index++);
-                }else{
-                    index->amount -= attack;
-                    attack = 0;
-                }
+                garbageQueue.erase(index++);
+            }else{
+                index->amount -= attack;
+                attack = 0;
             }
             if(!cleared)
                 ++index;
@@ -1682,10 +1685,11 @@ void Game::generateGarbage(int height,int mode){
 
         for(int i = lengthY-height; i < lengthY; i++){
             int prevHole = hole;
-            if(!mode || qran() % 10 < 3){
+            int count = 0;
+            if(!mode || rand() % 10 < 3){
                 do{
-                    hole = qran() % lengthX;
-                }while((!board[i-1][hole] && height < garbageHeight) || hole == prevHole);
+                    hole = rand() % lengthX;
+                }while(++count < 11 && ((!board[i-1][hole] && height < garbageHeight) || hole == prevHole));
             }
             for(int j = 0; j < lengthX; j++){
                 if(j == hole)

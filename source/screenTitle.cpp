@@ -52,7 +52,7 @@ int bigModeMessageTimer = 0;
 int bigModeMessageMax = 180;
 
 const std::list<std::string> menuOptions = { "Play","Settings","Credits" };
-const std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","Master","2P Battle","Training"};
+const std::list<std::string> gameOptions = { "Marathon","Sprint","Dig","Ultra","Blitz","Combo","Survival","Classic","Master","2P Battle","CPU Battle","Training"};
 
 const int secretCombo[11] = {KEY_UP,KEY_UP,KEY_DOWN,KEY_DOWN,KEY_LEFT,KEY_RIGHT,KEY_LEFT,KEY_RIGHT,KEY_B,KEY_A,KEY_START};
 
@@ -341,7 +341,33 @@ void startScreen() {
                         n = -3;
                         linkConnection->activate();
 
-                    } else if (selection == 10) {//Training
+
+                    }else if (selection == 10){
+
+                        int seed = qran ();
+                        startMultiplayerGame(seed);
+                        multiplayer = false;
+
+                        delete botGame;
+                        botGame = new Game(BATTLE,seed & 0x1fff,false);
+                        botGame->setGoal(100);
+                        game->setTuning(getTuning());
+                        botGame->setLevel(1);
+                        botGame->maxClearDelay = 20;
+
+                        delete testBot;
+                        testBot = new Bot(botGame);
+
+                        memset16(&se_mem[25], 0, 20 * 32);
+                        memset16(&se_mem[26], 0, 20 * 32);
+                        memset16(&se_mem[27], 0, 20 * 32);
+
+                        REG_DISPCNT |= DCNT_BG1;
+                        REG_DISPCNT |= DCNT_BG3;
+
+                        clearText();
+                        break;
+                    } else if (selection == 11) {//Training
                         options = 3;
                         n = TRAINING;
                         if(level < 1)
@@ -368,31 +394,6 @@ void startScreen() {
                         // clearText();
                         // break;
 
-
-                    // }else if (selection == 6){
-
-                        // int seed = qran ();
-                        // startMultiplayerGame(seed);
-                        // multiplayer = false;
-
-                        // delete botGame;
-                        // botGame = new Game(4,seed);
-                        // botGame->setGoal(100);
-                        // game->setTuning(savefile->settings.das, savefile->settings.arr, savefile->settings.sfr, savefile->settings.dropProtection);
-                        // botGame->setLevel(1);
-
-                        // delete testBot;
-                        // testBot = new Bot(botGame);
-
-                        // memset16(&se_mem[25], 0, 20 * 32);
-                        // memset16(&se_mem[26], 0, 20 * 32);
-                        // memset16(&se_mem[27], 0, 20 * 32);
-
-                        // REG_DISPCNT |= DCNT_BG1;
-                        // REG_DISPCNT |= DCNT_BG3;
-
-                        // clearText();
-                        // break;
                     }
                 }
 
@@ -901,10 +902,10 @@ void startScreen() {
 
                         savefile->stats.gamesStarted++;
 
-                        if (ENABLE_BOT) {
-                            delete testBot;
-                            testBot = new Bot(game);
-                        }
+                        // if (ENABLE_BOT) {
+                        //     delete testBot;
+                        //     testBot = new Bot(game);
+                        // }
 
                         sfx(SFX_MENUCONFIRM);
                         break;

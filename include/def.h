@@ -365,7 +365,7 @@ extern OBJ_ATTR * queueFrameSprites[3];
 extern int enemyHeight;
 
 extern Tetris::Bot *testBot;
-extern bool enemyBoard[20][10];
+extern u8 enemyBoard[20][10];
 
 extern int mode;
 
