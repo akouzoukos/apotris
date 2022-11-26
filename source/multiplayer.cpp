@@ -3,12 +3,14 @@
 #include "LinkConnection.h"
 #include "tetrisEngine.h"
 #include "text.h"
+#include <string>
+#include "logging.h"
 
 using namespace Tetris;
 
 void drawEnemyBoard(int);
 
-bool enemyBoard[20][10];
+u8 enemyBoard[20][10];
 OBJ_ATTR* enemyBoardSprite;
 
 int timeoutTimer = 0;
@@ -161,7 +163,7 @@ void drawEnemyBoard(int height) {
     enemyBoardSprite = &obj_buffer[25];
     obj_unhide(enemyBoardSprite, ATTR0_AFF_DBL);
     obj_set_attr(enemyBoardSprite, ATTR0_TALL | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(6), 0);
-    enemyBoardSprite->attr2 = ATTR2_BUILD(768, 0, 1);
+    enemyBoardSprite->attr2 = ATTR2_BUILD(768, 15, 1);
     obj_set_pos(enemyBoardSprite, 43, 24);
     obj_aff_identity(&obj_aff_buffer[6]);
     obj_aff_scale(&obj_aff_buffer[6], float2fx(0.5), float2fx(0.5));
@@ -172,41 +174,70 @@ void drawEnemyBoard(int height) {
     TILE* dest2;
 
     for (int j = 0; j < 10; j++) {
-        dest2 = (TILE*)&tile_mem[5][256 + ((height) / 8) * 2 + (j) / 8];//12 IS NOT CONFIRMED
+        dest2 = (TILE*)&tile_mem[5][256 + ((height) / 8) * 2 + (j) / 8];
 
         if (enemyBoard[height][j])
-            dest2->data[(height) % 8] |= (4 + 2 * savefile->settings.lightMode) << ((j % 8) * 4);
+            dest2->data[(height) % 8] |= ((enemyBoard[height][j]) + 1 * savefile->settings.lightMode) << ((j % 8) * 4);
         else
             dest2->data[(height) % 8] &= ~(0xffff << ((j % 8) * 4));
     }
 }
 
+int botClearTimer = 0;
+
 void handleBotGame(){
 
-    // if(botIncomingHeight++ > 19){
-    //     botIncomingHeight = 0;
+    if(botIncomingHeight++ > 19){
+        botIncomingHeight = 0;
+    }
 
+    if(botGame->attackQueue.size()){
+        Tetris::Garbage atck = botGame->attackQueue.front();
+        game->addToGarbageQueue(atck.id,atck.amount);
+        botGame->clearAttack(atck.id);
+    }
+
+    if(game->attackQueue.size()){
+        Tetris::Garbage atck = game->attackQueue.front();
+        botGame->addToGarbageQueue(atck.id,atck.amount);
+        game->clearAttack(atck.id);
+    }
+
+    // bool clearing = false;
+    // for(auto const& line : botGame->linesToClear){
+    //     if(line == botIncomingHeight+20){
+    //         clearing = true;
+    //         break;
+    //     }
     // }
 
-	// if(botGame->attackQueue.size()){
-	// 	Tetris::Garbage atck = botGame->attackQueue.front();
-	// 	game->addToGarbageQueue(atck.id,atck.amount);
-	// 	botGame->clearAttack(atck.id);
-	// }
+    // auto it = botGame->linesToClear.begin();
+    for(int i = 0; i < 20; i++){
+        // bool clearing = false;
+        // if(botGame->linesToClear.size() && it != botGame->linesToClear.end()){
+        //     if(*it == i+20){
+        //         clearing = true;
+        //     }
+        // }
 
-	// if(game->attackQueue.size()){
-	// 	Tetris::Garbage atck = game->attackQueue.front();
-	// 	botGame->addToGarbageQueue(atck.id,atck.amount);
-	// 	game->clearAttack(atck.id);
-	// }
+        for(int j = 0; j < 10; j++){
+            // if(!clearing)
+                enemyBoard[i][j] = (botGame->board[i+20][j] > 0) * 2;
+            // else
+            //     enemyBoard[i][j] = 3;
+        }
+    }
 
-	// for(int i = 0; i < 20; i++)
-	// 	for(int j = 0; j < 10; j++)
-	// 		enemyBoard[i][j] = (botGame->board[i+20][j]);
+    drawEnemyBoard(botIncomingHeight);
 
-	drawEnemyBoard(botIncomingHeight);
+    if(botGame->clearLock){
+        if(++botClearTimer > botGame->maxClearDelay){
+            botClearTimer = 0;
+            botGame->removeClearLock();
+        }
+    }
 
-	// if(botGame->clearLock){
-	// 	botGame->removeClearLock();
-	// }
+    if(botGame->lost){
+        game->won = true;
+    }
 }

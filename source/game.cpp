@@ -126,6 +126,7 @@ void GameScene::draw(){
     // profile_start();
     control();
     checkSounds();
+
     showPawn();
     showShadow();
 
@@ -1197,12 +1198,14 @@ void gameLoop(){
 
         progressBar();
 
-        if(ENABLE_BOT){
-            profile_start();
-            testBot->run();
-            // botGame->update();
-            // handleBotGame();
-            log(std::to_string(profile_stop()));
+        if(ENABLE_BOT && game->gameMode == BATTLE){
+            // profile_start();
+            if(!botGame->clearLock){
+                testBot->run();
+                botGame->update();
+            }
+            handleBotGame();
+            // log(std::to_string(profile_stop()));
         }
 
         if(creditRefresh && !game->clearLock)

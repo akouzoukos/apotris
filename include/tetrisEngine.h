@@ -134,7 +134,7 @@ namespace Tetris
     public:
         int id;
         int amount;
-        int timer = 10;
+        int timer = 120;
 
         Garbage(int _id,int _amount){
             id = _id;
@@ -327,7 +327,6 @@ namespace Tetris
         int lastMoveDy = 0;
 
         int finesseCounter = 0;
-        bool dropping = false;
 
         Drop lastDrop;
 
@@ -415,6 +414,7 @@ namespace Tetris
         int initialLevel = 0;
         int eventTimer = 0;
 
+        bool dropping = false;
         int entryDelay = 0;
         int areMax = 0;
         int lineAre = 0;
@@ -632,6 +632,15 @@ namespace Tetris
         }
     };
 
+    typedef struct Weights{
+        int clears = 0;
+        int holes = 0;
+        int height = 0;
+        int lowest = 0;
+        int jag = 0;
+        int right = 0;
+    }Weights;
+
     class Bot{
     public:
         bool thinking = true;
@@ -648,6 +657,19 @@ namespace Tetris
 
         int currentHoles = 0;
         int currentJag = 0;
+        int currentRight = 0;
+
+        int checking = 0;
+        int previous = 0;
+
+        Weights weights{
+        93,
+        838,
+        223,
+        80,
+        4,
+        348,
+        };
 
         void run();
 
