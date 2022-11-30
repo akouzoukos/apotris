@@ -54,6 +54,8 @@ void showZoneText();
 void showFullMeter();
 Function getActionFromKey(int key);
 void liftKeys();
+void journeyFlash();
+void setJourneyGraphics(Save * save, int level);
 
 Game* game;
 OBJ_ATTR* pawnSprite;
@@ -298,6 +300,9 @@ void checkSounds() {
 
         if(game->gameMode == MASTER){
             maxClearTimer = game->maxClearDelay;
+        }
+		else if(game->gameMode == MARATHON){			
+			journeyLevelUp = true;
         }
     }
 
@@ -1138,7 +1143,12 @@ void gameLoop(){
 
     oam_copy(oam_mem, obj_buffer, 128);
 
-    countdown();
+	if (!resumeJourney){
+		countdown();
+	}
+	else{
+		resumeJourney = false;
+	}
 
     if (!(game->gameMode == TRAINING)) {
         playSongRandom(1);
@@ -1288,6 +1298,18 @@ void gameLoop(){
             zoneFlash();
 
         sqran(qran() % frameCounter);
+		
+		if(!game->eventLock && journeyLevelUp){
+			// flashTimer = flashTimerMax;
+			// journeyFlash();
+			
+			setJourneyGraphics(savefile, game->level);
+
+			delete journeySave;
+			journeySave = new Game(*game);
+			journeySaveExists = true;
+			return;
+		}
     }
 }
 
@@ -2285,4 +2307,81 @@ Function getActionFromKey(int key){
 
 void liftKeys(){
     game->liftKeys();
+}
+
+void journeyFlash(){
+
+    if(flashTimer == flashTimerMax){
+        if(previousPalette != nullptr)
+            delete previousPalette;
+        previousPalette = new COLOR [512];
+        memcpy32(&previousPalette[0], pal_bg_mem, 256);
+    }
+
+    flashTimer--;
+
+    REG_MOSAIC = MOS_BUILD(flashTimer,flashTimer,flashTimer,flashTimer);
+
+    int n = ((float)flashTimer/flashTimerMax) * 31;
+
+    clr_fade_fast(previousPalette, 0x7fff, pal_obj_mem, 128, n);
+
+    bool cond = ((flashTimer < flashTimerMax/2) && eventPauseTimer);
+
+    if(cond && game->gameMode == MARATHON)
+        gradient(true);
+
+    memcpy16(&pal_bg_mem[cond],&pal_obj_mem[cond],(8 * 16));
+
+    if(flashTimer < flashTimerMax/2 && game->gameMode == MASTER){
+        if(!savefile->settings.lightMode)
+            memset16(pal_bg_mem, 0x0000, 1);
+        else
+            memset16(pal_bg_mem, 0x5ad6, 1);//background gray
+    }
+}
+
+void setJourneyGraphics(Save *save, int level){
+	switch (level){
+		case 1:
+			save->settings.backgroundGradient = 0x7dc8;
+			save->settings.backgroundGrid = 5;
+			save->settings.skin = 11;
+			save->settings.shadow = 3;
+			save->settings.palette = 5;
+			save->settings.colors = 1;
+			save->settings.edges = true;
+			save->settings.lightMode = false;
+			break;
+		case 2:
+			save->settings.backgroundGradient = RGB15(0,0,0);
+			save->settings.backgroundGrid = 0;
+			save->settings.skin = 0;
+			save->settings.shadow = 3;
+			save->settings.palette = 0;
+			save->settings.colors = 1;
+			save->settings.edges = false;
+			save->settings.lightMode = false;
+			break;
+		case 3:
+			save->settings.backgroundGradient = RGB15(0,0,0);
+			save->settings.backgroundGrid = 0;
+			save->settings.skin = 0;
+			save->settings.shadow = 3;
+			save->settings.palette = 0;
+			save->settings.colors = 4;
+			save->settings.edges = false;
+			save->settings.lightMode = false;
+			break;
+		default:
+			save->settings.edges = true;
+			save->settings.backgroundGrid = qran() % (MAX_BACKGROUNDS - 1);
+			save->settings.skin = qran() % (MAX_SKINS - 1);
+			save->settings.palette = qran() % 6;
+			save->settings.shadow = qran() % (MAX_SHADOWS - 1);
+			save->settings.lightMode = (qran() % 2 == 0);
+			save->settings.colors = qran() % (MAX_COLORS - 1);
+			save->settings.backgroundGradient = RGB15(qran() % 31, qran() % 31, qran() % 31);
+			break;
+	}
 }

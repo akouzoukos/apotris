@@ -348,6 +348,11 @@ extern int gameSeconds;
 
 extern bool playAgain;
 
+extern bool resumeJourney;
+extern bool journeyLevelUp;
+extern bool journeySaveExists;
+extern Tetris::Game* journeySave;
+
 extern int connected;
 extern int multiplayerStartTimer;
 
