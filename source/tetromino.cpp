@@ -174,6 +174,7 @@ namespace GameInfo{
             },
         },
     };
+
     const int classic[7][4][4][4] = {
         {
             {
@@ -784,7 +785,6 @@ namespace GameInfo{
         300,
         1200
     };
-
 
     const int comboTable[20]={
         0,1,1,2,2, 3,3,4,4,4,
