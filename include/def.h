@@ -391,6 +391,10 @@ extern bool proMode;
 
 extern bool gradientEnabled;
 
+extern int botThinkingSpeed;
+extern int botSleepDuration;
+
+
 #define shakeMax 10
 
 class Scene{

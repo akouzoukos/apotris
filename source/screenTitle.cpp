@@ -902,10 +902,10 @@ void startScreen() {
 
                         savefile->stats.gamesStarted++;
 
-                        // if (ENABLE_BOT) {
-                        //     delete testBot;
-                        //     testBot = new Bot(game);
-                        // }
+                        if (ENABLE_BOT) {
+                            delete testBot;
+                            testBot = new Bot(game);
+                        }
 
                         sfx(SFX_MENUCONFIRM);
                         break;

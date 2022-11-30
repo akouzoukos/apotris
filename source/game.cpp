@@ -1208,13 +1208,19 @@ void gameLoop(){
 
         progressBar();
 
-        if(ENABLE_BOT && game->gameMode == BATTLE){
+        if(game->gameMode == BATTLE && !multiplayer){
             // profile_start();
             if(!botGame->clearLock){
                 testBot->run();
                 botGame->update();
             }
             handleBotGame();
+            // log(std::to_string(profile_stop()));
+        }
+
+        if(ENABLE_BOT){
+            // profile_start();
+            testBot->run();
             // log(std::to_string(profile_stop()));
         }
 

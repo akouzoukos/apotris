@@ -3,6 +3,9 @@
 #include "logging.h"
 #include "posprintf.h"
 
+int botThinkingSpeed = 1;
+int botSleepDuration = 2;
+
 using namespace Tetris;
 
 void showTestBoard();
@@ -87,7 +90,7 @@ void Bot::run(){
         }
 
         if(thinkingI < 6){
-            for(int i = 0; i < 4; i++){
+            for(int i = 0; i < botThinkingSpeed; i++){
                 if(thinkingI >= 6)
                     break;
                 if(thinkingJ < 4){
