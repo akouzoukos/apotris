@@ -1,14 +1,11 @@
 #include "maxmod.h"
 #include "rumble.h"
 #include "tetromino.hpp"
-#include "tonc.h"
 #include "def.h"
 #include "soundbank.h"
 #include "tetrisEngine.h"
 #include "logging.h"
 #include "text.h"
-#include "tonc_memmap.h"
-#include "tonc_oam.h"
 #include <string>
 #include <map>
 #include <cstring>

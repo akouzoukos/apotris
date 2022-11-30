@@ -3,8 +3,8 @@
 #include <list>
 #include <string>
 #include "tetromino.hpp"
-#include "tonc.h"
 #include <tuple>
+#include "platform.h"
 
 namespace Tetris
 {
@@ -269,6 +269,21 @@ namespace Tetris
             bool irs = false;
     };
 
+    class Options{
+    public:
+            int mode = 0;
+            int goal = 0;
+            int level = 0;
+            Tuning tuning;
+
+            bool trainingMode = false;
+            bool bigMode = false;
+
+            int bTypeHeight = 0;
+            int subMode = 0;
+            int rotationSystem = SRS;
+    };
+
     class Game {
     private:
         void fillBag();
@@ -495,6 +510,7 @@ namespace Tetris
         void removeEventLock();
         void activateZone(int);
         void liftKeys();
+        void setOptions(Options newOptions);
 
         Game(){
             seed = initSeed = qran();

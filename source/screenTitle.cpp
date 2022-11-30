@@ -1,7 +1,7 @@
 #include "def.h"
 #include "sprite41tiles_bin.h"
+#include "tetrisEngine.h"
 #include "tetromino.hpp"
-#include "tonc.h"
 #include "text.h"
 #include <string>
 #include <list>
@@ -805,18 +805,18 @@ void startScreen() {
                         previousOptionMax = options;
 
                         //START GAME
-                        delete game;
-                        game = new Game(toStart,bigMode);
-                        game->setLevel(initialLevel);
-                        game->setTuning(getTuning());
-                        game->bTypeHeight = goalSelection;
-                        game->setSubMode(subMode);
+                        // delete game;
+                        // game = new Game(toStart,bigMode);
+                        // game->setLevel(initialLevel);
+                        // game->setTuning(getTuning());
+                        // game->bTypeHeight = goalSelection;
+                        // game->setSubMode(subMode);
                         mode = goalSelection;
 
-                        game->pawn.big = bigMode;
+                        // game->pawn.big = bigMode;
 
-                        if(training && goalSelection)
-                            game->setTrainingMode(true);
+                        // if(training && goalSelection)
+                        //     game->setTrainingMode(true);
 
                         int goal = 0;
 
@@ -875,14 +875,27 @@ void startScreen() {
                             goal = 0;
                             break;
                         }
-                        game->setGoal(goal);
 
+                        Tetris::Options newOptions;
+
+                        newOptions.mode = toStart;
+                        newOptions.goal = goal;
+                        newOptions.level = initialLevel;
+                        newOptions.tuning = getTuning();
+                        newOptions.trainingMode = (training && goalSelection);
+                        newOptions.bigMode = bigMode;
+                        newOptions.bTypeHeight = goalSelection;
+                        newOptions.subMode = subMode;
+                        newOptions.rotationSystem = (toStart == CLASSIC)? NRS : SRS;
                         savefile->stats.gamesStarted++;
 
-                        if (ENABLE_BOT) {
-                            delete testBot;
-                            testBot = new Bot(game);
-                        }
+// <<<<<<< HEAD
+//                         if (ENABLE_BOT) {
+//                             delete testBot;
+//                             testBot = new Bot(game);
+//                         }
+// =======
+                        startGame(newOptions);
 
                         sfx(SFX_MENUCONFIRM);
                         break;

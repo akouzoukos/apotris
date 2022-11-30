@@ -2,7 +2,6 @@
 #include "mm_types.h"
 #include "soundbank.h"
 #include "def.h"
-#include "tonc_core.h"
 
 int currentMenu = 0;
 int currentlyPlayingSong = 0;

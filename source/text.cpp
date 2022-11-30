@@ -1,7 +1,5 @@
 #include "def.h"
-#include "tonc_core.h"
 #include <string>
-#include <tonc.h>
 #include "logging.h"
 #include "posprintf.h"
 

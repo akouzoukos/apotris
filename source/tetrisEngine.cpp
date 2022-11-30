@@ -1,11 +1,9 @@
-#include "def.h"
+
 #include "tetromino.hpp"
 #include "tetrisEngine.h"
 #include <iostream>
-#include <string>
 #include <algorithm>
 #include <tuple>
-#include "tonc.h"
 #include "logging.h"
 #include "posprintf.h"
 #include "tonc_core.h"
@@ -2239,4 +2237,16 @@ void Game::liftKeys(){
     holding = 0;
     left = 0;
     right = 0;
+}
+
+void Game::setOptions(Options newOptions){
+    goal = newOptions.goal;
+    setLevel(newOptions.level);
+    setTuning(newOptions.tuning);
+
+    trainingMode = newOptions.trainingMode;
+
+    bTypeHeight = newOptions.bTypeHeight;
+    setRotationSystem(newOptions.rotationSystem);
+    setSubMode(newOptions.subMode);
 }
