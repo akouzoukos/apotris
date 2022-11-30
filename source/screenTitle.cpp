@@ -871,6 +871,10 @@ void startScreen() {
                         case MASTER:
                             // game->setRotationSystem(ARS);
                             break;
+                        case BATTLE:
+                            botThinkingSpeed = goalSelection+1;
+                            botSleepDuration = 6-goalSelection*2;
+                            break;
                         case TRAINING:
                             goal = 0;
                             break;
@@ -889,13 +893,14 @@ void startScreen() {
                         newOptions.rotationSystem = (toStart == CLASSIC)? NRS : SRS;
                         savefile->stats.gamesStarted++;
 
-// <<<<<<< HEAD
-//                         if (ENABLE_BOT) {
-//                             delete testBot;
-//                             testBot = new Bot(game);
-//                         }
-// =======
-                        startGame(newOptions);
+                        if(toStart != BATTLE){
+                            startGame(newOptions,qran());
+                        }else{
+                            int seed = qran();
+
+                            startGame(newOptions,seed);
+                            startBotGame(seed);
+                        }
 
                         sfx(SFX_MENUCONFIRM);
                         break;

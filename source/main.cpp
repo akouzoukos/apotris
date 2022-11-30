@@ -208,32 +208,19 @@ int main(void) {
     while(1){
         reset();
 
-        if(!playAgain && !journeyLevelUp){
+        if(!playAgain){
             startScreen();
-        }else if(journeyLevelUp){
-			journeyLevelUp = false;
-			if (journeySaveExists){		
-				int goal = game->goal;
-				int training = game->trainingMode;
-				int rs = game->rotationSystem;
-				
-				delete game;
-					
-				game = new Game(*journeySave);				
-				game->setGoal(goal);
-				game->setTuning(getTuning());
-				game->setTrainingMode(training);
-				game->pawn.big = bigMode;
-				game->bTypeHeight = goalSelection;
-				game->setSubMode(subMode);
-				game->setRotationSystem(rs);
-				
-				resumeJourney = true;
-			}
 		}else{
             playAgain = false;
 
-            startGame();
+            if(game->gameMode != BATTLE){
+                startGame();
+            }else{
+                int seed = qran();
+
+                startGame(seed);
+                startBotGame(seed);
+            }
             // int goal = game->goal;
             // int training = game->trainingMode;
             // int rs = game->rotationSystem;
@@ -935,9 +922,9 @@ void gradient(bool state){
     gradientEnabled = state;
 }
 
-void startGame(Tetris::Options options){
+void startGame(Tetris::Options options,int seed){
     delete game;
-    game = new Game(options.mode,options.bigMode);
+    game = new Game(options.mode,seed,options.bigMode);
 
     game->setOptions(options);
 
@@ -946,13 +933,42 @@ void startGame(Tetris::Options options){
     previousGameOptions = new Options();
 
     *previousGameOptions = options;
+
+    if (ENABLE_BOT) {
+        delete testBot;
+        testBot = new Bot(game);
+    }
+}
+
+void startGame(int seed){
+    if(previousGameOptions == nullptr)
+        previousGameOptions = new Options();
+
+    startGame(*previousGameOptions,seed);
 }
 
 void startGame(){
     if(previousGameOptions == nullptr)
         previousGameOptions = new Options();
 
-    startGame(*previousGameOptions);
+    startGame(*previousGameOptions,qran());
+}
+
+void startBotGame(int seed){
+    startMultiplayerGame(seed);
+    multiplayer = false;
+
+    delete botGame;
+    botGame = new Game(BATTLE,seed & 0x1fff,false);
+    botGame->setGoal(100);
+    game->setTuning(getTuning());
+    botGame->setLevel(1);
+    botGame->maxClearDelay = 20;
+
+    delete testBot;
+    testBot = new Bot(botGame);
+
+    clearText();
 }
 
 void setPawnPalette(int dest, int n, int blend){

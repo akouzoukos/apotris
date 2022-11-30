@@ -572,6 +572,7 @@ int pauseMenu(){
     hideMinos();
     obj_hide(&obj_buffer[23]); //hide meter
     obj_hide(&obj_buffer[24]); //hide finesse combo counter
+    obj_hide(&obj_buffer[25]); //hide enemyBoard
     for(int i = 0; i < 3; i++)
         obj_hide(&obj_buffer[16+i]);
 

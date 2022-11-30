@@ -53,6 +53,7 @@ void journeyFlash();
 void setJourneyGraphics(Save * save, int level);
 
 Game* game;
+Game *botGame;
 OBJ_ATTR* pawnSprite;
 OBJ_ATTR* pawnShadow;
 OBJ_ATTR* holdSprite;
@@ -1141,12 +1142,7 @@ void gameLoop(){
 
     oam_copy(oam_mem, obj_buffer, 128);
 
-	if (!resumeJourney){
-		countdown();
-	}
-	else{
-		resumeJourney = false;
-	}
+    countdown();
 
 	// if (!resumeJourney){
 	// }
