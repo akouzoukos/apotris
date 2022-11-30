@@ -341,32 +341,9 @@ void startScreen() {
                         n = -3;
                         linkConnection->activate();
 
-
-                    }else if (selection == 10){
-
-                        int seed = qran ();
-                        startMultiplayerGame(seed);
-                        multiplayer = false;
-
-                        delete botGame;
-                        botGame = new Game(BATTLE,seed & 0x1fff,false);
-                        botGame->setGoal(100);
-                        game->setTuning(getTuning());
-                        botGame->setLevel(1);
-                        botGame->maxClearDelay = 20;
-
-                        delete testBot;
-                        testBot = new Bot(botGame);
-
-                        memset16(&se_mem[25], 0, 20 * 32);
-                        memset16(&se_mem[26], 0, 20 * 32);
-                        memset16(&se_mem[27], 0, 20 * 32);
-
-                        REG_DISPCNT |= DCNT_BG1;
-                        REG_DISPCNT |= DCNT_BG3;
-
-                        clearText();
-                        break;
+                    }else if (selection == 10){//CPU Battle
+                        n = BATTLE;
+                        options = 2;
                     } else if (selection == 11) {//Training
                         options = 3;
                         n = TRAINING;
@@ -532,7 +509,7 @@ void startScreen() {
                         refreshText = true;
                     }
                 }
-            } else if (toStart == ULTRA || toStart == SURVIVAL) {
+            } else if (toStart == ULTRA || toStart == SURVIVAL || toStart == BATTLE) {
                 if (selection == 0) {
                     if (key == KEY_RIGHT && goalSelection < 2) {
                         goalSelection++;
@@ -1597,6 +1574,59 @@ void startText() {
                 break;
             case 1:
                 aprint("Classic", 17, goalHeight + 2);
+                break;
+            }
+        } else if (toStart == BATTLE) {//Master Options
+            aprintColor("CPU Battle",titleX,titleY,1);
+
+            const int goalHeight = 4;
+            aprint(" START", 11, 17);
+            const std::string str = "Difficulty:";
+            aprint(str, 14-str.size()/2, goalHeight);
+            aprintColor(" EASY   MEDIUM   HARD ", 4, goalHeight + 2, 1);
+
+            // for (int i = 0; i < 5; i++) {
+            //     posprintf(buff,"%d.",i+1);
+            //     aprint(buff,3,11+i);
+
+            //     aprint("                       ", 5, 11 + i);
+            //     if (savefile->survival[goalSelection].times[i].frames == 0)
+            //         continue;
+
+            //     aprint(savefile->survival[goalSelection].times[i].name, 6, 11 + i);
+            //     std::string time = timeToString(savefile->survival[goalSelection].times[i].frames);
+
+            //     aprint(time, 25 - (int)time.length(), 11 + i);
+            // }
+
+            if (selection == 0) {
+                switch (goalSelection) {
+                case 0:
+                    aprint("[", 4, goalHeight + 2);
+                    aprint("]", 9, goalHeight + 2);
+                    break;
+                case 1:
+                    aprint("[", 11, goalHeight + 2);
+                    aprint("]", 18, goalHeight + 2);
+                    break;
+                case 2:
+                    aprint("[", 20, goalHeight + 2);
+                    aprint("]", 25, goalHeight + 2);
+                    break;
+                }
+            } else if (selection == 1){
+                aprint(">", 10, 17);
+            }
+
+            switch (goalSelection) {
+            case 0:
+                aprint("EASY", 5, goalHeight + 2);
+                break;
+            case 1:
+                aprint("MEDIUM", 12, goalHeight + 2);
+                break;
+            case 2:
+                aprint("HARD", 21, goalHeight + 2);
                 break;
             }
         } else if (toStart == -1) {
