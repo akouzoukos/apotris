@@ -12,22 +12,48 @@ using namespace Tetris;
 
 void showTestBoard();
 
-std::tuple<int,int,int> countRowValues(int **board,int lengthX, int lengthY, int startY){
-    int transitions = 0;
+typedef struct Values{
+    int rowTrans;
+    int colTrans;
+    int holes;
+    int wells;
+    int jag;
+}Values;
+
+Values evaluate(int **board,int lengthX, int lengthY, int startY){
+    int start = max(1,startY-1);
+
+    int rowTrans = 0;
     int wells = 0;
     int holes = 0;
+    int jagSum = 0;
+    int colTrans = 0;
 
-    for(int i = max(startY-1,0); i < lengthY; i++){
+    int heights[10];
+
+    memset32(heights,-1,10);
+
+    for(int i = start; i < lengthY+1; i++){
         bool prevTrans = true;
         for(int j = 0; j < lengthX+1; j++){
-            if(j == lengthX){
-                transitions += !prevTrans;
+            if(i == lengthY){
+                colTrans += !(board[i-1][j] > 0);
                 break;
             }
 
-            transitions += ((board[i][j] > 0) != prevTrans);
-            prevTrans = (board[i][j] > 0);
+            colTrans += ((board[i][j] > 0) != (board[i-1][j] > 0));
 
+            if(heights[j] == -1 && (board[i][j] != 0 || i == lengthY-1)){
+                heights[j] = i;
+            }
+
+            if(j == lengthX){
+                rowTrans += !prevTrans;
+                break;
+            }
+
+            rowTrans += ((board[i][j] > 0) != prevTrans);
+            prevTrans = (board[i][j] > 0);
 
             if(board[i][j] != 0 && board[i+1][j] == 0)
                 holes++;
@@ -40,7 +66,18 @@ std::tuple<int,int,int> countRowValues(int **board,int lengthX, int lengthY, int
         }
     }
 
-    return std::make_tuple(transitions,wells,holes);
+    for(int i = 1; i < 10; i++){
+        jagSum+= abs(heights[i-1] - heights[i]);
+    }
+
+    Values result;
+    result.colTrans = colTrans;
+    result.rowTrans = rowTrans;
+    result.holes = holes;
+    result.wells = wells;
+    result.jag = jagSum;
+
+    return result;
 }
 
 int countClears(int **board,int lengthX, int lengthY , int startY){//row
@@ -64,38 +101,10 @@ int countClears(int **board,int lengthX, int lengthY , int startY){//row
     return clears;
 }
 
-std::tuple<int,int> countColValues(int **board,int lengthX, int lengthY, int startY){
-    int start = max(0,startY-1);
-    int jagSum = 0;
-    int transitions = 0;
-    bool prevHorizontal = false;
+// std::tuple<int,int> countColValues(int **board,int lengthX, int lengthY, int startY){
 
-    for(int j = 0; j < lengthX; j++){
-        bool skip = false;
-        bool prevVertical = false;
-        for(int i = start; i < lengthY+1; i++){
-            if(i == lengthY){
-                transitions += !prevVertical;
-                break;
-            }
-
-            transitions += ((board[i][j] > 0) != prevVertical);
-            prevVertical = (board[i][j] > 0);
-
-
-            if(!skip && (board[i][j] != 0 || i == lengthY-1)){
-                if(j != 0){
-                    jagSum+= abs(prevHorizontal-i);
-                }
-                prevHorizontal = i;
-                skip = true;
-            }
-
-        }
-    }
-
-    return std::make_tuple(jagSum,transitions);
-}
+//     return std::make_tuple(jagSum,transitions);
+// }
 
 void Bot::run(){
     if(thinking){
@@ -103,8 +112,15 @@ void Bot::run(){
             return;
 
         if(thinkingI == -6){
-            std::tie(currentJag,currentColTrans) = countColValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
-            std::tie(currentRowTrans,currentWells,currentHoles) = countRowValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
+            Values v = evaluate(game->board,game->lengthX,game->lengthY,game->stackHeight);
+            currentJag = v.jag;
+            currentColTrans = v.colTrans;
+            currentRowTrans = v.rowTrans;
+            currentHoles = v.holes;
+            currentWells = v.wells;
+
+            // std::tie(currentJag,currentColTrans) = countColValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
+            // std::tie(currentRowTrans,currentWells,currentHoles) = countRowValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
 
             // currentRight = countRightSide(game->board,game->lengthX,game->lengthY,game->stackHeight);
 
@@ -139,31 +155,31 @@ void Bot::run(){
         }else{
             thinkingI = -6;
             thinkingJ = 0;
-            // thinking = false;
+            thinking = false;
             // delete game;
             // game = new Game(*quickSave);
             // game->setTuning(getTuning());
 
-            if(checking == 1){
-                thinking = false;
-                checking = 0;
-                game->pawn.current = previous;
-                game->pawn.setBlock(SRS);
-            } else{
-                checking++;
+            // if(checking == 1){
+            //     thinking = false;
+            //     checking = 0;
+            //     game->pawn.current = previous;
+            //     game->pawn.setBlock(SRS);
+            // } else{
+            //     checking++;
 
-                previous = game->pawn.current;
+            //     previous = game->pawn.current;
 
-                if(game->held != -1)
-                    game->pawn.current = game->held;
-                else
-                    game->pawn.current = game->queue.front();
+            //     if(game->held != -1)
+            //         game->pawn.current = game->held;
+            //     else
+            //         game->pawn.current = game->queue.front();
 
-                // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
+            //     // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
 
-                game->pawn.setBlock(SRS);
-                return;
-            }
+            //     game->pawn.setBlock(SRS);
+            //     return;
+            // }
             current = best;
             best = Move();
         }
@@ -270,14 +286,12 @@ int Bot::findBestDrop(int ii,int jj){
     int clears = countClears(testBoard,game->lengthX,20,lowest+minH-20);
     int afterHeight = min(game->stackHeight,lowest+minH) + clears;
 
-    int afterHoles;
-    int afterJag;
-    int afterWells;
-    int afterRowTrans;
-    int afterColTrans;
-
-    std::tie(afterJag,afterColTrans) = countColValues(testBoard,game->lengthX,20,afterHeight-20);
-    std::tie(afterRowTrans,afterWells,afterHoles) = countRowValues(testBoard,game->lengthX,20,afterHeight-20);
+    Values v = evaluate(testBoard,game->lengthX,20,afterHeight-20);
+    int afterJag = v.jag;
+    int afterColTrans = v.colTrans;
+    int afterRowTrans = v.rowTrans;
+    int afterHoles = v.holes;
+    int afterWells = v.wells;
 
     int holeDiff = afterHoles-currentHoles;
     int jagDiff = afterJag - currentJag;

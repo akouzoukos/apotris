@@ -1177,19 +1177,24 @@ void gameLoop(){
         progressBar();
 
         if(game->gameMode == BATTLE && !multiplayer){
-            // profile_start();
-            if(!botGame->clearLock){
-                testBot->run();
-                botGame->update();
-            }
-            handleBotGame();
-            // log(std::to_string(profile_stop()));
-        }
 
-        if(ENABLE_BOT){
+            std::string test;
+            if(!botGame->clearLock){
+                profile_start();
+                testBot->run();
+                test += std::to_string(profile_stop()) + " ";
+
+                profile_start();
+                botGame->update();
+                test += std::to_string(profile_stop()) + " ";
+            }
             profile_start();
+            handleBotGame();
+            test += std::to_string(profile_stop()) + " ";
+            // log(std::to_string(profile_stop()));
+            log(test);
+        }else if(ENABLE_BOT ){
             testBot->run();
-            log(std::to_string(profile_stop()));
         }
 
         if(creditRefresh && !game->clearLock)
