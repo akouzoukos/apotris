@@ -231,9 +231,9 @@ public:
 #define GRADIENT_COLOR 0x71a6
 
 #define SHOW_FINESSE 1
-#define DIAGNOSE 0
+#define DIAGNOSE 1
 #define SAVE_TAG 0x50
-#define ENABLE_BOT 0
+#define ENABLE_BOT 1
 
 #define ENABLE_FLASH_SAVE 1
 
@@ -321,6 +321,7 @@ extern void startBotGame(int seed);
 extern OBJ_ATTR obj_buffer[128];
 extern OBJ_AFFINE* obj_aff_buffer;
 extern Tetris::Game *game;
+extern Tetris::Game *quickSave;
 extern Tetris::Game *botGame;
 
 extern u8 * blockSprite;

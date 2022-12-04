@@ -115,7 +115,7 @@ namespace Tetris
         int piece = -1;
         int clears = 0;
         int wells = 0;
-        int score = -0x7fff;
+        int score = -0x7fffffff;
 
         Move(){}
 
@@ -134,7 +134,7 @@ namespace Tetris
     public:
         int id;
         int amount;
-        int timer = 120;
+        int timer = 60;
 
         Garbage(int _id,int _amount){
             id = _id;
@@ -632,6 +632,7 @@ namespace Tetris
             trainingMode = oldGame.trainingMode;
             clearLock = oldGame.clearLock;
             linesToClear = oldGame.linesToClear;
+            pawn.big = oldGame.pawn.big;
         }
 
 
@@ -654,7 +655,9 @@ namespace Tetris
         int height = 0;
         int lowest = 0;
         int jag = 0;
-        int right = 0;
+        int well = 0;
+        int row = 0;
+        int col = 0;
     }Weights;
 
     class Bot{
@@ -673,18 +676,22 @@ namespace Tetris
 
         int currentHoles = 0;
         int currentJag = 0;
-        int currentRight = 0;
+        int currentWells = 0;
+        int currentRowTrans = 0;
+        int currentColTrans = 0;
 
         int checking = 0;
         int previous = 0;
 
         Weights weights{
-        93,
-        838,
-        223,
-        80,
-        4,
-        348,
+        992,
+        -206,
+        799,
+        142,
+        400,
+        -140,
+        -797,
+        -969
         };
 
         void run();

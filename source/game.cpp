@@ -53,7 +53,6 @@ void journeyFlash();
 void setJourneyGraphics(Save * save, int level);
 
 Game* game;
-Game *botGame;
 OBJ_ATTR* pawnSprite;
 OBJ_ATTR* pawnShadow;
 OBJ_ATTR* holdSprite;
@@ -1188,9 +1187,9 @@ void gameLoop(){
         }
 
         if(ENABLE_BOT){
-            // profile_start();
+            profile_start();
             testBot->run();
-            // log(std::to_string(profile_stop()));
+            log(std::to_string(profile_stop()));
         }
 
         if(creditRefresh && !game->clearLock)

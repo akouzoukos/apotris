@@ -1,43 +1,53 @@
+#include "def.h"
 #include "tetrisEngine.h"
 #include <string>
+#include <tuple>
 #include "logging.h"
 #include "posprintf.h"
 
-int botThinkingSpeed = 1;
-int botSleepDuration = 2;
+int botThinkingSpeed = 3;
+int botSleepDuration = 1;
 
 using namespace Tetris;
 
 void showTestBoard();
 
-int countRightSide(int **board,int lengthX, int lengthY, int startY){
-    int sum = 0;
-
-    for(int i = std::max(startY-1,0); i < lengthY; i++){
-        if(board[i][lengthX-1])
-            sum++;
-    }
-
-    return sum;
-}
-
-int countHoles(int **board,int lengthX, int lengthY, int startY){
+std::tuple<int,int,int> countRowValues(int **board,int lengthX, int lengthY, int startY){
+    int transitions = 0;
+    int wells = 0;
     int holes = 0;
-    for(int i = std::max(startY-1,0); i < lengthY-1; i++){
-        for(int j = 0; j < lengthX; j++){
+
+    for(int i = max(startY-1,0); i < lengthY; i++){
+        bool prevTrans = true;
+        for(int j = 0; j < lengthX+1; j++){
+            if(j == lengthX){
+                transitions += !prevTrans;
+                break;
+            }
+
+            transitions += ((board[i][j] > 0) != prevTrans);
+            prevTrans = (board[i][j] > 0);
+
+
             if(board[i][j] != 0 && board[i+1][j] == 0)
+                holes++;
+
+            if(j >= lengthY-1)
+                continue;
+
+            if(!board[i][j] && (j < 0 || board[i][j-1]) && (j > lengthX-1 || board[i][j+1]))
                 holes++;
         }
     }
 
-    return holes;
+    return std::make_tuple(transitions,wells,holes);
 }
 
-int countClears(int **board,int lengthX, int lengthY , int startY){
+int countClears(int **board,int lengthX, int lengthY , int startY){//row
     int clears = 0;
     if(startY < 0)
         startY = 0;
-    const int len = std::min(startY+4,lengthY);
+    const int len = min(startY+4,lengthY);
     for(int i = startY; i < len; i++){
         bool found = false;
         for(int j = 0; j < lengthX; j++){
@@ -54,26 +64,37 @@ int countClears(int **board,int lengthX, int lengthY , int startY){
     return clears;
 }
 
-int countJag(int **board,int lengthX, int lengthY, int startY){
-    int sum = 0;
-    int prev = 0;
-
-    if(startY < 0)
-        startY = 0;
+std::tuple<int,int> countColValues(int **board,int lengthX, int lengthY, int startY){
+    int start = max(0,startY-1);
+    int jagSum = 0;
+    int transitions = 0;
+    bool prevHorizontal = false;
 
     for(int j = 0; j < lengthX; j++){
-        for(int i = startY; i < lengthY; i++){
-            if(board[i][j] != 0 || i == lengthY-1){
-                if(j != 0){
-                    sum+= abs(prev-i);
-                }
-                prev = i;
+        bool skip = false;
+        bool prevVertical = false;
+        for(int i = start; i < lengthY+1; i++){
+            if(i == lengthY){
+                transitions += !prevVertical;
                 break;
             }
+
+            transitions += ((board[i][j] > 0) != prevVertical);
+            prevVertical = (board[i][j] > 0);
+
+
+            if(!skip && (board[i][j] != 0 || i == lengthY-1)){
+                if(j != 0){
+                    jagSum+= abs(prevHorizontal-i);
+                }
+                prevHorizontal = i;
+                skip = true;
+            }
+
         }
     }
 
-    return sum;
+    return std::make_tuple(jagSum,transitions);
 }
 
 void Bot::run(){
@@ -82,11 +103,15 @@ void Bot::run(){
             return;
 
         if(thinkingI == -6){
-            currentHoles = countHoles(game->board,game->lengthX,game->lengthY,game->stackHeight);
-            currentJag = countJag(game->board,game->lengthX,game->lengthY,game->stackHeight);
+            std::tie(currentJag,currentColTrans) = countColValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
+            std::tie(currentRowTrans,currentWells,currentHoles) = countRowValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
+
             // currentRight = countRightSide(game->board,game->lengthX,game->lengthY,game->stackHeight);
 
             // log(std::to_string(currentHoles));
+
+            // delete quickSave;
+            // quickSave = new Game(*game);
         }
 
         if(thinkingI < 6){
@@ -114,33 +139,38 @@ void Bot::run(){
         }else{
             thinkingI = -6;
             thinkingJ = 0;
-            thinking = false;
-            // if(checking == 1){
-            //     thinking = false;
-            //     checking = 0;
-            //     game->pawn.current = previous;
-            //     game->pawn.setBlock(SRS);
-            // } else{
-            //     checking++;
+            // thinking = false;
+            // delete game;
+            // game = new Game(*quickSave);
+            // game->setTuning(getTuning());
 
-            //     previous = game->pawn.current;
+            if(checking == 1){
+                thinking = false;
+                checking = 0;
+                game->pawn.current = previous;
+                game->pawn.setBlock(SRS);
+            } else{
+                checking++;
 
-            //     if(game->held != -1)
-            //         game->pawn.current = game->held;
-            //     else
-            //         game->pawn.current = game->queue.front();
+                previous = game->pawn.current;
 
-            //     // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
+                if(game->held != -1)
+                    game->pawn.current = game->held;
+                else
+                    game->pawn.current = game->queue.front();
 
-            //     game->pawn.setBlock(SRS);
-            //     return;
-            // }
+                // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
+
+                game->pawn.setBlock(SRS);
+                return;
+            }
             current = best;
             best = Move();
         }
-    }else{
-        move();
     }
+
+    if(!thinking)
+        move();
 }
 
 void Bot::move(){
@@ -152,21 +182,12 @@ void Bot::move(){
         sleepTimer = maxSleep;
 
     if(game->pawn.current != current.piece){
-        // std::cout << "current: " << std::to_string(game->pawn.current) << " best: " << std::to_string(current.piece) << "\n";
+        log("current: " + std::to_string(game->pawn.current) + " best: " + std::to_string(current.piece));
         game->hold(1);
         game->hold(0);
         return;
     }
 
-    if(dx == current.dx && rotation == current.rotation){
-        game->keyDrop(1);
-        dx = 0;
-        rotation = 0;
-        thinking = true;
-        sleepTimer = maxSleep;
-        return;
-    }
-    
     if(rotation != current.rotation){
         if(current.rotation == 3){
             game->rotateCCW(1);
@@ -177,14 +198,29 @@ void Bot::move(){
             game->rotateCW(0);
             rotation++;
         }
-    }else if(dx > current.dx){
-        game->keyLeft(1);
-        game->keyLeft(0);
-        dx--;
+    }
+
+    if(dx > current.dx){
+        while(dx != current.dx){
+            game->keyLeft(1);
+            game->keyLeft(0);
+            dx--;
+        }
     }else if(dx < current.dx){
-        game->keyRight(1);
-        game->keyRight(0);
-        dx++;
+        while(dx != current.dx){
+            game->keyRight(1);
+            game->keyRight(0);
+            dx++;
+        }
+    }
+
+    if(dx == current.dx && rotation == current.rotation){
+        game->keyDrop(1);
+        dx = 0;
+        rotation = 0;
+        thinking = true;
+        sleepTimer = maxSleep;
+        return;
     }
 }
 
@@ -229,30 +265,39 @@ int Bot::findBestDrop(int ii,int jj){
             break;
     }
 
-    // showTestBoard();
+    // // showTestBoard();
 
-    int clears = countClears(testBoard,game->lengthX,20,game->pawn.y+minH-20);
+    int clears = countClears(testBoard,game->lengthX,20,lowest+minH-20);
     int afterHeight = min(game->stackHeight,lowest+minH) + clears;
-    int afterHoles = countHoles(testBoard,game->lengthX,20,afterHeight-20);
-    int afterJag = countJag(testBoard,game->lengthX,20,afterHeight-20);
-    // int afterRight = countRightSide(testBoard,game->lengthX,20,afterHeight-20);
+
+    int afterHoles;
+    int afterJag;
+    int afterWells;
+    int afterRowTrans;
+    int afterColTrans;
+
+    std::tie(afterJag,afterColTrans) = countColValues(testBoard,game->lengthX,20,afterHeight-20);
+    std::tie(afterRowTrans,afterWells,afterHoles) = countRowValues(testBoard,game->lengthX,20,afterHeight-20);
 
     int holeDiff = afterHoles-currentHoles;
-    // int heightDiff = game->stackHeight-afterHeight;
     int jagDiff = afterJag - currentJag;
-    // int rightDiff = afterRight - currentRight;
+    int wellDiff = afterWells - currentWells;
+    int rowDiff = afterRowTrans - currentRowTrans;
+    int colDiff = afterColTrans - currentColTrans;
 
-    int score = (clears * clears) * weights.clears + holeDiff * -(weights.holes) + (afterHeight-30) * (weights.height) + lowest * weights.lowest + jagDiff * - (weights.jag);
+    int score = (clears * clears) * weights.clears + holeDiff * (weights.holes) +
+        (afterHeight) * (weights.height) + lowest * weights.lowest + jagDiff * (weights.jag) +
+        wellDiff * (weights.well) + rowDiff * (weights.row) + colDiff * (weights.col);
+
+    // log( "score " + std::to_string(score) + " best score: " + std::to_string(best.score));
 
     if(score > best.score){
-        // log(std::to_string(holeDiff));
-        // log(std::to_string(afterHoles));
         best.score = score;
         best.dx = ii;
         best.rotation = jj;
+
+        // log("setting to: " + std::to_string(game->pawn.current));
         best.piece = game->pawn.current;
-        // best.holes = holeDiff;
-        // best.height = heightDiff;
     }
 
     return 1;

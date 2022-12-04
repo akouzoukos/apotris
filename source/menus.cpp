@@ -676,7 +676,6 @@ int pauseMenu(){
                         delete game;
                         game = new Game(*quickSave);
                         game->setTuning(getTuning());
-                        game->pawn.big = bigMode;
                         floatingList.clear();
                         placeEffectList.clear();
                         clearGlow();
