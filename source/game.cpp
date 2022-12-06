@@ -1170,7 +1170,7 @@ void gameLoop(){
         if (!game->lost && !pause && !game->eventLock) {
             // profile_start();
             game->update();
-            // log(std::to_string(profile_stop()) + " " + std::to_string(game->stackHeight));
+            // log(std::to_string(profile_stop()));
         }
         handleMultiplayer();
 
@@ -1181,6 +1181,7 @@ void gameLoop(){
             std::string test;
             if(!botGame->clearLock){
                 profile_start();
+
                 testBot->run();
                 test += std::to_string(profile_stop()) + " ";
 

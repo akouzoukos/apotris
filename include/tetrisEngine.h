@@ -219,6 +219,7 @@ namespace Tetris
         int board[4][4][4];
         int boardLowest[4][4];
         int heighest[4];
+        int lowestBlock;
         int lowest;
         bool big = false;
         void setBlock(int system);
@@ -384,9 +385,13 @@ namespace Tetris
         bool rotates[3] = {false,false,false};
 
     public:
-        const int lengthX = 10;
-        const int lengthY = 40;
+        const static int lengthX = 10;
+        const static int lengthY = 40;
         int** board;
+
+        u16 bitboard[lengthY];
+        int columnHeights[lengthX];
+
         std::list<int> queue;
         Pawn pawn = Pawn(0, 0);
         int held = -1;
@@ -525,7 +530,11 @@ namespace Tetris
                 board[i] = new int[lengthX];
                 for (int j = 0; j < lengthX; j++)
                     board[i][j] = 0;
+                bitboard[i] = 0;
             }
+
+            for(int j = 0; j < lengthX; j++)
+                columnHeights[j] = 0;
 
             fillBag();
 

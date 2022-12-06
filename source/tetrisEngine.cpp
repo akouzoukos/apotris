@@ -3,6 +3,7 @@
 #include "tetrisEngine.h"
 #include <iostream>
 #include <algorithm>
+#include <string>
 #include <tuple>
 #include "logging.h"
 #include "posprintf.h"
@@ -104,6 +105,11 @@ void Pawn::setBlock(int system) {
 
         delete[] shape;
     }
+
+    int lowestBlock = 0;
+    for(int i = 0; i < 4; i++)
+        if(boardLowest[rotation][i] > lowestBlock)
+            lowestBlock = boardLowest[rotation][i];
 }
 
 int getNbr(int **board, int x, int y, int ex, int sy , int ey){
@@ -600,22 +606,38 @@ void Game::update() {
 }
 
 int Game::lowest() {
-
     if(!pawn.big){
-        int start = stackHeight-4;
-        if(stackHeight-4 < pawn.y)
-            start = pawn.y;
+        int max = 0;
 
-        for(int i = start; i < lengthY; i++){
-            for(int j = 0; j < 4; j++){
-                if(pawn.boardLowest[pawn.rotation][j] == -1)
+        if(stackHeight-4 >= pawn.y){
+            for(int x = 0; x < 4; x++){
+                if(pawn.boardLowest[pawn.rotation][x] == -1)
                     continue;
-                int x = pawn.x+j;
-                int y = i+pawn.boardLowest[pawn.rotation][j];
-                if(y >= lengthY || board[y][x])
-                    return i-1;
+
+                int n = pawn.boardLowest[pawn.rotation][x] + columnHeights[pawn.x+x];
+                if(n > max)
+                    max = n;
+            }
+
+            return lengthY-(max)-1;
+        }else{
+            int start = pawn.y;
+            // int start = stackHeight-4;
+            // if(stackHeight-4 < pawn.y)
+            //     start = pawn.y;
+
+            for(int i = start; i < lengthY; i++){
+                for(int j = 0; j < 4; j++){
+                    if(pawn.boardLowest[pawn.rotation][j] == -1)
+                        continue;
+                    int x = pawn.x+j;
+                    int y = i+pawn.boardLowest[pawn.rotation][j];
+                    if(y >= lengthY || board[y][x])
+                        return i-1;
+                }
             }
         }
+
     }else{
         for(int i = 0; i < (lengthY - pawn.y)*2; i++){
             for(int j = 0; j < 4; j++){
@@ -655,6 +677,11 @@ void Game::place() {
                     continue;
 
                 board[y][x] = pawn.current + pawn.board[pawn.rotation][i][j];
+
+                bitboard[y] |= 1 << x;
+                if((lengthY-y) > columnHeights[x])
+                    columnHeights[x] = lengthY-y;
+
                 if(disappearing == 1)
                     disappearTimers[y][x] = MAX_DISAPPEAR;
                 else if(disappearing == 2)
@@ -679,12 +706,7 @@ void Game::place() {
         }
     }
 
-    int lowestPart = 0;
-    for(int i = 0; i < 4; i++)
-        if(pawn.boardLowest[pawn.rotation][i] > lowestPart)
-            lowestPart = pawn.boardLowest[pawn.rotation][i];
-
-    if ((pawn.y+lowestPart) * (1+pawn.big) < (lengthY / 2 - 2)) {
+    if ((pawn.y+pawn.lowestBlock) * (1+pawn.big) < (lengthY / 2 - 2)) {
         lost = 1;
         return;
     }
@@ -927,22 +949,16 @@ int Game::clear(Drop drop) {
     if(!zoneTimer)
         linesCleared+=clearCount;
 
-    for(auto const & line : linesToClear){
-        log(std::to_string(line));
-
-    }
-
     auto index = linesToClear.begin();
-    for (int j = 0; j < lengthY-1; j++) {
+    for (int j = 0; j < lengthY; j++) {
         if(j == *index){
             ++index;
             continue;
         }
 
-        for (int i = 0; isPerfectClear && i < lengthX; i++) {
-            if (board[j][i]) {
-                isPerfectClear = 0;
-            }
+        if(bitboard[j]){
+            isPerfectClear = false;
+            break;
         }
     }
 
@@ -1239,13 +1255,14 @@ void Game::next() {//~21-29k cycles
     }
 
     //check if stack has reached top half of board
-    bool check = false;
-    for(int j = 0; j < 10; j++){
-        if(board[30][j] != 0){
-            check = true;
-            break;
-        }
-    }
+    bool check = bitboard[30] != 0;
+    // bool check = false;
+    // for(int j = 0; j < 10; j++){
+    //     if(board[30][j] != 0){
+    //         check = true;
+    //         break;
+    //     }
+    // }
 
     if (check || !checkRotation(0, 0, pawn.rotation) || gameMode == CLASSIC){
         pawn.y-=1;
@@ -1610,10 +1627,27 @@ void Game::removeClearLock() {
     for (int i = 0; i < len; i++) {
         for (int j = *index; j >= stackHeight-len; j--){
             memcpy32(board[j],board[j-1],10);
+            bitboard[j] = bitboard[j-1];
             if(disappearing)
                 memcpy16(disappearTimers[j],disappearTimers[j-1],10);
         }
         ++index;
+    }
+
+    for(int x = 0; x < lengthX; x++){
+        int found = -1;
+        for(int y = lengthY-(columnHeights[x]-len)-1; y < lengthY; y++){
+            if(board[y][x]){
+                found = y;
+                break;
+            }
+        }
+
+        if(found >= 0){
+            columnHeights[x] = lengthY-found;
+        }else{
+            columnHeights[x] = 0;
+        }
     }
 
     if(gameMode == COMBO){
@@ -1679,6 +1713,8 @@ void Game::generateGarbage(int height,int mode){
                 else
                     board[i][j] = 0;
             }
+
+            bitboard[i] = bitboard[i+height];
         }
 
         for(int i = lengthY-height; i < lengthY; i++){
@@ -1694,6 +1730,8 @@ void Game::generateGarbage(int height,int mode){
                     continue;
                 board[i][j]=8;
             }
+
+            bitboard[i] = 0x3ff & ~(1 << hole);
         }
 
         garbageHeight+=height;
@@ -1730,6 +1768,22 @@ void Game::generateGarbage(int height,int mode){
     }
 
     stackHeight -= height;
+
+    for(int x = 0; x < lengthX; x++){
+        int found = -1;
+        for(int y = lengthY-(columnHeights[x]+height)-1; y < lengthY; y++){
+            if(board[y][x]){
+                found = y;
+                break;
+            }
+        }
+
+        if(found >= 0){
+            columnHeights[x] = lengthY-found;
+        }else{
+            columnHeights[x] = 0;
+        }
+    }
 
     if(bigMode)
         return;
