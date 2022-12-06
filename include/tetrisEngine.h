@@ -681,7 +681,7 @@ namespace Tetris
         int dx = 0;
         int rotation = 0;
         Game* game;
-        int **testBoard;
+        u16 testBoard[40];
 
         int currentHoles = 0;
         int currentJag = 0;
@@ -693,14 +693,14 @@ namespace Tetris
         int previous = 0;
 
         Weights weights{
-        992,
-        -206,
-        799,
-        142,
-        400,
-        -140,
-        -797,
-        -969
+        1,
+        -4,
+        0,
+        -1,
+        0,
+        -1,
+        -1,
+        -1,
         };
 
         void run();
@@ -712,18 +712,9 @@ namespace Tetris
         Bot(){}
         Bot(Game* _game){
             game = _game;
-            testBoard = new int*[20];
-            for(int i = 0; i < 20; i++){
-                testBoard[i] = new int[game->lengthX];
-                for(int j = 0; j < game->lengthX; j++)
-                    testBoard[i][j] = game->board[i+20][j];
-            }
         }
 
         ~Bot(){
-            for(int i = 0; i < 20; i++)
-                delete[] testBoard[i];
-            delete[] testBoard;
         }
     };
 

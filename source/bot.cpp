@@ -20,54 +20,53 @@ typedef struct Values{
     int jag;
 }Values;
 
-Values evaluate(int **board,int lengthX, int lengthY, int startY){
+INLINE bool bitGet(u16 *bitboard,int x, int y){
+    return (bitboard[y] >> x) & 0b1;
+}
+
+Values evaluate(u16 *board,int lengthX, int lengthY, int startY){
     int start = max(1,startY-1);
 
     int rowTrans = 0;
     int wells = 0;
     int holes = 0;
-    int jagSum = 0;
+    // int jagSum = 0;
     int colTrans = 0;
-
-    int heights[10];
-
-    memset32(heights,-1,10);
 
     for(int i = start; i < lengthY+1; i++){
         bool prevTrans = true;
         for(int j = 0; j < lengthX+1; j++){
             if(i == lengthY){
-                colTrans += !(board[i-1][j] > 0);
+                colTrans += !bitGet(board, j, i-1);
                 break;
-            }
-
-            colTrans += ((board[i][j] > 0) != (board[i-1][j] > 0));
-
-            if(heights[j] == -1 && (board[i][j] != 0 || i == lengthY-1)){
-                heights[j] = i;
             }
 
             if(j == lengthX){
                 rowTrans += !prevTrans;
                 break;
             }
+            bool cur = (bitGet(board, j, i));
+            colTrans += (cur != (bitGet(board, j, i-1)));
 
-            rowTrans += ((board[i][j] > 0) != prevTrans);
-            prevTrans = (board[i][j] > 0);
 
-            if(board[i][j] != 0 && board[i+1][j] == 0)
+            rowTrans += (cur != prevTrans);
+            prevTrans = cur;
+
+            if(i < lengthY-1 && (bitGet(board, j, i)) && !(bitGet(board, j, i+1))){
                 holes++;
-
-            if(j >= lengthY-1)
-                continue;
-
-            if(!board[i][j] && (j < 0 || board[i][j-1]) && (j > lengthX-1 || board[i][j+1]))
-                holes++;
+            }
         }
     }
 
-    for(int i = 1; i < 10; i++){
-        jagSum+= abs(heights[i-1] - heights[i]);
+    for(int x = 0; x < game->lengthX; x++){
+        int count = 0;
+        int n = game->columnHeights[x];
+        while(((x == 0 || n < game->columnHeights[x-1]) && (x == game->lengthX-1 || n < game->columnHeights[x+1]))){
+            n++;
+            count += count + 1;
+        }
+
+        wells += count;
     }
 
     Values result;
@@ -75,12 +74,12 @@ Values evaluate(int **board,int lengthX, int lengthY, int startY){
     result.rowTrans = rowTrans;
     result.holes = holes;
     result.wells = wells;
-    result.jag = jagSum;
+    // result.jag = jagSum;
 
     return result;
 }
 
-int countClears(int **board,int lengthX, int lengthY , int startY){//row
+int countClears(u16 *board,int lengthX, int lengthY , int startY){//row
     int clears = 0;
     if(startY < 0)
         startY = 0;
@@ -88,7 +87,7 @@ int countClears(int **board,int lengthX, int lengthY , int startY){//row
     for(int i = startY; i < len; i++){
         bool found = false;
         for(int j = 0; j < lengthX; j++){
-            if(board[i][j] == 0){
+            if(bitGet(board, j, i)){
                 found = true;
                 break;
             }
@@ -108,16 +107,24 @@ int countClears(int **board,int lengthX, int lengthY , int startY){//row
 
 void Bot::run(){
     if(thinking){
-        if(game->clearLock || game->dropping)
+        if(game->clearLock || game->dropping || game->pawn.current == -1)
             return;
 
         if(thinkingI == -6){
-            Values v = evaluate(game->board,game->lengthX,game->lengthY,game->stackHeight);
+            profile_start();
+            Values v = evaluate(game->bitboard,game->lengthX,game->lengthY,game->stackHeight);
+            log("first: " + std::to_string(profile_stop())); //3-8k cycle;
             currentJag = v.jag;
             currentColTrans = v.colTrans;
             currentRowTrans = v.rowTrans;
             currentHoles = v.holes;
             currentWells = v.wells;
+
+            // char buff[30];
+            // posprintf(buff,"%d %d %d %d", currentColTrans, currentRowTrans, currentHoles, currentWells);
+
+            // log(buff);
+            // log(std::to_string(currentWells));
 
             // std::tie(currentJag,currentColTrans) = countColValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
             // std::tie(currentRowTrans,currentWells,currentHoles) = countRowValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
@@ -155,31 +162,31 @@ void Bot::run(){
         }else{
             thinkingI = -6;
             thinkingJ = 0;
-            thinking = false;
+            // thinking = false;
             // delete game;
             // game = new Game(*quickSave);
             // game->setTuning(getTuning());
 
-            // if(checking == 1){
-            //     thinking = false;
-            //     checking = 0;
-            //     game->pawn.current = previous;
-            //     game->pawn.setBlock(SRS);
-            // } else{
-            //     checking++;
+            if(checking == 1){
+                thinking = false;
+                checking = 0;
+                game->pawn.current = previous;
+                game->pawn.setBlock(SRS);
+            } else{
+                checking++;
 
-            //     previous = game->pawn.current;
+                previous = game->pawn.current;
 
-            //     if(game->held != -1)
-            //         game->pawn.current = game->held;
-            //     else
-            //         game->pawn.current = game->queue.front();
+                if(game->held != -1)
+                    game->pawn.current = game->held;
+                else
+                    game->pawn.current = game->queue.front();
 
-            //     // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
+                // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
 
-            //     game->pawn.setBlock(SRS);
-            //     return;
-            // }
+                game->pawn.setBlock(SRS);
+                return;
+            }
             current = best;
             best = Move();
         }
@@ -198,7 +205,7 @@ void Bot::move(){
         sleepTimer = maxSleep;
 
     if(game->pawn.current != current.piece){
-        log("current: " + std::to_string(game->pawn.current) + " best: " + std::to_string(current.piece));
+        // log("current: " + std::to_string(game->pawn.current) + " best: " + std::to_string(current.piece));
         game->hold(1);
         game->hold(0);
         return;
@@ -236,6 +243,7 @@ void Bot::move(){
         rotation = 0;
         thinking = true;
         sleepTimer = maxSleep;
+
         return;
     }
 }
@@ -253,8 +261,10 @@ int Bot::findBestDrop(int ii,int jj){
     game->pawn.rotation = prevR;
     game->pawn.x = prevX;
 
-    for(int i = 0; i < 20; i++)
-        memcpy32(testBoard[i],game->board[i+20],10);
+    memcpy16(testBoard,&game->bitboard[8],32);
+    // for(int i = 0; i < game->lengthY; i++)
+    //     testBoard[i] = game->bitboard[i];
+        // memcpy32(testBoard[i],game->board[i+20],10);
 
     int minH = -1;
     int count = 0;
@@ -269,10 +279,11 @@ int Bot::findBestDrop(int ii,int jj){
 
             int x = game->pawn.x+ii+j;
 
-            if(y > game->lengthY-1 || y-20 < 0 || x > game->lengthX-1)
+            if(y > game->lengthY-1 || y < 0 || x > game->lengthX-1)
                 continue;
 
-            testBoard[y-20][x] = 1;
+            // testBoard[y-20][x] = 1;
+            testBoard[y-8] |= 1 << x;
 
             if(++count == 4)
                 break;
@@ -283,24 +294,23 @@ int Bot::findBestDrop(int ii,int jj){
 
     // // showTestBoard();
 
-    int clears = countClears(testBoard,game->lengthX,20,lowest+minH-20);
+    int clears = countClears(testBoard,game->lengthX,32,lowest+minH-8);
     int afterHeight = min(game->stackHeight,lowest+minH) + clears;
 
-    Values v = evaluate(testBoard,game->lengthX,20,afterHeight-20);
-    int afterJag = v.jag;
+    Values v = evaluate(testBoard,game->lengthX,32,afterHeight-8);
+    // int afterJag = v.jag;
     int afterColTrans = v.colTrans;
     int afterRowTrans = v.rowTrans;
     int afterHoles = v.holes;
     int afterWells = v.wells;
 
     int holeDiff = afterHoles-currentHoles;
-    int jagDiff = afterJag - currentJag;
+    // int jagDiff = afterJag - currentJag;
     int wellDiff = afterWells - currentWells;
     int rowDiff = afterRowTrans - currentRowTrans;
     int colDiff = afterColTrans - currentColTrans;
 
-    int score = (clears * clears) * weights.clears + holeDiff * (weights.holes) +
-        (afterHeight) * (weights.height) + lowest * weights.lowest + jagDiff * (weights.jag) +
+    int score = (clears * clears) * weights.clears + holeDiff * (weights.holes) + (game->lengthY-lowest) * weights.lowest +
         wellDiff * (weights.well) + rowDiff * (weights.row) + colDiff * (weights.col);
 
     // log( "score " + std::to_string(score) + " best score: " + std::to_string(best.score));
@@ -318,24 +328,24 @@ int Bot::findBestDrop(int ii,int jj){
 }
 
 void showTestBoard(){
-    OBJ_ATTR* enemyBoardSprite = &obj_buffer[25];
-    obj_unhide(enemyBoardSprite, ATTR0_AFF_DBL);
-    obj_set_attr(enemyBoardSprite, ATTR0_TALL | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(6), 0);
-    enemyBoardSprite->attr2 = ATTR2_BUILD(768, 0, 1);
-    obj_set_pos(enemyBoardSprite, 43, 24);
-    obj_aff_identity(&obj_aff_buffer[6]);
-    obj_aff_scale(&obj_aff_buffer[6], float2fx(0.5), float2fx(0.5));
+    // OBJ_ATTR* enemyBoardSprite = &obj_buffer[25];
+    // obj_unhide(enemyBoardSprite, ATTR0_AFF_DBL);
+    // obj_set_attr(enemyBoardSprite, ATTR0_TALL | ATTR0_AFF_DBL, ATTR1_SIZE(2) | ATTR1_AFF_ID(6), 0);
+    // enemyBoardSprite->attr2 = ATTR2_BUILD(768, 0, 1);
+    // obj_set_pos(enemyBoardSprite, 43, 24);
+    // obj_aff_identity(&obj_aff_buffer[6]);
+    // obj_aff_scale(&obj_aff_buffer[6], float2fx(0.5), float2fx(0.5));
 
-    TILE* dest2;
+    // TILE* dest2;
 
-    for(int height = 10; height < 20; height++){
-        for (int j = 0; j < 10; j++) {
-            dest2 = (TILE*)&tile_mem[5][256 + ((height) / 8) * 2 + (j) / 8];
+    // for(int height = 10; height < 20; height++){
+    //     for (int j = 0; j < 10; j++) {
+    //         dest2 = (TILE*)&tile_mem[5][256 + ((height) / 8) * 2 + (j) / 8];
 
-            if (testBot->testBoard[height][j])
-                dest2->data[(height) % 8] |= (4 + 2 * savefile->settings.lightMode) << ((j % 8) * 4);
-            else
-                dest2->data[(height) % 8] &= ~(0xffff << ((j % 8) * 4));
-        }
-    }
+    //         if (testBot->testBoard[height][j])
+    //             dest2->data[(height) % 8] |= (4 + 2 * savefile->settings.lightMode) << ((j % 8) * 4);
+    //         else
+    //             dest2->data[(height) % 8] &= ~(0xffff << ((j % 8) * 4));
+    //     }
+    // }
 }

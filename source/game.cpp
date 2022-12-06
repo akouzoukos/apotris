@@ -1193,7 +1193,7 @@ void gameLoop(){
             handleBotGame();
             test += std::to_string(profile_stop()) + " ";
             // log(std::to_string(profile_stop()));
-            log(test);
+            // log(test);
         }else if(ENABLE_BOT ){
             testBot->run();
         }
