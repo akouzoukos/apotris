@@ -29,6 +29,8 @@
 
 #include "defaultGradient_bin.h"
 
+#include <bit>
+
 using namespace Tetris;
 
 mm_word myEventHandler();
@@ -191,7 +193,6 @@ void initialize(){
 
     setGradient(GRADIENT_COLOR);
 }
-
 
 int main(void) {
     if(DIAGNOSE)

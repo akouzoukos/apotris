@@ -317,6 +317,7 @@ extern void startGame(int seed);
 extern void startGame();
 
 extern void startBotGame(int seed);
+extern int countBits(u16 n);
 
 extern OBJ_ATTR obj_buffer[128];
 extern OBJ_AFFINE* obj_aff_buffer;

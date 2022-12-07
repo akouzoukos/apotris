@@ -9,6 +9,7 @@
 #include <string>
 #include <map>
 #include <cstring>
+#include "posprintf.h"
 
 using namespace Tetris;
 
@@ -535,11 +536,14 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     aprints("Doubles: " + std::to_string(game->statTracker.clears[1]), 0, 7*counter++, 2);
     aprints("Triples: " + std::to_string(game->statTracker.clears[2]), 0, 7*counter++, 2);
     aprints("Quads: " + std::to_string(game->statTracker.clears[3]), 0, 7*counter++, 2);
-    aprints("T-Spins: " + std::to_string(game->statTracker.tspins), 0, 7*counter++, 2);
-    aprints("Perfect Clears: " + std::to_string(game->statTracker.perfectClears), 0, 7*counter++, 2);
-    aprints("Max Streak: " + std::to_string(game->statTracker.maxStreak), 0, 7*counter++, 2);
-    aprints("Max Combo: " + std::to_string(game->statTracker.maxCombo), 0, 7*counter++, 2);
-    aprints("Times Held: " + std::to_string(game->statTracker.holds), 0, 7*counter++, 2);
+
+    if(game->gameMode != CLASSIC){
+        aprints("T-Spins: " + std::to_string(game->statTracker.tspins), 0, 7*counter++, 2);
+        aprints("Perfect Clears: " + std::to_string(game->statTracker.perfectClears), 0, 7*counter++, 2);
+        aprints("Max Streak: " + std::to_string(game->statTracker.maxStreak), 0, 7*counter++, 2);
+        aprints("Max Combo: " + std::to_string(game->statTracker.maxCombo), 0, 7*counter++, 2);
+        aprints("Times Held: " + std::to_string(game->statTracker.holds), 0, 7*counter++, 2);
+    }
 
     if(game->gameMode == MASTER){
         aprints("Section Cools: " + std::to_string(game->coolCount), 0, 7*counter++, 2);
@@ -552,6 +556,17 @@ void showStats(bool moreStats, std::string time, std::string pps) {
 }
 
 int pauseMenu(){
+
+    // for(int i = 20; i < 40; i++){
+    //     std::string str;
+
+    //     for(int j = 0; j < 10; j++){
+    //         str += std::to_string((game->bitboard[i] >> j) & 0b1);
+    //     }
+
+    //     log(str);
+    // }
+
     int selection = 0;
     int maxSelection;
 

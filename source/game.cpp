@@ -557,7 +557,7 @@ void showBackground() {
 
 void showPawn() {
     pawnSprite = &obj_buffer[0];
-    if (game->clearLock || game->pawn.current == -1) {
+    if (game->clearLock || game->pawn.current == -1 || (ENABLE_BOT && game->gameMode != BATTLE)) {
         obj_hide(pawnSprite);
         return;
     }
@@ -607,7 +607,7 @@ void showPawn() {
 
 void showShadow() {
     pawnShadow = &obj_buffer[1];
-    if (game->clearLock || game->pawn.current == -1 || game->gameMode == CLASSIC || (game->gameMode == MASTER && game->level >= 100) ) {
+    if (game->clearLock || game->pawn.current == -1 || game->gameMode == CLASSIC || (game->gameMode == MASTER && game->level >= 100) || (ENABLE_BOT && game->gameMode != BATTLE)) {
         obj_hide(pawnShadow);
         return;
     }

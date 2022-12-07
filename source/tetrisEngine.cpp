@@ -879,12 +879,8 @@ int Game::clear(Drop drop) {
     }
 
     for (int i = start ; i < end; i++) {
-        bool toClear = true;
-        for (int j = 0; j < lengthX; j++)
-            if (board[i][j] == 0){
-                toClear = false;
-                break;
-            }
+
+        bool toClear = (bitboard[i] == 0x3ff);
 
         if (toClear) {
             if(!zoneTimer){
@@ -908,14 +904,18 @@ int Game::clear(Drop drop) {
             if(i >= lengthY-zonedLines)
                 break;
 
-            for(int ii = i; ii < lengthY-1-zonedLines; ii++)
+            for(int ii = i; ii < lengthY-1-zonedLines; ii++){
                 for (int j = 0; j < lengthX; j++)
                     board[ii][j] = board[ii+1][j];
+                bitboard[ii] = bitboard[ii+1];
+            }
 
             zonedLines++;
 
             for (int j = 0; j < lengthX; j++)
                 board[lengthY-zonedLines][j] = 9;
+
+            bitboard[lengthY-zonedLines] = 0x3ff;
 
             offset++;
         }
@@ -1024,9 +1024,11 @@ int Game::clear(Drop drop) {
 
             eventLock = true;
 
-            for(int i = 0; i < lengthY; i++)
+            for(int i = 0; i < lengthY; i++){
                 for(int j = 0; j < lengthX; j++)
                     board[i][j] = 0;
+                bitboard[i] = 0;
+            }
         }
 
         int currentSectionLevel = level / 100 ;
@@ -2178,6 +2180,7 @@ void Game::clearBoard(){
         for(int j = 0; j < lengthX; j++){
             board[i][j] = 0;
         }
+        bitboard[i] = 0;
     }
 }
 

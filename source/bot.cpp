@@ -4,64 +4,100 @@
 #include <tuple>
 #include "logging.h"
 #include "posprintf.h"
+#include "tonc_bios.h"
+#include "tonc_core.h"
+#include "tonc_input.h"
+#include "tonc_memdef.h"
 
-int botThinkingSpeed = 3;
+int botThinkingSpeed = 9;
 int botSleepDuration = 1;
 
 using namespace Tetris;
 
 void showTestBoard();
 
-typedef struct Values{
-    int rowTrans;
-    int colTrans;
-    int holes;
-    int wells;
-    int jag;
-}Values;
-
 INLINE bool bitGet(u16 *bitboard,int x, int y){
     return (bitboard[y] >> x) & 0b1;
 }
 
-Values evaluate(u16 *board,int lengthX, int lengthY, int startY){
+const u8 bitcount[] = {
+    0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,
+    4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8,
+};
+
+int countBits(u16 n) {
+    int result = 0;
+
+    for(int i = 0; i < 2; i++){
+        result += bitcount[(n >> (8*i) & 0xff)];
+    }
+
+    return result;
+}
+
+INLINE int countTransitions(u16 a){
+    return countBits((a >> 1) ^ a);
+}
+
+Values evaluate(u16 *board, int *columnHeights, int lengthX, int lengthY, int startY){
     int start = max(1,startY-1);
 
     int rowTrans = 0;
     int wells = 0;
     int holes = 0;
-    // int jagSum = 0;
+    int quadWell = 0;
     int colTrans = 0;
 
-    for(int i = start; i < lengthY+1; i++){
-        bool prevTrans = true;
-        for(int j = 0; j < lengthX+1; j++){
-            if(i == lengthY){
-                colTrans += !bitGet(board, j, i-1);
-                break;
+
+    for(int i = start; i < lengthY; i++){
+        rowTrans += countTransitions(board[i]);
+    }
+
+    for(int j = 0; j < lengthX; j++){
+        bool prev = false;
+        for(int i = lengthY - columnHeights[j]; i < lengthY; i++){
+            bool n = bitGet(board, j, i);
+
+            if(n != prev){
+                colTrans++;
+
+                if(!n)
+                    holes++;
             }
 
-            if(j == lengthX){
-                rowTrans += !prevTrans;
-                break;
-            }
-            bool cur = (bitGet(board, j, i));
-            colTrans += (cur != (bitGet(board, j, i-1)));
-
-
-            rowTrans += (cur != prevTrans);
-            prevTrans = cur;
-
-            if(i < lengthY-1 && (bitGet(board, j, i)) && !(bitGet(board, j, i+1))){
-                holes++;
-            }
+            prev = n;
         }
     }
 
-    for(int x = 0; x < game->lengthX; x++){
+    int lowestX = 0;
+    int lowestCount = 255;
+
+    // profile_start();
+
+    for(int x = 0; x < lengthX; x++){
         int count = 0;
-        int n = game->columnHeights[x];
-        while(((x == 0 || n < game->columnHeights[x-1]) && (x == game->lengthX-1 || n < game->columnHeights[x+1]))){
+        int n = columnHeights[x];
+
+        if(n < lowestCount){
+            lowestCount = n;
+            lowestX = x;
+        }
+
+        while(((x == 0 || n < columnHeights[x-1]) && (x == lengthX-1 || n < columnHeights[x+1]))){
             n++;
             count += count + 1;
         }
@@ -69,17 +105,61 @@ Values evaluate(u16 *board,int lengthX, int lengthY, int startY){
         wells += count;
     }
 
+    // log("calc: " + std::to_string(profile_stop()));
+
+    int i = lengthY - columnHeights[lowestX] - 1;
+    while(countBits(board[i]) == 9 && i >= 0){
+        i--;
+        quadWell++;
+    }
+
+
     Values result;
     result.colTrans = colTrans;
     result.rowTrans = rowTrans;
     result.holes = holes;
     result.wells = wells;
-    // result.jag = jagSum;
+    result.quadWell = quadWell;
+
+    for(int i = 20; i < 40; i++){
+        std::string str;
+
+        for(int j = 0; j < 10; j++){
+            str += std::to_string((game->bitboard[i] >> j) & 0b1);
+        }
+
+        log(str);
+    }
+
+    std::string str;
+
+    int *r = (int*) &result;
+
+    for(int i = 0; i < 5; i++){
+        str += std::to_string(r[i]);
+    }
+
+    log(str);
+
+    bool n = start;
+    if(key_is_down(KEY_SELECT)){
+
+    }
+
+    while(1){
+        VBlankIntrWait();
+        key_poll()
+
+        if(key)
+
+    }
+
+    // posprintf(buff, "%d %d %d %d %d", result.);
 
     return result;
 }
 
-int countClears(u16 *board,int lengthX, int lengthY , int startY){//row
+int countClears(u16 *board, int lengthX, int lengthY , int startY){//row
     int clears = 0;
     if(startY < 0)
         startY = 0;
@@ -100,38 +180,20 @@ int countClears(u16 *board,int lengthX, int lengthY , int startY){//row
     return clears;
 }
 
-// std::tuple<int,int> countColValues(int **board,int lengthX, int lengthY, int startY){
-
-//     return std::make_tuple(jagSum,transitions);
-// }
-
 void Bot::run(){
     if(thinking){
         if(game->clearLock || game->dropping || game->pawn.current == -1)
             return;
 
         if(thinkingI == -6){
-            profile_start();
-            Values v = evaluate(game->bitboard,game->lengthX,game->lengthY,game->stackHeight);
-            log("first: " + std::to_string(profile_stop())); //3-8k cycle;
-            currentJag = v.jag;
-            currentColTrans = v.colTrans;
-            currentRowTrans = v.rowTrans;
-            currentHoles = v.holes;
-            currentWells = v.wells;
+            // profile_start();
+            currentValues = evaluate(game->bitboard,game->columnHeights,game->lengthX,game->lengthY,game->stackHeight);
+            // log("first: " + std::to_string(profile_stop())); //3-8k cycle;
 
             // char buff[30];
-            // posprintf(buff,"%d %d %d %d", currentColTrans, currentRowTrans, currentHoles, currentWells);
+            // posprintf(buff,"%d", currentValues.quadWell);
 
             // log(buff);
-            // log(std::to_string(currentWells));
-
-            // std::tie(currentJag,currentColTrans) = countColValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
-            // std::tie(currentRowTrans,currentWells,currentHoles) = countRowValues(game->board,game->lengthX,game->lengthY,game->stackHeight);
-
-            // currentRight = countRightSide(game->board,game->lengthX,game->lengthY,game->stackHeight);
-
-            // log(std::to_string(currentHoles));
 
             // delete quickSave;
             // quickSave = new Game(*game);
@@ -162,38 +224,39 @@ void Bot::run(){
         }else{
             thinkingI = -6;
             thinkingJ = 0;
-            // thinking = false;
+            thinking = false;
             // delete game;
             // game = new Game(*quickSave);
             // game->setTuning(getTuning());
 
-            if(checking == 1){
-                thinking = false;
-                checking = 0;
-                game->pawn.current = previous;
-                game->pawn.setBlock(SRS);
-            } else{
-                checking++;
+            // if(checking == 1){
+            //     thinking = false;
+            //     checking = 0;
+            //     game->pawn.current = previous;
+            //     game->pawn.setBlock(SRS);
+            // } else{
+            //     checking++;
 
-                previous = game->pawn.current;
+            //     previous = game->pawn.current;
 
-                if(game->held != -1)
-                    game->pawn.current = game->held;
-                else
-                    game->pawn.current = game->queue.front();
+            //     if(game->held != -1)
+            //         game->pawn.current = game->held;
+            //     else
+            //         game->pawn.current = game->queue.front();
 
-                // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
+            //     // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
 
-                game->pawn.setBlock(SRS);
-                return;
-            }
+            //     game->pawn.setBlock(SRS);
+            //     return;
+            // }
             current = best;
             best = Move();
         }
+    }else{
+        move();
     }
 
-    if(!thinking)
-        move();
+    // if(!thinking)
 }
 
 void Bot::move(){
@@ -261,10 +324,15 @@ int Bot::findBestDrop(int ii,int jj){
     game->pawn.rotation = prevR;
     game->pawn.x = prevX;
 
-    memcpy16(testBoard,&game->bitboard[8],32);
+    const int height = 32;
+
+    memcpy16(testBoard,&game->bitboard[8],height);
+    memcpy32(columnHeights,game->columnHeights,10);
+
     // for(int i = 0; i < game->lengthY; i++)
     //     testBoard[i] = game->bitboard[i];
         // memcpy32(testBoard[i],game->board[i+20],10);
+
 
     int minH = -1;
     int count = 0;
@@ -284,6 +352,8 @@ int Bot::findBestDrop(int ii,int jj){
 
             // testBoard[y-20][x] = 1;
             testBoard[y-8] |= 1 << x;
+            if(height-(y-8) > columnHeights[x])
+                columnHeights[x] = height-(y-8);
 
             if(++count == 4)
                 break;
@@ -294,24 +364,25 @@ int Bot::findBestDrop(int ii,int jj){
 
     // // showTestBoard();
 
-    int clears = countClears(testBoard,game->lengthX,32,lowest+minH-8);
+    int clears = countClears(testBoard,game->lengthX,height,lowest+minH-8);
     int afterHeight = min(game->stackHeight,lowest+minH) + clears;
 
-    Values v = evaluate(testBoard,game->lengthX,32,afterHeight-8);
+    Values v = evaluate(testBoard, columnHeights, game->lengthX,height,afterHeight-8);
     // int afterJag = v.jag;
     int afterColTrans = v.colTrans;
     int afterRowTrans = v.rowTrans;
     int afterHoles = v.holes;
     int afterWells = v.wells;
+    int afterQuad = v.quadWell;
 
-    int holeDiff = afterHoles-currentHoles;
-    // int jagDiff = afterJag - currentJag;
-    int wellDiff = afterWells - currentWells;
-    int rowDiff = afterRowTrans - currentRowTrans;
-    int colDiff = afterColTrans - currentColTrans;
+    int holeDiff = afterHoles - currentValues.holes;
+    int wellDiff = afterWells - currentValues.wells;
+    int rowDiff = afterRowTrans - currentValues.rowTrans;
+    int colDiff = afterColTrans - currentValues.colTrans;
+    int quadDiff = afterQuad - currentValues.quadWell;
 
     int score = (clears * clears) * weights.clears + holeDiff * (weights.holes) + (game->lengthY-lowest) * weights.lowest +
-        wellDiff * (weights.well) + rowDiff * (weights.row) + colDiff * (weights.col);
+        wellDiff * (weights.well) + rowDiff * (weights.row) + colDiff * (weights.col) + quadDiff * (weights.quadWell);
 
     // log( "score " + std::to_string(score) + " best score: " + std::to_string(best.score));
 
@@ -319,6 +390,8 @@ int Bot::findBestDrop(int ii,int jj){
         best.score = score;
         best.dx = ii;
         best.rotation = jj;
+
+        // log("qd: " + std::to_string(quadDiff));
 
         // log("setting to: " + std::to_string(game->pawn.current));
         best.piece = game->pawn.current;

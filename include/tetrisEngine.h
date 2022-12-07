@@ -667,7 +667,16 @@ namespace Tetris
         int well = 0;
         int row = 0;
         int col = 0;
+        int quadWell = 0;
     }Weights;
+
+    typedef struct Values{
+        int rowTrans;
+        int colTrans;
+        int holes;
+        int wells;
+        int quadWell;
+    }Values;
 
     class Bot{
     public:
@@ -682,12 +691,15 @@ namespace Tetris
         int rotation = 0;
         Game* game;
         u16 testBoard[40];
+        int columnHeights[10];
 
-        int currentHoles = 0;
-        int currentJag = 0;
-        int currentWells = 0;
-        int currentRowTrans = 0;
-        int currentColTrans = 0;
+        Values currentValues;
+
+        // int currentHoles = 0;
+        // int currentJag = 0;
+        // int currentWells = 0;
+        // int currentRowTrans = 0;
+        // int currentColTrans = 0;
 
         int checking = 0;
         int previous = 0;
@@ -701,6 +713,7 @@ namespace Tetris
         -1,
         -1,
         -1,
+        0,//4
         };
 
         void run();
