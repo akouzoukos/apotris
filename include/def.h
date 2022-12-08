@@ -318,6 +318,7 @@ extern void startGame();
 
 extern void startBotGame(int seed);
 extern int countBits(u16 n);
+extern int countTransitions(u16 a);
 
 extern OBJ_ATTR obj_buffer[128];
 extern OBJ_AFFINE* obj_aff_buffer;

@@ -319,8 +319,8 @@ void checkSounds() {
         if(game->gameMode == MASTER){
             maxClearTimer = game->maxClearDelay;
         }
-		// else if(game->gameMode == MARATHON){
-		// 	journeyLevelUp = true;
+          // else if(game->gameMode == MARATHON){
+          //      journeyLevelUp = true;
         // }
     }
 
@@ -645,33 +645,6 @@ void showShadow() {
 
     if(!game->zoneTimer){
         setPawnPalette(10, n, 14*bld);
-        // if (!savefile->settings.lightMode){
-        //     if(savefile->settings.colors == 2)
-        //         clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
-        //     else if(savefile->settings.colors == 3){
-        //         clr_fade((COLOR*)&nesPalette[getClassicPalette()][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-        //     }else if(savefile->settings.colors == 4){
-        //         clr_fade((COLOR*)&monoPalette[0][0], 0x0000, &pal_obj_mem[10 * 16+1], 4, 14);
-        //     }else if(savefile->settings.colors == 5){
-        //         clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-        //     }else if(savefile->settings.colors == 6){
-        //         clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[10 * 16+1], 4, (14) * bld);
-        //     } else
-        //         clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[10 * 16], 8, (14) * bld);
-        // }else{
-        //     if(savefile->settings.colors == 2)
-        //         clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)classic_pal_bin, 8, float2fx(0.25));
-        //     else if(savefile->settings.colors == 3){
-        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&nesPalette[getClassicPalette()][0], 8, float2fx(0.25));
-        //     }else if(savefile->settings.colors == 4){
-        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&monoPalette[1][0], 4, float2fx(0.25));
-        //     }else if(savefile->settings.colors == 5){
-        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[0][n], 4, float2fx(0.25));
-        //     }else if(savefile->settings.colors == 6){
-        //         clr_adj_brightness(&pal_obj_mem[10 * 16+1], (COLOR*)&arsPalette[1][n], 4, float2fx(0.25));
-        //     }else
-        //         clr_adj_brightness(&pal_obj_mem[10 * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, float2fx(0.25));
-        // }
     }
 
     if(!game->pawn.big){
@@ -1143,11 +1116,11 @@ void gameLoop(){
 
     countdown();
 
-	// if (!resumeJourney){
-	// }
-	// else{
-	// 	resumeJourney = false;
-	// }
+     // if (!resumeJourney){
+     // }
+     // else{
+     //      resumeJourney = false;
+     // }
 
     if (!(game->gameMode == TRAINING)) {
         playSongRandom(1);
@@ -1315,18 +1288,18 @@ void gameLoop(){
             zoneFlash();
 
         sqran(qran() % frameCounter);
-		
-		// if(!game->eventLock && journeyLevelUp){
-		// 	// flashTimer = flashTimerMax;
-		// 	// journeyFlash();
 
-		// 	setJourneyGraphics(savefile, game->level);
+          // if(!game->eventLock && journeyLevelUp){
+          //      // flashTimer = flashTimerMax;
+          //      // journeyFlash();
 
-		// 	delete journeySave;
-		// 	journeySave = new Game(*game);
-		// 	journeySaveExists = true;
-		// 	return;
-		// }
+          //      setJourneyGraphics(savefile, game->level);
+
+          //      delete journeySave;
+          //      journeySave = new Game(*game);
+          //      journeySaveExists = true;
+          //      return;
+          // }
     }
 }
 
@@ -2359,6 +2332,7 @@ void journeyFlash(){
             memset16(pal_bg_mem, 0x5ad6, 1);//background gray
     }
 }
+
 // void journeyFlash(){
 
 //     if(flashTimer == flashTimerMax){
@@ -2403,39 +2377,39 @@ void setRandomGraphics(Save *save){
 }
 
 void setJourneyGraphics(Save *save, int level){
-	switch (level){
-		case 1:
-			save->settings.backgroundGradient = 0x7dc8;
-			save->settings.backgroundGrid = 5;
-			save->settings.skin = 11;
-			save->settings.shadow = 3;
-			save->settings.palette = 5;
-			save->settings.colors = 1;
-			save->settings.edges = true;
-			save->settings.lightMode = false;
-			break;
-		case 2:
-			save->settings.backgroundGradient = RGB15(0,0,0);
-			save->settings.backgroundGrid = 0;
-			save->settings.skin = 0;
-			save->settings.shadow = 3;
-			save->settings.palette = 0;
-			save->settings.colors = 1;
-			save->settings.edges = false;
-			save->settings.lightMode = false;
-			break;
-		case 3:
-			save->settings.backgroundGradient = RGB15(0,0,0);
-			save->settings.backgroundGrid = 0;
-			save->settings.skin = 0;
-			save->settings.shadow = 3;
-			save->settings.palette = 0;
-			save->settings.colors = 4;
-			save->settings.edges = false;
-			save->settings.lightMode = false;
-			break;
-		default:
+    switch (level){
+        case 1:
+            save->settings.backgroundGradient = 0x7dc8;
+            save->settings.backgroundGrid = 5;
+            save->settings.skin = 11;
+            save->settings.shadow = 3;
+            save->settings.palette = 5;
+            save->settings.colors = 1;
+            save->settings.edges = true;
+            save->settings.lightMode = false;
+            break;
+        case 2:
+            save->settings.backgroundGradient = RGB15(0,0,0);
+            save->settings.backgroundGrid = 0;
+            save->settings.skin = 0;
+            save->settings.shadow = 3;
+            save->settings.palette = 0;
+            save->settings.colors = 1;
+            save->settings.edges = false;
+            save->settings.lightMode = false;
+            break;
+        case 3:
+            save->settings.backgroundGradient = RGB15(0,0,0);
+            save->settings.backgroundGrid = 0;
+            save->settings.skin = 0;
+            save->settings.shadow = 3;
+            save->settings.palette = 0;
+            save->settings.colors = 4;
+            save->settings.edges = false;
+            save->settings.lightMode = false;
+            break;
+        default:
             setRandomGraphics(save);
-			break;
-	}
+            break;
+    }
 }

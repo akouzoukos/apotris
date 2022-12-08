@@ -9,7 +9,7 @@
 #include "tonc_input.h"
 #include "tonc_memdef.h"
 
-int botThinkingSpeed = 9;
+int botThinkingSpeed = 10;
 int botSleepDuration = 1;
 
 using namespace Tetris;
@@ -49,7 +49,7 @@ int countBits(u16 n) {
     return result;
 }
 
-INLINE int countTransitions(u16 a){
+int countTransitions(u16 a){
     return countBits((a >> 1) ^ a);
 }
 
@@ -57,14 +57,14 @@ Values evaluate(u16 *board, int *columnHeights, int lengthX, int lengthY, int st
     int start = max(1,startY-1);
 
     int rowTrans = 0;
-    int wells = 0;
-    int holes = 0;
-    int quadWell = 0;
     int colTrans = 0;
-
+    int holes = 0;
+    int wells = 0;
+    int quadWell = 0;
 
     for(int i = start; i < lengthY; i++){
-        rowTrans += countTransitions(board[i]);
+        if(board[i])
+            rowTrans += countTransitions(board[i]);
     }
 
     for(int j = 0; j < lengthX; j++){
@@ -107,54 +107,50 @@ Values evaluate(u16 *board, int *columnHeights, int lengthX, int lengthY, int st
 
     // log("calc: " + std::to_string(profile_stop()));
 
+
     int i = lengthY - columnHeights[lowestX] - 1;
     while(countBits(board[i]) == 9 && i >= 0){
         i--;
         quadWell++;
     }
 
-
     Values result;
-    result.colTrans = colTrans;
     result.rowTrans = rowTrans;
+    result.colTrans = colTrans;
     result.holes = holes;
     result.wells = wells;
     result.quadWell = quadWell;
 
-    for(int i = 20; i < 40; i++){
-        std::string str;
+    if(key_is_down(KEY_SELECT)){
+        for(int i = lengthY-20; i < lengthY; i++){
+            std::string str;
 
-        for(int j = 0; j < 10; j++){
-            str += std::to_string((game->bitboard[i] >> j) & 0b1);
+            for(int j = 0; j < 16; j++)
+                str += std::to_string((board[i] >> j) & 0b1);
+
+            log(str);
         }
 
+        std::string str;
+        int *r = (int*) &result;
+        for(int i = 0; i < 5; i++)
+            str += std::to_string(r[i]) + " ";
         log(str);
+        log(std::to_string(start) + " " + std::to_string(lengthY));
+        for(int i = start; i < lengthY; i++){
+            if(board[i])
+                log(std::to_string(countTransitions(board[i])));
+        }
+
+        while(1){
+            VBlankIntrWait();
+            key_poll();
+
+            if(key_hit(KEY_A)){
+                break;
+            }
+        }
     }
-
-    std::string str;
-
-    int *r = (int*) &result;
-
-    for(int i = 0; i < 5; i++){
-        str += std::to_string(r[i]);
-    }
-
-    log(str);
-
-    bool n = start;
-    if(key_is_down(KEY_SELECT)){
-
-    }
-
-    while(1){
-        VBlankIntrWait();
-        key_poll()
-
-        if(key)
-
-    }
-
-    // posprintf(buff, "%d %d %d %d %d", result.);
 
     return result;
 }
@@ -165,15 +161,7 @@ int countClears(u16 *board, int lengthX, int lengthY , int startY){//row
         startY = 0;
     const int len = min(startY+4,lengthY);
     for(int i = startY; i < len; i++){
-        bool found = false;
-        for(int j = 0; j < lengthX; j++){
-            if(bitGet(board, j, i)){
-                found = true;
-                break;
-            }
-        }
-
-        if(!found)
+        if(board[i] == 0x3ff)
             clears++;
     }
 
@@ -181,6 +169,8 @@ int countClears(u16 *board, int lengthX, int lengthY , int startY){//row
 }
 
 void Bot::run(){
+    if(--sleepTimer > 0)
+        return;
     if(thinking){
         if(game->clearLock || game->dropping || game->pawn.current == -1)
             return;
@@ -221,42 +211,46 @@ void Bot::run(){
                     thinkingI++;
                 }
             }
-        }else{
-            thinkingI = -6;
-            thinkingJ = 0;
-            thinking = false;
-            // delete game;
-            // game = new Game(*quickSave);
-            // game->setTuning(getTuning());
 
-            // if(checking == 1){
-            //     thinking = false;
-            //     checking = 0;
-            //     game->pawn.current = previous;
-            //     game->pawn.setBlock(SRS);
-            // } else{
-            //     checking++;
+            if(thinkingI >= 6){
+                thinkingI = -6;
+                thinkingJ = 0;
+                // thinking = false;
+                sleepTimer = botSleepDuration;
+                // delete game;
+                // game = new Game(*quickSave);
+                // game->setTuning(getTuning());
 
-            //     previous = game->pawn.current;
+                if(checking == 1){
+                    thinking = false;
+                    checking = 0;
+                    game->pawn.current = previous;
+                    game->pawn.setBlock(SRS);
+                } else{
+                    checking++;
 
-            //     if(game->held != -1)
-            //         game->pawn.current = game->held;
-            //     else
-            //         game->pawn.current = game->queue.front();
+                    previous = game->pawn.current;
 
-            //     // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
+                    if(game->held != -1)
+                        game->pawn.current = game->held;
+                    else
+                        game->pawn.current = game->queue.front();
 
-            //     game->pawn.setBlock(SRS);
-            //     return;
-            // }
-            current = best;
-            best = Move();
+                    // std::cout << "previous: " << std::to_string(previous) << " current: " << std::to_string(game->pawn.current) << "\n";
+
+                    game->pawn.setBlock(SRS);
+                    return;
+                }
+                current = best;
+                best = Move();
+
+                // log("x: " + std::to_string(current.dx + game->pawn.x) + " y: " + std::to_string(current.rotation));
+            }
         }
-    }else{
-        move();
     }
 
-    // if(!thinking)
+    if(!thinking)
+        move();
 }
 
 void Bot::move(){
@@ -274,16 +268,18 @@ void Bot::move(){
         return;
     }
 
-    if(rotation != current.rotation){
-        if(current.rotation == 3){
-            game->rotateCCW(1);
-            game->rotateCCW(0);
-            rotation = 3;
-        }else{
-            game->rotateCW(1);
-            game->rotateCW(0);
-            rotation++;
-        }
+    if(game->pawn.rotation != current.rotation){
+        // if(current.rotation == 3){
+        //     game->rotateCCW(1);
+        //     game->rotateCCW(0);
+        //     // rotation = 3;
+        // }else{
+            while(game->pawn.rotation != current.rotation){
+                game->rotateCW(1);
+                game->rotateCW(0);
+                // rotation++;
+            }
+        // }
     }
 
     if(dx > current.dx){
@@ -300,7 +296,8 @@ void Bot::move(){
         }
     }
 
-    if(dx == current.dx && rotation == current.rotation){
+    if(dx == current.dx && game->pawn.rotation == current.rotation){
+        // log("dx: " + std::to_string(game->pawn.x) + " dy: " + std::to_string(game->pawn.rotation));
         game->keyDrop(1);
         dx = 0;
         rotation = 0;
@@ -374,12 +371,17 @@ int Bot::findBestDrop(int ii,int jj){
     int afterHoles = v.holes;
     int afterWells = v.wells;
     int afterQuad = v.quadWell;
-
-    int holeDiff = afterHoles - currentValues.holes;
+    // int holeDiff = afterHoles - currentValues.holes;
     int wellDiff = afterWells - currentValues.wells;
-    int rowDiff = afterRowTrans - currentValues.rowTrans;
-    int colDiff = afterColTrans - currentValues.colTrans;
-    int quadDiff = afterQuad - currentValues.quadWell;
+    // int rowDiff = afterRowTrans - currentValues.rowTrans;
+    // int colDiff = afterColTrans - currentValues.colTrans;
+    // int quadDiff = afterQuad - currentValues.quadWell;
+
+    int holeDiff = afterHoles;
+    // int wellDiff = afterWells;
+    int rowDiff = afterRowTrans;
+    int colDiff = afterColTrans;
+    int quadDiff = afterQuad;
 
     int score = (clears * clears) * weights.clears + holeDiff * (weights.holes) + (game->lengthY-lowest) * weights.lowest +
         wellDiff * (weights.well) + rowDiff * (weights.row) + colDiff * (weights.col) + quadDiff * (weights.quadWell);

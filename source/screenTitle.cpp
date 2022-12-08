@@ -872,8 +872,8 @@ void startScreen() {
                             // game->setRotationSystem(ARS);
                             break;
                         case BATTLE:
-                            botThinkingSpeed = goalSelection+1;
-                            botSleepDuration = 6-goalSelection*2;
+                            botThinkingSpeed = goalSelection*3;
+                            botSleepDuration = 5-goalSelection*2;
                             break;
                         case TRAINING:
                             goal = 0;
