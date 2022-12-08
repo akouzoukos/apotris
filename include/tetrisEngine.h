@@ -385,12 +385,12 @@ namespace Tetris
         bool rotates[3] = {false,false,false};
 
     public:
-        const static int lengthX = 10;
-        const static int lengthY = 40;
+        int lengthX = 10;
+        int lengthY = 40;
         int** board;
 
-        u16 bitboard[lengthY];
-        int columnHeights[lengthX];
+        u16 bitboard[40];
+        int columnHeights[10];
 
         std::list<int> queue;
         Pawn pawn = Pawn(0, 0);
@@ -522,6 +522,11 @@ namespace Tetris
         }
 
         Game(int gm, int sd, bool big){
+            if(big){
+                lengthY /= 2;
+                lengthX /= 2;
+            }
+
             gameMode = gm;
             seed = initSeed = sd;
             board = new int* [lengthY];

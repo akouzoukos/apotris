@@ -428,6 +428,11 @@ void showBackground() {
     int startY = 20;
     int endY = 40;
 
+    if(game->pawn.big){
+        startY = 0;
+        endY = 20;
+    }
+
     for (int i = startY; i < endY; i++) {
         if (game->linesToClear.size() > 0) {
             before = after = false;

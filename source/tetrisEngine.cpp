@@ -24,19 +24,8 @@ int Game::checkRotation(int dx, int dy, int r) {
             if (pawn.board[r][i][j] == 0)
                 continue;
             
-            if(!pawn.big){
-                if (x + j < 0 || x + j > lengthX - 1 || y + i < 0 || y + i > lengthY - 1 || board[i+y][j+x] != 0)
-                    return 0;
-            }else{
-                for(int k = 0; k < 2; k++){
-                    for(int l = 0; l < 2; l++){
-                        int xoffset = (x+j) * 2 + l;
-                        int yoffset = (y+i) * 2 + k;
-                        if (xoffset < 0 || xoffset > lengthX - 1 || yoffset < 0 || yoffset > lengthY - 1 || board[yoffset][xoffset] != 0)
-                            return 0;
-                    }
-                }
-            }
+            if (x + j < 0 || x + j > lengthX - 1 || y + i < 0 || y + i > lengthY - 1 || board[i+y][j+x] != 0)
+                return 0;
 
             if(++total >= 4)
                 return 1;
@@ -61,19 +50,8 @@ int Game::checkSpecialRotation(int dx, int r){
 
             total++;
 
-            if(!pawn.big){
-                if (x + j < 0 || x + j > lengthX - 1 || pawn.y + i < 0 || pawn.y + i > lengthY - 1 || board[i+pawn.y][j+x] != 0)
-                    return i * 4 + j + 1;
-            }else{
-                for(int k = 0; k < 2; k++){
-                    for(int l = 0; l < 2; l++){
-                        int xoffset = (x+j) * 2 + l;
-                        int yoffset = (pawn.y+i) * 2 + k;
-                        if (xoffset < 0 || xoffset > lengthX - 1 || yoffset < 0 || yoffset > lengthY - 1 || board[yoffset][xoffset] != 0)
-                            return i * 4 + j + 1;
-                    }
-                }
-            }
+            if (x + j < 0 || x + j > lengthX - 1 || pawn.y + i < 0 || pawn.y + i > lengthY - 1 || board[i+pawn.y][j+x] != 0)
+                return i * 4 + j + 1;
 
             if(total >= 4)
                 break;
@@ -606,54 +584,37 @@ void Game::update() {
 }
 
 int Game::lowest() {
-    if(!pawn.big){
-        int max = 0;
+    int max = 0;
 
-        if(stackHeight-4 >= pawn.y){
-            for(int x = 0; x < 4; x++){
-                if(pawn.boardLowest[pawn.rotation][x] == -1)
-                    continue;
+    if(stackHeight-4 >= pawn.y){
+        for(int x = 0; x < 4; x++){
+            if(pawn.boardLowest[pawn.rotation][x] == -1)
+                continue;
 
-                int n = pawn.boardLowest[pawn.rotation][x] + columnHeights[pawn.x+x];
-                if(n > max)
-                    max = n;
-            }
-
-            return lengthY-(max)-1;
-        }else{
-            int start = pawn.y;
-            // int start = stackHeight-4;
-            // if(stackHeight-4 < pawn.y)
-            //     start = pawn.y;
-
-            for(int i = start; i < lengthY; i++){
-                for(int j = 0; j < 4; j++){
-                    if(pawn.boardLowest[pawn.rotation][j] == -1)
-                        continue;
-                    int x = pawn.x+j;
-                    int y = i+pawn.boardLowest[pawn.rotation][j];
-                    if(y >= lengthY || board[y][x])
-                        return i-1;
-                }
-            }
+            int n = pawn.boardLowest[pawn.rotation][x] + columnHeights[pawn.x+x];
+            if(n > max)
+                max = n;
         }
 
+        return lengthY-(max)-1;
     }else{
-        for(int i = 0; i < (lengthY - pawn.y)*2; i++){
+        int start = pawn.y;
+        // int start = stackHeight-4;
+        // if(stackHeight-4 < pawn.y)
+        //     start = pawn.y;
+
+        for(int i = start; i < lengthY; i++){
             for(int j = 0; j < 4; j++){
                 if(pawn.boardLowest[pawn.rotation][j] == -1)
                     continue;
-                int x = (pawn.x+j)*2;
-                int y = (pawn.y+i+pawn.boardLowest[pawn.rotation][j])*2;
-                for(int k = 0; k < 2; k++){
-                    for(int l = 0; l < 2; l++){
-                        if(y+k >= lengthY || board[y+k][x+l])
-                            return pawn.y+i-1;
-                    }
-                }
+                int x = pawn.x+j;
+                int y = i+pawn.boardLowest[pawn.rotation][j];
+                if(y >= lengthY || board[y][x])
+                    return i-1;
             }
         }
     }
+
 
     return pawn.y;
 }
@@ -672,41 +633,23 @@ void Game::place() {
             int x = pawn.x + j;
             int y = pawn.y + i;
 
-            if(!pawn.big){
-                if (y > lengthY - 1 || x > lengthX)
-                    continue;
+            if (y > lengthY - 1 || x > lengthX)
+                continue;
 
-                board[y][x] = pawn.current + pawn.board[pawn.rotation][i][j];
+            board[y][x] = pawn.current + pawn.board[pawn.rotation][i][j];
 
-                bitboard[y] |= 1 << x;
-                if((lengthY-y) > columnHeights[x])
-                    columnHeights[x] = lengthY-y;
+            bitboard[y] |= 1 << x;
+            if((lengthY-y) > columnHeights[x])
+                columnHeights[x] = lengthY-y;
 
-                if(disappearing == 1)
-                    disappearTimers[y][x] = MAX_DISAPPEAR;
-                else if(disappearing == 2)
-                    disappearTimers[y][x] = 1;
-            }else{
-                x *=2;
-                y *=2;
-
-                for(int k = 0; k < 2; k++){
-                    for(int l = 0; l < 2; l++){
-                        if (y+k > lengthY - 1 || x+l > lengthX)
-                            continue;
-
-                        board[y+k][x+l] = pawn.current + pawn.board[pawn.rotation][i][j];
-                        if(disappearing == 1)
-                            disappearTimers[y+k][x+l] = MAX_DISAPPEAR;
-                        else if(disappearing == 2)
-                            disappearTimers[y][x] = 1;
-                    }
-                }
-            }
+            if(disappearing == 1)
+                disappearTimers[y][x] = MAX_DISAPPEAR;
+            else if(disappearing == 2)
+                disappearTimers[y][x] = 1;
         }
     }
 
-    if ((pawn.y+pawn.lowestBlock) * (1+pawn.big) < (lengthY / 2 - 2)) {
+    if ((pawn.y+pawn.lowestBlock) < (lengthY / 2 - 2)) {
         lost = 1;
         return;
     }
@@ -827,9 +770,9 @@ int Game::clear(Drop drop) {
     if (pawn.current == 5 && lastMoveRotation && gameMode != CLASSIC) {
         int frontCount = 0;
         int backCount = 0;
-        int x = pawn.x * (1+pawn.big);
-        int y = pawn.y * (1+pawn.big);
-        int offset = 2 * (1+pawn.big);
+        int x = pawn.x;
+        int y = pawn.y;
+        int offset = 2;
 
         switch (pawn.rotation) {
         case 0:
@@ -886,7 +829,7 @@ int Game::clear(Drop drop) {
             if(!zoneTimer){
                 linesToClear.push_back(i);
                 clearCount++;
-                if(gameMode == DIG && i >= lengthY-(garbageHeight*(1+pawn.big)))
+                if(gameMode == DIG && i >= lengthY-(garbageHeight))
                     garbageToRemove++;
             }else{
                 linesToMove.push_back(i);
@@ -933,8 +876,8 @@ int Game::clear(Drop drop) {
         linesToMove.clear();
     }
 
-    if(pawn.big)
-        garbageToRemove/=2;
+    // if(pawn.big)
+    //     garbageToRemove/=2;
 
     garbageHeight-=garbageToRemove;
     garbageCleared+=garbageToRemove;
@@ -943,8 +886,8 @@ int Game::clear(Drop drop) {
         return 0;
     }
 
-    if(pawn.big)
-        clearCount/=2;
+    // if(pawn.big)
+    //     clearCount/=2;
 
     if(!zoneTimer)
         linesCleared+=clearCount;
@@ -1251,10 +1194,10 @@ void Game::next() {//~21-29k cycles
             pawn.y--;
     }
 
-    if(pawn.big){
-        pawn.x/=2;
-        pawn.y/=2;
-    }
+    // if(pawn.big){
+    //     pawn.x/=2;
+    //     pawn.y/=2;
+    // }
 
     //check if stack has reached top half of board
     bool check = bitboard[30] != 0;
@@ -1407,10 +1350,10 @@ void Game::hold(int dir) {
         pawn.x = (int)lengthX / 2 - 2;
 		pawn.y = (int)lengthY / 2 - 1;
 
-        if(pawn.big){
-            pawn.x/=2;
-            pawn.y/=2;
-        }
+        // if(pawn.big){
+        //     pawn.x/=2;
+        //     pawn.y/=2;
+        // }
     }
 
     if(rotationSystem == ARS || irs){
@@ -1653,26 +1596,15 @@ void Game::removeClearLock() {
     }
 
     if(gameMode == COMBO){
-        if(!pawn.big){
-            for(int i = lengthY/2-1; i < lengthY; i++){
-                if(board[i][0] != 0)
-                    break;
-                for(int j = 0; j < 10; j++){
-                    if(j > 2 && j < 7)
-                        continue;
-                    board[i][j] = (i+comboCounter) % 7 + 1;
-                }
-                connectBoard(i, i);
+        for(int i = lengthY/2-1; i < lengthY; i++){
+            if(board[i][0] != 0)
+                break;
+            for(int j = 0; j < 10; j++){
+                if(j > 2 && j < 7)
+                    continue;
+                board[i][j] = (i+comboCounter) % 7 + 1;
             }
-        }else{
-            for(int i = (lengthY/2-1)/2; i < lengthY/2; i++){
-                if(board[i*2][0] != 0)
-                    break;
-                board[i*2][0] = (i*2+comboCounter) % 7 + 1;
-                board[i*2][1] = (i*2+comboCounter) % 7 + 1;
-                board[i*2+1][0] = (i*2+comboCounter) % 7 + 1;
-                board[i*2+1][1] = (i*2+comboCounter) % 7 + 1;
-            }
+            connectBoard(i, i);
         }
     }
 
@@ -1705,69 +1637,37 @@ void Game::setGoal(int newGoal){
 }
 
 void Game::generateGarbage(int height,int mode){
-    if(!pawn.big){
-        int hole = qran() % lengthX;
-        // shift up
-        for(int i = 0; i < lengthY; i++){
-            for(int j = 0; j < lengthX; j++){
-                if(i < lengthY-height)
-                    board[i][j] = board[i+height][j];
-                else
-                    board[i][j] = 0;
-            }
-
-            bitboard[i] = bitboard[i+height];
+    int hole = qran() % lengthX;
+    // shift up
+    for(int i = 0; i < lengthY; i++){
+        for(int j = 0; j < lengthX; j++){
+            if(i < lengthY-height)
+                board[i][j] = board[i+height][j];
+            else
+                board[i][j] = 0;
         }
 
-        for(int i = lengthY-height; i < lengthY; i++){
-            int prevHole = hole;
-            int count = 0;
-            if(!mode || rand() % 10 < 3){
-                do{
-                    hole = rand() % lengthX;
-                }while(++count < 11 && ((!board[i-1][hole] && height < garbageHeight) || hole == prevHole));
-            }
-            for(int j = 0; j < lengthX; j++){
-                if(j == hole)
-                    continue;
-                board[i][j]=8;
-            }
-
-            bitboard[i] = 0x3ff & ~(1 << hole);
-        }
-
-        garbageHeight+=height;
-    }else{
-        int hole = qran() % lengthX/2;
-        // shift up
-        for(int i = 0; i < lengthY; i++){
-            for(int j = 0; j < lengthX; j++){
-                if(i < lengthY-height*2)
-                    board[i][j] = board[i+height*2][j];
-                else
-                    board[i][j] = 0;
-            }
-        }
-
-        for(int i = lengthY/2-height; i < lengthY/2; i++){
-            int prevHole = hole;
-            if(!mode || qran() % 10 < 3){
-                do{
-                    hole = qran() % (lengthX/2);
-                }while((!board[(i-1)*2][hole*2] && height < garbageHeight) || hole == prevHole);
-            }
-            for(int j = 0; j < lengthX/2; j++){
-                if(j == hole)
-                    continue;
-                board[i*2][j*2]=8;
-                board[i*2][j*2+1]=8;
-                board[i*2+1][j*2]=8;
-                board[i*2+1][j*2+1]=8;
-            }
-        }
-
-        garbageHeight+=height;
+        bitboard[i] = bitboard[i+height];
     }
+
+    for(int i = lengthY-height; i < lengthY; i++){
+        int prevHole = hole;
+        int count = 0;
+        if(!mode || rand() % 10 < 3){
+            do{
+                hole = rand() % lengthX;
+            }while(++count < 11 && ((!board[i-1][hole] && height < garbageHeight) || hole == prevHole));
+        }
+        for(int j = 0; j < lengthX; j++){
+            if(j == hole)
+                continue;
+            board[i][j]=8;
+        }
+
+        bitboard[i] = 0x3ff & ~(1 << hole);
+    }
+
+    garbageHeight+=height;
 
     stackHeight -= height;
 
@@ -1860,13 +1760,13 @@ Drop Game::calculateDrop(){
     if(result.startY < stackHeight)
         stackHeight = result.startY;
 
-    if(pawn.big){
-        result.startX *=2;
-        result.endX *=2;
-        result.startY *=2;
-        result.endY *=2;
-        result.rawEndY *=2;
-    }
+    // if(pawn.big){
+    //     result.startX *=2;
+    //     result.endX *=2;
+    //     result.startY *=2;
+    //     result.endY *=2;
+    //     result.rawEndY *=2;
+    // }
 
     result.startY -= 20;
     result.endY -= 20;
@@ -2083,28 +1983,12 @@ int Game::checkITouching(int r, int oriantation){
 
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if(!pawn.big){
-                if(oriantation == 0){
-                    if((j == 1 || j == 3) && ((x + j < 0) || (x+j > lengthX - 1) || ((y + i >= 0 && y + i <= lengthY-1) && board[i+y][j+x])))
-                        return j;
-                }else{
-                    if(i == 2 && ((y + i > lengthY-1) || ((x + j >= 0 && x + j <= lengthX-1) && (board[y+i][x+j]))))
-                        return i;
-                }
+            if(oriantation == 0){
+                if((j == 1 || j == 3) && ((x + j < 0) || (x+j > lengthX - 1) || ((y + i >= 0 && y + i <= lengthY-1) && board[i+y][j+x])))
+                    return j;
             }else{
-                for(int k = 0; k < 2; k++){
-                    int yoffset = (y+i) * 2 + k;
-                    for(int l = 0; l < 2; l++){
-                        int xoffset = (x+j) * 2 + l;
-                        if(oriantation == 0){
-                            if((j == 1 || j == 3) && ((xoffset < 0) || (xoffset > lengthX - 1) || ((yoffset >= 0 && yoffset <= lengthY-1) && board[yoffset][xoffset])))
-                                return j;
-                        }else{
-                            if(i == 2 && ((yoffset > lengthY-1) || ((xoffset >= 0 && yoffset <= lengthX-1) && (board[yoffset][xoffset]))))
-                                return i;
-                        }
-                    }
-                }
+                if(i == 2 && ((y + i > lengthY-1) || ((x + j >= 0 && x + j <= lengthX-1) && (board[y+i][x+j]))))
+                    return i;
             }
         }
     }
