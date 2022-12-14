@@ -5,6 +5,7 @@
 #include "tetromino.hpp"
 #include <tuple>
 #include "platform.h"
+#include "tonc_core.h"
 
 namespace Tetris
 {
@@ -243,18 +244,12 @@ namespace Tetris
             current = oldPawn.current;
             rotation = oldPawn.rotation;
             lowest = oldPawn.lowest;
+            lowestBlock = oldPawn.lowestBlock;
+            big = oldPawn.big;
 
-            for(int i = 0; i < 4; i++)
-                for(int j = 0; j < 4; j++)
-                    for(int k = 0; k < 4; k++)
-                        board[i][j][k] = oldPawn.board[i][j][k];
-
-            for(int i = 0; i < 4; i++)
-                for(int j = 0; j < 4; j++)
-                    boardLowest[i][j] = oldPawn.boardLowest[i][j];
-
-            for(int i = 0; i < 4; i++)
-                heighest[i] = oldPawn.heighest[i];
+            memcpy32(board, oldPawn.board, 4 * 4 * 4);
+            memcpy32(boardLowest, oldPawn.boardLowest, 4 * 4);
+            memcpy32(heighest, oldPawn.heighest, 4);
         }
     };
 
@@ -602,29 +597,31 @@ namespace Tetris
         Game(int gm,bool big) : Game(gm,qran(),big){}
 
         Game(const Game& oldGame){
-            canHold = oldGame.canHold;
-            bag = oldGame.bag;
 
             board = new int* [lengthY];
 
             for (int i = 0; i < lengthY; i++) {
                 board[i] = new int[lengthX];
+                bitboard[i] = oldGame.bitboard[i];
                 for (int j = 0; j < lengthX; j++)
                     board[i][j] = oldGame.board[i][j];
             }
-            
+
+            for (int j = 0; j < lengthX; j++)
+                columnHeights[j] = oldGame.columnHeights[j];
+
             queue = oldGame.queue;
+            canHold = oldGame.canHold;
+            bag = oldGame.bag;
 
             pawn = Pawn(oldGame.pawn);
 
             held = oldGame.held;
-            linesCleared = oldGame.linesCleared;
             level = oldGame.level;
             score = oldGame.score;
             comboCounter = oldGame.comboCounter;
             linesCleared = oldGame.linesCleared;
             clearLock = oldGame.clearLock;
-            lost = oldGame.lost;
             gameMode = oldGame.gameMode;
             sounds = SoundFlags(oldGame.sounds);
             previousClear = Score(oldGame.previousClear);
@@ -632,6 +629,7 @@ namespace Tetris
             inGameTimer = oldGame.inGameTimer;
             refresh = oldGame.refresh;
             won = oldGame.won;
+            lost = oldGame.lost;
             goal = oldGame.goal;
             finesseFaults = oldGame.finesseFaults;
             garbageCleared = oldGame.garbageCleared;
@@ -646,7 +644,12 @@ namespace Tetris
             trainingMode = oldGame.trainingMode;
             clearLock = oldGame.clearLock;
             linesToClear = oldGame.linesToClear;
+            linesCleared = oldGame.linesCleared;
             pawn.big = oldGame.pawn.big;
+            dropping = oldGame.dropping;
+            stackHeight = oldGame.stackHeight;
+            pieceCounter = oldGame.pieceCounter;
+            speed = oldGame.speed;
         }
 
 

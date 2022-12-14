@@ -185,8 +185,8 @@ void Bot::run(){
 
             // log(buff);
 
-            // delete quickSave;
-            // quickSave = new Game(*game);
+            delete quickSave;
+            quickSave = new Game(*game);
         }
 
         if(thinkingI < 6){
@@ -217,15 +217,15 @@ void Bot::run(){
                 thinkingJ = 0;
                 // thinking = false;
                 sleepTimer = botSleepDuration;
-                // delete game;
-                // game = new Game(*quickSave);
-                // game->setTuning(getTuning());
 
                 if(checking == 1){
                     thinking = false;
                     checking = 0;
-                    game->pawn.current = previous;
-                    game->pawn.setBlock(SRS);
+                    // game->pawn.current = previous;
+                    // game->pawn.setBlock(SRS);
+                    delete game;
+                    game = new Game(*quickSave);
+                    game->setTuning(getTuning());
                 } else{
                     checking++;
 
@@ -262,7 +262,7 @@ void Bot::move(){
         sleepTimer = maxSleep;
 
     if(game->pawn.current != current.piece){
-        // log("current: " + std::to_string(game->pawn.current) + " best: " + std::to_string(current.piece));
+        log("current: " + std::to_string(game->pawn.current) + " best: " + std::to_string(current.piece));
         game->hold(1);
         game->hold(0);
         return;
