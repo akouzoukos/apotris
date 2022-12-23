@@ -48,8 +48,7 @@ void showZoneText();
 void showFullMeter();
 Function getActionFromKey(int key);
 void liftKeys();
-void journeyFlash();
-// void journeyFlash();
+void setRandomGraphics(Save * save);
 void setJourneyGraphics(Save * save, int level);
 
 Game* game;
@@ -115,7 +114,7 @@ static bool creditRefresh = false;
 static u16 fullMeterTimer = 0;
 #define fullMeterTimerMax 5 * 60;
 #define fullMeterAnimationLength 15
-// static bool refreshSkin = false;
+static bool refreshSkin = false;
 // Bot *testBot;
 
 void GameScene::draw(){
@@ -319,9 +318,10 @@ void checkSounds() {
         if(game->gameMode == MASTER){
             maxClearTimer = game->maxClearDelay;
         }
-          // else if(game->gameMode == MARATHON){
-          //      journeyLevelUp = true;
-        // }
+        //else if(game->gameMode == MARATHON){
+        //    setJourneyGraphics(savefile, game->level);
+        //    refreshSkin = true;
+        //}
     }
 
     std::string sectionText = "";
@@ -1121,12 +1121,6 @@ void gameLoop(){
 
     countdown();
 
-     // if (!resumeJourney){
-     // }
-     // else{
-     //      resumeJourney = false;
-     // }
-
     if (!(game->gameMode == TRAINING)) {
         playSongRandom(1);
     }
@@ -1144,6 +1138,12 @@ void gameLoop(){
     update();
 
     while (1) {
+        if (refreshSkin){
+            refreshSkin = false;
+            setSkin();
+            continue;
+        }
+        
         diagnose();
         if (!game->lost && !pause && !game->eventLock) {
             // profile_start();
@@ -1293,18 +1293,6 @@ void gameLoop(){
             zoneFlash();
 
         sqran(qran() % frameCounter);
-
-          // if(!game->eventLock && journeyLevelUp){
-          //      // flashTimer = flashTimerMax;
-          //      // journeyFlash();
-
-          //      setJourneyGraphics(savefile, game->level);
-
-          //      delete journeySave;
-          //      journeySave = new Game(*game);
-          //      journeySaveExists = true;
-          //      return;
-          // }
     }
 }
 
@@ -2305,70 +2293,6 @@ Function getActionFromKey(int key){
 void liftKeys(){
     game->liftKeys();
 }
-
-void journeyFlash(){
-
-    if(flashTimer == flashTimerMax){
-        if(previousPalette != nullptr)
-            delete previousPalette;
-        previousPalette = new COLOR [512];
-        memcpy32(&previousPalette[0], pal_bg_mem, 256);
-    }
-
-    flashTimer--;
-
-    REG_MOSAIC = MOS_BUILD(flashTimer,flashTimer,flashTimer,flashTimer);
-
-    int n = ((float)flashTimer/flashTimerMax) * 31;
-
-    clr_fade_fast(previousPalette, 0x7fff, pal_obj_mem, 128, n);
-
-    bool cond = ((flashTimer < flashTimerMax/2) && eventPauseTimer);
-
-    if(cond && game->gameMode == MARATHON)
-        gradient(true);
-
-    memcpy16(&pal_bg_mem[cond],&pal_obj_mem[cond],(8 * 16));
-
-    if(flashTimer < flashTimerMax/2 && game->gameMode == MASTER){
-        if(!savefile->settings.lightMode)
-            memset16(pal_bg_mem, 0x0000, 1);
-        else
-            memset16(pal_bg_mem, 0x5ad6, 1);//background gray
-    }
-}
-
-// void journeyFlash(){
-
-//     if(flashTimer == flashTimerMax){
-//         if(previousPalette != nullptr)
-//             delete previousPalette;
-//         previousPalette = new COLOR [512];
-//         memcpy32(&previousPalette[0], pal_bg_mem, 256);
-//     }
-
-//     flashTimer--;
-
-//     REG_MOSAIC = MOS_BUILD(flashTimer,flashTimer,flashTimer,flashTimer);
-
-//     int n = ((float)flashTimer/flashTimerMax) * 31;
-
-//     clr_fade_fast(previousPalette, 0x7fff, pal_obj_mem, 128, n);
-
-//     bool cond = ((flashTimer < flashTimerMax/2) && eventPauseTimer);
-
-//     if(cond && game->gameMode == MARATHON)
-//         gradient(true);
-
-//     memcpy16(&pal_bg_mem[cond],&pal_obj_mem[cond],(8 * 16));
-
-//     if(flashTimer < flashTimerMax/2 && game->gameMode == MASTER){
-//         if(!savefile->settings.lightMode)
-//             memset16(pal_bg_mem, 0x0000, 1);
-//         else
-//             memset16(pal_bg_mem, 0x5ad6, 1);//background gray
-//     }
-// }
 
 void setRandomGraphics(Save *save){
     save->settings.edges = true;

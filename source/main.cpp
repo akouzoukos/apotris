@@ -86,11 +86,6 @@ bool gradientEnabled = false;
 
 Options *previousGameOptions = nullptr;
 
-// bool resumeJourney = false;
-// bool journeyLevelUp = false;
-// bool journeySaveExists = false;
-// Tetris::Game* journeySave;
-
 void onVBlank(void) {
 
     mmVBlank();
