@@ -222,7 +222,7 @@ public:
 #define MAX_SKINS 14
 #define MAX_SHADOWS 5
 #define MAX_BACKGROUNDS 6
-#define MAX_COLORS 7
+#define MAX_COLORS 8
 #define MAX_CLEAR_EFFECTS 3
 
 #define MAX_MENU_SONGS 2
@@ -233,7 +233,7 @@ public:
 #define SHOW_FINESSE 1
 #define DIAGNOSE 1
 #define SAVE_TAG 0x50
-#define ENABLE_BOT 1
+#define ENABLE_BOT 0
 
 #define ENABLE_FLASH_SAVE 1
 
@@ -242,6 +242,7 @@ extern void gameLoop();
 extern void playSong(int,int);
 extern void playSongRandom(int);
 extern void playNextSong();
+extern std::string getSongTitle();
 extern void settingsText();
 extern void songListMenu();
 extern void graphicTest();
@@ -275,6 +276,7 @@ extern void progressBar();
 
 extern int endScreen();
 extern int pauseMenu();
+extern int proSettingMenu();
 extern void countdown();
 extern void screenShake();
 
@@ -390,6 +392,9 @@ extern int level;
 extern TILE* customSkin;
 
 extern bool proMode;
+
+extern bool proSetting;
+extern FIXED ppsThreshold;
 
 extern bool gradientEnabled;
 

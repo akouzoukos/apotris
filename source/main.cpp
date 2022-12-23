@@ -51,6 +51,7 @@ int shake = 0;
 int gameSeconds;
 
 bool pause = false;
+bool proSetting = false;
 
 int marathonClearTimer = 20;
 
@@ -292,6 +293,135 @@ void reset() {
         memcpy16(gradientTable,defaultGradient_bin,defaultGradient_bin_size/2);
     else
         setGradient(g);
+}
+
+std::string ppsInput(std::string ppsStr) {
+    
+    // std::string result = savefile->ppsThreshold;
+    
+    std::string result = ppsStr;
+    
+    int cursor = 0;
+
+    const static int inputHeight = 10;
+
+    int timer = 0;
+
+    int das = 0;
+    int maxDas = 12;
+
+    int arr = 0;
+    int maxArr = 5;
+
+    bool onDone = false;
+
+    while (1) {
+        VBlankIntrWait();
+
+        aprint("PPS Threshold: ", 8, inputHeight - 2);
+
+        aprint("DONE", 14, 16);
+
+        key_poll();
+
+        u16 key = key_hit(KEY_FULL);
+
+        aprint(result, 13, inputHeight);
+
+        if (!onDone) {
+            if (key == KEY_A || key == KEY_RIGHT) {
+                if (cursor < 3)
+                    cursor++;
+                if (cursor == 1)
+                    cursor = 2;               
+                sfx(SFX_MENUMOVE);                
+            }
+
+            if (key == KEY_B || key == KEY_LEFT) {
+                if (cursor > 0)
+                    cursor--;
+                if (cursor == 1)
+                    cursor = 0;                
+                sfx(SFX_MENUMOVE);
+            }
+
+            if (key == KEY_START) {
+                onDone = true;
+                sfx(SFX_MENUCONFIRM);
+            }
+
+            char curr = result.at(cursor);
+            if (key == KEY_DOWN) {
+                if (curr == '0')
+                    result[cursor] = '9';
+                else if (curr > '0')
+                    result[cursor] = curr - 1;
+
+                sfx(SFX_MENUMOVE);
+            } else if (key == KEY_UP) {
+                if (curr == '9')
+                    result[cursor] = '0';
+                else if (curr < '9')
+                    result[cursor] = curr + 1;
+                sfx(SFX_MENUMOVE);
+            } else if (key_is_down(KEY_UP) || key_is_down(KEY_DOWN)) {
+                if (das < maxDas)
+                    das++;
+                else {
+                    if (arr++ > maxArr) {
+                        arr = 0;
+                        if (key_is_down(KEY_DOWN)) {
+                            if (curr == '0')
+                                result[cursor] = '9';
+                            else if (curr == '9')
+                                result[cursor] = '0';
+                            else if (curr > '0')
+                                result[cursor] = curr - 1;
+                        } else {
+                            if (curr == '9')
+                                result[cursor] = '0';
+                            else if (curr == '0')
+                                result[cursor] = '9';
+                            else if (curr < '9')
+                                result[cursor] = curr + 1;
+                        }
+                        sfx(SFX_MENUMOVE);
+                    }
+                }
+            } else {
+                das = 0;
+                if (timer++ > 19)
+                    timer = 0;
+
+                if (timer < 10)
+                    aprint("_", 13 + cursor, inputHeight);
+            }
+
+            aprint(" ", 12, 16);
+        } else {
+            aprint(">", 12, 16);
+
+            if (key == KEY_A || key == KEY_START) {
+                sfx(SFX_MENUCONFIRM);
+                break;
+            }
+
+            if (key == KEY_B) {
+                onDone = false;
+                sfx(SFX_MENUCANCEL);
+            }
+        }
+    }
+
+    clearText();
+
+    if (result.size() >= 4)
+        result = result.substr(0, 4);
+    
+    // for (int i = 0; i < 8; i++)
+        // savefile->ppsThreshold[i] = result.at(i);
+
+    return result;
 }
 
 std::string nameInput(int place) {
@@ -758,6 +888,19 @@ void setPalette(){
         //set frame color
         memcpy16(&pal_obj_mem[8 * 16], &palette[1][color * 16], 16);
         memcpy16(&pal_bg_mem[8 * 16], &palette[1][color * 16], 16);
+    }else if(savefile->settings.colors == 7){
+        for(int i = 0; i < 9; i++){
+            memcpy16(&pal_bg_mem[i*16+1], &palette[n][color * 16],4);
+            memcpy16(&pal_obj_mem[i*16+1], &palette[n][color * 16],4);
+        }
+
+        if(!savefile->settings.lightMode){
+            memset16(&pal_bg_mem[7], 0x7fff,2);
+            memset16(&pal_obj_mem[7], 0x7fff,2);
+        }else{
+            memset16(&pal_bg_mem[7], 0x0421,2);
+            memset16(&pal_obj_mem[7], 0x0421,2);
+        }	
     }else{
         //set frame color
         memcpy16(&pal_obj_mem[8 * 16], &palette[n][color * 16], 16);
@@ -977,6 +1120,9 @@ void setPawnPalette(int dest, int n, int blend){
     // } else
     //     c = monoPalette[savefile->settings.lightMode][0];
 
+    int settingColors = (savefile->settings.colors < 2)?savefile->settings.colors:0;
+    int settingPalette = savefile->settings.palette + 2 * (savefile->settings.palette > 6);
+
     if (!savefile->settings.lightMode){
         if(savefile->settings.colors == 2)
             clr_fade((COLOR*)classic_pal_bin, 0x0000, &pal_obj_mem[dest * 16], 8, blend);
@@ -988,6 +1134,8 @@ void setPawnPalette(int dest, int n, int blend){
             clr_fade((COLOR*)&arsPalette[0][n], 0x0000, &pal_obj_mem[dest * 16+1], 4, blend);
         }else if(savefile->settings.colors == 6){
             clr_fade((COLOR*)&arsPalette[1][n], 0x0000, &pal_obj_mem[dest * 16+1], 4, blend);
+        }else if(savefile->settings.colors == 7){
+            clr_fade_fast((COLOR*)&palette[settingColors][settingPalette * 16], 0x0000, &pal_obj_mem[dest * 16+1], 4, blend);
         } else
             clr_fade_fast((COLOR*)&palette[savefile->settings.colors][n * 16], 0x0000, &pal_obj_mem[dest * 16], 8, blend);
     }else{
@@ -1005,6 +1153,8 @@ void setPawnPalette(int dest, int n, int blend){
             clr_adj_brightness(&pal_obj_mem[dest * 16+1], (COLOR*)&arsPalette[0][n], 4, blend);
         }else if(savefile->settings.colors == 6){
             clr_adj_brightness(&pal_obj_mem[dest * 16+1], (COLOR*)&arsPalette[1][n], 4, blend);
+        }else if(savefile->settings.colors == 7){
+            clr_adj_brightness(&pal_obj_mem[dest * 16+1], (COLOR*)&palette[settingColors][settingPalette * 16], 4, blend);
         }else
             clr_adj_brightness(&pal_obj_mem[dest * 16], (COLOR*)&palette[savefile->settings.colors][n * 16], 8, blend);
     }

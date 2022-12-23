@@ -780,14 +780,21 @@ void showQueue() {
 }
 
 void control() {
-    if (pause)
+    if (pause || proSetting)
         return;
 
     key_poll();
 
     Keys k = savefile->settings.keys;
 
-    if (key_hit(KEY_START) && !multiplayer && !eventPauseTimer) {
+    if ((key_is_down(KEY_L) || key_is_down(KEY_R)) && key_hit(KEY_START) && proMode && !multiplayer && !eventPauseTimer) {
+        sfx(SFX_MENUCONFIRM);
+        proSetting = true;
+        mmPause();
+        clearText();
+        update();
+    }
+    else if (key_hit(KEY_START) && !multiplayer && !eventPauseTimer) {
         sfx(SFX_MENUCONFIRM);
         pause = true;
         mmPause();
@@ -987,6 +994,10 @@ void showPPS(){
     FIXED t = (gameSeconds + game->eventTimer) * float2fx(0.0167f);
 
     FIXED pps;
+    
+    //set palette
+    memset16(&pal_bg_mem[15*16+4],0x03e0,1); //green
+    memset16(&pal_bg_mem[15*16+5],0x001f,1); //red
 
     if(t <= 0){
         pps = 0;
@@ -1006,7 +1017,12 @@ void showPPS(){
     }
 
     memset32(&tile_mem[2][113],0,8*3);
-    aprints(str,25,0,2);
+    if (pps >= ppsThreshold){
+        aprints(str,25,0,4);
+    }
+    else{
+        aprints(str,25,0,5);
+    }
 
     aprints("PPS:",0,0,2);
 }
@@ -1145,7 +1161,7 @@ void gameLoop(){
         }
         
         diagnose();
-        if (!game->lost && !pause && !game->eventLock) {
+        if (!game->lost && !pause && !proSetting && !game->eventLock) {
             // profile_start();
             game->update();
             // log(std::to_string(profile_stop()));
@@ -1250,12 +1266,17 @@ void gameLoop(){
                 playAgain = false;
         }
 
-        if (pause){
-
-            if(pauseMenu()){
+        if (pause || proSetting){
+            if(pause && pauseMenu()){
                 pause = false;
                 return;
             }
+
+            if(proSetting && proSettingMenu()){
+                proSetting = false;
+                return;
+            }
+
             liftKeys();
         }
 

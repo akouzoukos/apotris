@@ -128,3 +128,18 @@ void playNextSong(){
 
     playSong(menuId, songId);
 }
+
+std::string getSongTitle(){
+	switch (currentlyPlayingSong) {
+	case 0:
+		return "Nikku4211 - Thirno";
+	case 1:
+		return "kb-zip - oh my god!";
+	case 2:
+		return "curt cool - unsuspected <h>";
+	case 3:
+		return "Basq - Warning Infected!";
+	default:
+		return "Unknown Artist - Unknown Song";
+	}
+}

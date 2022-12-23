@@ -17,8 +17,10 @@ void endAnimation();
 void showScore();
 void showStats(bool, std::string, std::string);
 int onRecord();
+std::string ppsInput(std::string);
 std::string nameInput(int);
 void showModeText();
+void showBGMText();
 
 int mode = 0;
 bool showingStats = false;
@@ -28,6 +30,9 @@ Tetris::Game* quickSave;
 Tetris::Bot *testBot;
 
 int igt = 0;
+
+FIXED ppsThreshold = 0;
+std::string ppsThresholdStr = "0.00";
 
 const std::string modeStrings[11] = {
     "Marathon",
@@ -263,6 +268,7 @@ int endScreen() {
         }
 
         showModeText();
+        // showBGMText();
 
         aprint("Play", 12, 11);
         aprint("Again", 14, 12);
@@ -365,6 +371,12 @@ int endScreen() {
             clearSmallText();
             showStats(showingStats, totalTime, ppsStr);
         }
+        
+        // if(key == KEY_R){
+            // playNextSong();
+            // aprintClearLine(19);
+            // showBGMText();
+        // }
     }
 
     REG_BLDCNT = prevBld;
@@ -555,6 +567,64 @@ void showStats(bool moreStats, std::string time, std::string pps) {
     }
 }
 
+int proSettingMenu(){    
+    clearText();
+    setSmallTextArea(110, 1, 1, 10, 20);
+
+    int prevBld = REG_BLDCNT;
+    REG_BLDCNT = (1 << 6) + (0b11111 << 9) + (1);
+    memset16(&se_mem[25], 12+4*0x1000 * (savefile->settings.lightMode), 32 * 20);
+
+    REG_BG0HOFS = 0;
+    REG_BG0VOFS = 0;
+
+    //hide Sprites
+    hideMinos();
+    obj_hide(&obj_buffer[23]); //hide meter
+    obj_hide(&obj_buffer[24]); //hide finesse combo counter
+    for(int i = 0; i < 3; i++)
+        obj_hide(&obj_buffer[16+i]);
+
+    oam_copy(oam_mem, obj_buffer, 128);
+
+    if (ppsThresholdStr == "0.00"){
+        //calculate pps
+        FIXED t = gameSeconds * float2fx(0.0167f);
+        FIXED pps = 0;
+        if(t > 0)
+            pps =  fxdiv(int2fx(game->pieceCounter),(t));
+
+        std::string ppsStr = std::to_string(fx2int(pps)) + ".";
+
+        int fractional = pps & 0xff;
+        for(int i = 0; i < 2; i++){
+            fractional *= 10;
+            ppsStr += '0' + (fractional >> 8);
+            fractional &= 0xff;
+        }
+        
+        ppsThresholdStr = ppsInput(ppsStr);
+    }
+    else{
+        ppsThresholdStr = ppsInput(ppsThresholdStr);
+    }
+    
+    ppsThreshold = float2fx(stof(ppsThresholdStr));
+    
+    sfx(SFX_MENUCONFIRM);
+    clearText();
+    update();
+    proSetting = false;
+    mmResume();
+
+    REG_BLDCNT = prevBld;
+    memset16(&se_mem[25], 0 , 32 * 20);
+    showBackground();
+    setSmallTextArea(110, 3, 7, 9, 10);
+
+    return 0;
+}
+
 int pauseMenu(){
 
     // for(int i = 20; i < 40; i++){
@@ -612,6 +682,7 @@ int pauseMenu(){
     igt = game->inGameTimer;
 
     showModeText();
+    showBGMText();
 
     bool shown = false;
 
@@ -673,6 +744,7 @@ int pauseMenu(){
                     sleep();
                     showStats(showingStats, totalTime, ppsStr);
                     showModeText();
+                    showBGMText();
                 } else if (n == 4) {
                     REG_BLDCNT = prevBld;
                     sfx(SFX_MENUCANCEL);
@@ -768,6 +840,12 @@ int pauseMenu(){
             showingStats = !showingStats;
             clearSmallText();
             showStats(showingStats, totalTime, ppsStr);
+        }
+        
+        if(key == KEY_R){
+            playNextSong();
+            aprintClearLine(19);
+            showBGMText();
         }
 
         if(!shown){
@@ -1004,4 +1082,9 @@ void showModeText(){
         if(bigMode)
             aprintColor("BIG MODE",22,counter++,0);
     }
+}
+
+void showBGMText(){
+    std::string str = getSongTitle();
+    aprintColor(str,30-str.size(), 19, 0);
 }
